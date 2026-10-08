@@ -478,23 +478,51 @@ test.describe("Later en lege toestand", () => {
 });
 
 test.describe("Voorbeelddata", () => {
-  test("rondleiding van 3 stappen en terug naar eigen overleg", async ({ page }) => {
+  test("voorbeeldagenda met rondleiding van 4 stappen en checklist", async ({ page }) => {
     const errors = trackErrors(page);
     await page.goto("/voorbeeld");
-    const tour = page.getByRole("complementary", { name: "Rondleiding" });
-    await expect(tour.getByText("Wat je hier ziet · 1 van 3")).toBeVisible();
+    await expect(page.getByRole("heading", { level: 1, name: "Managementoverleg" })).toBeVisible();
+    await expect(page.getByText("We hebben een voorbeeldagenda voorbereid voor je managementoverleg")).toBeVisible();
+
+    const tour = page.getByRole("dialog", { name: "Rondleiding" });
+    await expect(tour.getByText("Stap 1 van 4")).toBeVisible();
+    await expect(tour.getByText("Dit is een blok")).toBeVisible();
     await tour.getByRole("button", { name: "Volgende" }).click();
-    await expect(tour.getByText("Lopende zaken")).toBeVisible();
-    await tour.getByRole("button", { name: "Volgende" }).click();
-    await expect(tour.getByText("Eén plek voor alle acties")).toBeVisible();
-    await tour.getByRole("button", { name: "Sluiten" }).click();
+    await expect(tour.getByText("Agendapunten staan in een blok")).toBeVisible();
+    await tour.getByRole("button", { name: "Vorige stap" }).click();
+    await expect(tour.getByText("Stap 1 van 4")).toBeVisible();
+    for (let i = 0; i < 3; i++) await tour.getByRole("button", { name: "Volgende" }).click();
+    await expect(tour.getByText("Klaar? Start je vergadering")).toBeVisible();
+    await tour.getByRole("button", { name: "Begrepen" }).click();
     await expect(tour).toHaveCount(0);
-    await page.getByRole("checkbox", { name: "Instructie heftruck bijwerken afvinken" }).check();
-    await page.getByRole("link", { name: "Voeg je eigen overleg toe" }).click();
-    await expect(page).toHaveURL(/\/overleg$/);
+
+    // "Toon me hoe" start de rondleiding opnieuw
+    await page.getByRole("button", { name: "Toon me hoe · 1 min" }).click();
+    await expect(tour.getByText("Stap 1 van 4")).toBeVisible();
+    await tour.getByRole("button", { name: "Overslaan" }).click();
+    await expect(tour).toHaveCount(0);
+
+    // Checklist rechtsonder: inklapbaar en volgt wat je doet
+    const checklist = page.getByRole("complementary", { name: /Aan de slag/ });
+    await expect(checklist.getByText("Aan de slag · 1 van 5")).toBeVisible();
+    await checklist.getByRole("button", { name: /Aan de slag/ }).click();
+    await expect(checklist.getByText("Nodig je team uit")).toHaveCount(0);
+    await checklist.getByRole("button", { name: /Aan de slag/ }).click();
+    await page.getByRole("button", { name: "Commerciële resultaten. Titel wijzigen" }).click();
+    await page.getByRole("textbox", { name: "Titel wijzigen" }).fill("Commerciële resultaten Q3");
+    await page.keyboard.press("Enter");
+    await expect(checklist.getByText("Aan de slag · 2 van 5")).toBeVisible();
+
+    // "Leeg beginnen" wist de voorbeeldpunten
+    await page.getByRole("button", { name: "Leeg beginnen" }).click();
+    await expect(page.getByText("Productieresultaten")).toHaveCount(0);
+    await expect(page.getByRole("region", { name: "Voorbeeldagenda" })).toHaveCount(0);
+
     // Niets bewaard
-    await page.goto("/voorbeeld");
-    await expect(page.getByRole("checkbox", { name: "Instructie heftruck bijwerken afvinken" })).not.toBeChecked();
+    await page.reload();
+    await expect(page.getByText("Productieresultaten")).toBeVisible();
+    await page.goto("/app");
+    await expect(page.getByRole("link", { name: /Managementoverleg/ })).toHaveCount(0);
     errors.assertNone();
   });
 

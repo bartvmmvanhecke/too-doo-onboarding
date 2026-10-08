@@ -498,6 +498,7 @@ export function TopicsBlock({
           {ENTRY_KINDS.map(({ kind, plural: label }) => (
             <span
               key={kind}
+              data-tour={kind === "action" ? "kolommen" : undefined}
               className={cn(
                 "w-20 text-center text-[13px] font-medium",
                 kind === "decision" || kind === "action" ? "text-brand" : "text-ink-3",

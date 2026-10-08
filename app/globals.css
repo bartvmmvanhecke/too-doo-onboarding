@@ -63,6 +63,9 @@
   --purpose-inform-bg: #e9f5f0;
   --purpose-decide: #6236b0;
   --purpose-decide-bg: #f3eefc;
+  /* Rondleiding (coach marks) en checklist "Aan de slag" */
+  --tour: #011c58;
+  --tour-accent: #e4eaf9;
 
   /* Website (homepage vanaf sectie 2, too-doo-website-nieuwe-copy) */
   --site-navy: #0d0e2a;
@@ -176,6 +179,8 @@
   --color-purpose-inform-bg: var(--purpose-inform-bg);
   --color-purpose-decide: var(--purpose-decide);
   --color-purpose-decide-bg: var(--purpose-decide-bg);
+  --color-tour: var(--tour);
+  --color-tour-accent: var(--tour-accent);
   --color-nav-from: var(--nav-from);
   --color-nav-to: var(--nav-to);
   --color-nav-ink: var(--nav-ink);

@@ -188,7 +188,7 @@ export function MeetingHeader({
             <Plus className={icon} strokeWidth={STROKE} aria-hidden />
             Actie
           </Button>
-          <Button size="sm" className="font-semibold" onClick={() => startRun(meeting.id)}>
+          <Button size="sm" className="font-semibold" data-tour="start" onClick={() => startRun(meeting.id)}>
             <Play className={icon} strokeWidth={STROKE} aria-hidden />
             Start vergadering
           </Button>

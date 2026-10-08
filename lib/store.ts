@@ -96,6 +96,8 @@ export interface Meeting extends MeetingSchedule {
   held: boolean;
   /** Aangemaakt via variant B (/b/structuur). */
   origin?: "b";
+  /** Voorbeeldvergadering op /voorbeeld: wordt nooit bewaard. */
+  example?: boolean;
 }
 
 export type ExtractionTab = "plak" | "inspreken" | "typen";
@@ -188,6 +190,9 @@ interface Actions {
   updateTypedRow: (index: number, patch: Partial<ActionDraft>) => void;
   confirmProposals: () => void;
   assignOwner: (meetingId: string, actionId: string, ownerId: string) => void;
+  /** Zet een vergadering klaar (of vervangt ze), bv. de voorbeeldvergadering. */
+  putMeeting: (meeting: Meeting) => void;
+  removeMeeting: (meetingId: string) => void;
 }
 
 export type Store = Data & Actions;
@@ -701,6 +706,14 @@ export const useStore = create<Store>()(
               a.id === actionId ? { ...a, ownerId, mailed: ownerId !== USER_PERSON_ID } : a,
             ),
           })),
+
+        putMeeting: (meeting) =>
+          set((s) => ({
+            meetings: s.meetings.some((m) => m.id === meeting.id)
+              ? s.meetings.map((m) => (m.id === meeting.id ? meeting : m))
+              : [...s.meetings, meeting],
+          })),
+        removeMeeting: (meetingId) => set((s) => ({ meetings: s.meetings.filter((m) => m.id !== meetingId) })),
       };
     },
     {
@@ -709,6 +722,8 @@ export const useStore = create<Store>()(
       // Oudere opgeslagen state mist velden (flows, variant B, agendablokken): begin opnieuw.
       migrate: () => initialData(),
       storage: createJSONStorage(() => (typeof window === "undefined" ? noopStorage : window.localStorage)),
+      // De voorbeeldvergadering leeft enkel zolang /voorbeeld open is.
+      partialize: (s) => ({ ...s, meetings: s.meetings.filter((m) => !m.example) }),
     },
   ),
 );

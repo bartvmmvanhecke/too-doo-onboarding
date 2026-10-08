@@ -6,6 +6,18 @@ import { Avatar } from "@/components/avatar";
 import type { Person } from "@/lib/mock-data";
 import { cn } from "@/lib/utils";
 
+/** Zoekt op naam, e-mail of het begin van een e-mailadres ("sofie@" vindt Sofie De Smet). */
+export function matchesPerson(person: Person, query: string): boolean {
+  if (!query) return true;
+  const name = person.name.toLowerCase();
+  const email = person.email?.toLowerCase() ?? "";
+  const [local, domain = ""] = query.split("@");
+  if (name.includes(query) || email.includes(query)) return true;
+  if (!local) return false;
+  const localMatch = name.split(/\s+/).some((w) => w.startsWith(local)) || email.startsWith(local);
+  return localMatch && (domain === "" || email.split("@")[1]?.startsWith(domain) === true);
+}
+
 export interface OwnerOption {
   person: Person;
   /** Tweede regel, bv. "deelnemer productieoverleg". */
@@ -41,9 +53,7 @@ export function OwnerCombobox({
   const [active, setActive] = useState(0);
 
   const q = text.trim().toLowerCase();
-  const matches = options
-    .filter((o) => !q || o.person.name.toLowerCase().includes(q) || o.person.email?.toLowerCase().includes(q))
-    .slice(0, 5);
+  const matches = options.filter((o) => matchesPerson(o.person, q)).slice(0, 5);
   const canAdd = q.length > 0 && !matches.some((o) => o.person.name.toLowerCase() === q || o.person.email?.toLowerCase() === q);
   const count = matches.length + (canAdd ? 1 : 0);
 

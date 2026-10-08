@@ -14,6 +14,7 @@ import { MeetingHeader } from "@/components/meeting/meeting-header";
 import { OpenActionsBlock } from "@/components/meeting/open-actions";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { TooltipProvider } from "@/components/ui/tooltip";
 import { allItems, type AgendaBlock, type AgendaItem } from "@/lib/agenda";
 import { weekdayLong } from "@/lib/date";
 import { USER_PERSON_ID, type Person } from "@/lib/mock-data";
@@ -142,7 +143,7 @@ export function MeetingScreen() {
   const toggle = (b: AgendaBlock) => setExpanded((e) => ({ ...e, [key(b.id)]: !isExpanded(b) }));
 
   // Hint: alleen als er iets ontbreekt.
-  const ownerless = items.filter((i) => !i.ownerId);
+  const ownerless = items.filter((i) => i.ownerIds.length === 0);
   const hint = ownerless.length
     ? `${ownerless.length} ${ownerless.length === 1 ? "agendapunt heeft" : "agendapunten hebben"} nog geen eigenaar`
     : null;
@@ -195,57 +196,59 @@ export function MeetingScreen() {
 
   return (
     <MeetingProvider value={{ meeting, people, owners, now }}>
-      <MeetingHeader
-        hint={run ? null : hint}
-        onShowHint={showHint}
-        onAddAction={startAddingAction}
-        onInvite={() => setInviteOpen(true)}
-      />
+      <TooltipProvider>
+        <MeetingHeader
+          hint={run ? null : hint}
+          onShowHint={showHint}
+          onAddAction={startAddingAction}
+          onInvite={() => setInviteOpen(true)}
+        />
 
-      {meeting.blocks.map((block, index) => {
-        if (block.kind === "break") return <BreakBlock key={block.id} block={block} index={index} moves={moves} />;
-        if (block.kind === "actions")
+        {meeting.blocks.map((block, index) => {
+          if (block.kind === "break") return <BreakBlock key={block.id} block={block} index={index} moves={moves} />;
+          if (block.kind === "actions")
+            return (
+              <OpenActionsBlock
+                key={block.id}
+                block={block}
+                index={index}
+                moves={moves}
+                expanded={isExpanded(block)}
+                onToggle={() => toggle(block)}
+                adding={addingAction}
+                onAddingChange={setAddingAction}
+              />
+            );
           return (
-            <OpenActionsBlock
+            <TopicsBlock
               key={block.id}
               block={block}
               index={index}
               moves={moves}
               expanded={isExpanded(block)}
               onToggle={() => toggle(block)}
-              adding={addingAction}
-              onAddingChange={setAddingAction}
+              focusInput={isFirst && block === firstTopics}
+              onOpenDetails={(item) => setDetailsId(item.id)}
             />
           );
-        return (
-          <TopicsBlock
-            key={block.id}
-            block={block}
-            index={index}
-            moves={moves}
-            expanded={isExpanded(block)}
-            onToggle={() => toggle(block)}
-            focusInput={isFirst && block === firstTopics}
-            onOpenDetails={(item) => setDetailsId(item.id)}
-          />
-        );
-      })}
+        })}
 
-      <AddBlockButton meeting={meeting} />
+        <AddBlockButton meeting={meeting} />
 
-      {/* Onderaan rechts, als laatste: verdwijnt zonder dat de inhoud erboven verspringt. */}
-      {showChecklist && (
-        <Checklist collapsible items={checklist} className="mt-4 w-full max-w-[340px] flex-none self-end" />
-      )}
+        {/* Onderaan rechts, als laatste: verdwijnt zonder dat de inhoud erboven verspringt. */}
+        {showChecklist && (
+          <Checklist collapsible items={checklist} className="mt-4 w-full max-w-[340px] flex-none self-end" />
+        )}
 
-      <ItemDialog item={detailsItem} onClose={() => setDetailsId(null)} />
-      <InviteDialog
-        open={inviteOpen}
-        onOpenChange={setInviteOpen}
-        people={invitees}
-        onInvited={() => useStore.getState().markInvited(meeting.id)}
-        onAddAction={startAddingAction}
-      />
+        <ItemDialog item={detailsItem} onClose={() => setDetailsId(null)} />
+        <InviteDialog
+          open={inviteOpen}
+          onOpenChange={setInviteOpen}
+          people={invitees}
+          onInvited={() => useStore.getState().markInvited(meeting.id)}
+          onAddAction={startAddingAction}
+        />
+      </TooltipProvider>
     </MeetingProvider>
   );
 }

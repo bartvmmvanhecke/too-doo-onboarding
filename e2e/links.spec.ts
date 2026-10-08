@@ -25,7 +25,7 @@ test("alle interne links op alle routes werken", async ({ page, request }) => {
     await page.waitForLoadState("networkidle");
     const hrefs = await page.locator("a[href]").evaluateAll((as) => as.map((a) => a.getAttribute("href") ?? ""));
     for (const href of hrefs) {
-      if (href.startsWith("#") || seen.has(href)) continue;
+      if (href.startsWith("#") || /^(tel|mailto):/.test(href) || seen.has(href)) continue;
       seen.add(href);
       expect(href.startsWith("/"), `externe of lege link "${href}" op ${route}`).toBe(true);
       const res = await request.get(href);
@@ -38,8 +38,11 @@ test("alle interne links op alle routes werken", async ({ page, request }) => {
 /** "#…"-links moeten iets doen: scrollen naar een sectie of een melding tonen. */
 test("ankerlinks op de hero scrollen of tonen een melding", async ({ page }) => {
   await page.goto("/");
-  for (const id of ["hoe", "klanten"]) await expect(page.locator(`#${id}`)).toBeAttached();
-  await page.getByRole("link", { name: "Prijzen" }).click();
+  for (const id of ["product", "compare", "testimonials", "pricing"])
+    await expect(page.locator(`#${id}`)).toBeAttached();
+  await page.getByRole("navigation", { name: "Website" }).getByRole("link", { name: "Prijzen" }).click();
+  await expect(page).toHaveURL(/#pricing$/);
+  await page.getByRole("main").getByRole("link", { name: "Boek een demo" }).first().click();
   await expect(
     page.locator("[data-sonner-toast]").filter({ hasText: "Niet beschikbaar in dit prototype" }),
   ).toBeVisible();

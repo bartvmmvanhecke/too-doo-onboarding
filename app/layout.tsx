@@ -1,6 +1,6 @@
 import { Suspense } from "react";
 import type { Metadata } from "next";
-import { Nunito } from "next/font/google";
+import { Nunito, Rubik } from "next/font/google";
 import { DemoBar } from "@/components/demo/demo-bar";
 import { PrototypeNav } from "@/components/prototype/prototype-nav";
 import { Toaster } from "@/components/ui/sonner";
@@ -12,6 +12,13 @@ const nunito = Nunito({
   weight: ["400", "500", "600", "700", "800"],
 });
 
+/** Tekstfont van de nieuwe website (homepage vanaf sectie 2). */
+const rubik = Rubik({
+  variable: "--font-rubik",
+  subsets: ["latin"],
+  weight: ["300", "400", "500"],
+});
+
 export const metadata: Metadata = {
   title: "too-doo · onboarding-prototype",
   description: "Klikbaar prototype van de nieuwe onboarding van too-doo.",
@@ -19,7 +26,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="nl-BE" className={`${nunito.variable} h-full`}>
+    <html lang="nl-BE" className={`${nunito.variable} ${rubik.variable} h-full`}>
       <body className="min-h-full">
         {children}
         <Suspense fallback={null}>

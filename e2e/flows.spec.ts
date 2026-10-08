@@ -5,7 +5,7 @@ test.describe("Hoofdflow: Microsoft slaagt, reeksen gevonden", () => {
   test("hero → account → lijst → acties → overleg, met alle knoppen in het overleg", async ({ page }) => {
     const errors = trackErrors(page);
     await page.goto("/");
-    await page.getByRole("link", { name: "Start gratis met Microsoft" }).click();
+    await page.getByRole("main").getByRole("link", { name: "Probeer gratis" }).last().click();
     await expect(page).toHaveURL(/\/prototype$/);
     await page.getByRole("button", { name: /Start flow 1:/ }).click();
     await expect(page).toHaveURL(/\/start$/);
@@ -376,9 +376,7 @@ test.describe("Later en lege toestand", () => {
 test.describe("Voorbeelddata", () => {
   test("rondleiding van 3 stappen en terug naar eigen overleg", async ({ page }) => {
     const errors = trackErrors(page);
-    await page.goto("/");
-    await page.getByRole("link", { name: "Bekijk de rondleiding · 2 min" }).click();
-    await expect(page).toHaveURL(/\/voorbeeld$/);
+    await page.goto("/voorbeeld");
     const tour = page.getByRole("complementary", { name: "Rondleiding" });
     await expect(tour.getByText("Wat je hier ziet · 1 van 3")).toBeVisible();
     await tour.getByRole("button", { name: "Volgende" }).click();

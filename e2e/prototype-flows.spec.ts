@@ -25,7 +25,7 @@ test.describe("Vier flows vanaf /prototype", () => {
     const errors = trackErrors(page);
     const shot = shooter(page, "flow-1");
     await page.goto("/");
-    await page.getByRole("link", { name: "Probeer gratis" }).click();
+    await page.getByRole("main").getByRole("link", { name: "Probeer gratis" }).last().click();
     await expect(page).toHaveURL(/\/prototype$/);
     await shot("prototype");
     await page.getByRole("button", { name: /Start flow 1:/ }).click();

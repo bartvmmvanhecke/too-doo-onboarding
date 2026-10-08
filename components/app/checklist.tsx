@@ -1,7 +1,8 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
-import { Check } from "lucide-react";
+import { Check, ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export interface ChecklistItem {
@@ -16,22 +17,52 @@ export interface ChecklistItem {
   href?: string;
 }
 
-/** Checklist "Aan de slag" met voortgangsbalk. */
-export function Checklist({ title = "Aan de slag", items }: { title?: string; items: ChecklistItem[] }) {
+/** Checklist "Aan de slag" met voortgangsbalk; optioneel inklapbaar. */
+export function Checklist({
+  title = "Aan de slag",
+  items,
+  collapsible = false,
+  className,
+}: {
+  title?: string;
+  items: ChecklistItem[];
+  collapsible?: boolean;
+  className?: string;
+}) {
+  const [open, setOpen] = useState(true);
   const done = items.filter((i) => i.done).length;
   const pct = Math.round((done / items.length) * 100);
   return (
     <aside
       aria-labelledby="checklist-title"
-      className="flex min-w-0 flex-[1_1_280px] flex-col gap-3 rounded-[14px] border border-line-soft bg-white px-5 py-[18px]"
+      className={cn(
+        "flex min-w-0 flex-[1_1_280px] flex-col gap-3 rounded-[14px] border border-line-soft bg-white px-5 py-[18px]",
+        className,
+      )}
     >
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-2">
         <h2 id="checklist-title" className="text-[17px] font-extrabold">
           {title}
         </h2>
-        <span className="text-[13px] font-bold text-ink-2">
+        <span className="ml-auto text-[13px] font-bold text-ink-2">
           {done} van {items.length}
         </span>
+        {collapsible && (
+          <button
+            type="button"
+            aria-expanded={open}
+            aria-controls="checklist-items"
+            aria-label={open ? `${title} inklappen` : `${title} uitklappen`}
+            onClick={() => setOpen((o) => !o)}
+            className="-mr-2.5 flex size-11 cursor-pointer items-center justify-center rounded-[10px] text-ink-3 hover:bg-app hover:text-ink"
+          >
+            <ChevronDown
+              className={cn("size-4 transition-transform", !open && "rotate-180")}
+              strokeWidth={1.6}
+              aria-hidden
+            />
+          </button>
+        )}
       </div>
       <div
         role="progressbar"
@@ -43,13 +74,15 @@ export function Checklist({ title = "Aan de slag", items }: { title?: string; it
       >
         <div className="h-1.5 bg-success transition-[width]" style={{ width: `${pct}%` }} />
       </div>
-      <ul className="flex flex-col gap-1">
-        {items.map((item) => (
-          <li key={item.id}>
-            <ChecklistRow item={item} />
-          </li>
-        ))}
-      </ul>
+      {open && (
+        <ul id="checklist-items" className="flex flex-col gap-1">
+          {items.map((item) => (
+            <li key={item.id}>
+              <ChecklistRow item={item} />
+            </li>
+          ))}
+        </ul>
+      )}
     </aside>
   );
 }

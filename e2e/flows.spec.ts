@@ -40,51 +40,119 @@ test.describe("Hoofdflow: Microsoft slaagt, reeksen gevonden", () => {
 
     await page.getByRole("button", { name: "Toon mijn overleg" }).click();
     await expect(page).toHaveURL(/\/app\/overleg\/managementoverleg$/);
-    await expect(
-      page.getByRole("status").filter({
-        hasText: "Je managementoverleg staat klaar. Je 3 openstaande acties komen dinsdag vanzelf aan bod.",
-      }),
-    ).toBeVisible();
+    // Geen succesbanner meer; de pagina zelf is het welkom.
+    await expect(page.getByText("staat klaar")).toHaveCount(0);
     await expect(page.getByRole("heading", { level: 1 })).toHaveText("Managementoverleg");
-    await expect(page.getByRole("main").getByText(/· 4 deelnemers$/)).toBeVisible();
+    await expect(page.getByRole("main").getByText(/^Om de 2 weken op dinsdag · 14:00–15:30/)).toBeVisible();
+    // Avatar-stack: max. 3 en +N; klikken toont de deelnemers.
+    await page.getByRole("button", { name: "4 deelnemers tonen" }).click();
+    await expect(page.getByRole("dialog").getByText("Sofie De Smet")).toBeVisible();
+    await page.keyboard.press("Escape");
     for (const what of ["Offerte nieuwe plooibank opvragen", "Instructie heftruck bijwerken", "Leverancier bellen"]) {
       await expect(page.getByRole("checkbox", { name: `${what} afvinken` })).toBeVisible();
     }
-    await expect(page.getByText("geen deadline").first()).toBeVisible();
+    await expect(page.getByRole("region", { name: "Openstaande acties" }).getByText("3 open")).toBeVisible();
     await expect(page.getByRole("progressbar", { name: /1 van 4/ })).toBeVisible();
 
     // Afvinken
     await page.getByRole("checkbox", { name: "Instructie heftruck bijwerken afvinken" }).check();
     await expect(page.getByRole("checkbox", { name: "Instructie heftruck bijwerken afvinken" })).toBeChecked();
 
-    // Agendapunt via Enter
-    await page.getByLabel("Agendapunt toevoegen").fill("Planning week 42");
+    // Agendapunt via Enter; de focus blijft in het veld.
+    const add = page.getByLabel("Agendapunt toevoegen aan Lopende zaken");
+    await add.fill("Planning week 42");
+    await add.press("Enter");
+    await expect(add).toBeFocused();
+    await add.fill("Budget Q4");
+    await add.press("Enter");
+    await expect(page.getByRole("button", { name: /^Planning week 42\./ })).toBeVisible();
+    // Hint i.p.v. prep score: wat ontbreekt.
+    await expect(page.getByText("2 agendapunten hebben nog geen eigenaar")).toBeVisible();
+    await page.getByRole("button", { name: "Toon" }).click();
+    await expect(page.locator("[id^=owner-]").first()).toBeFocused();
+
+    // Inline bewerken: titel, eigenaar, duur en doel.
+    await page.getByRole("button", { name: /^Planning week 42\./ }).click();
+    await page.getByRole("textbox", { name: "Titel wijzigen" }).fill("Planning week 43");
     await page.keyboard.press("Enter");
-    await expect(page.getByText("Planning week 42")).toBeVisible();
+    await expect(page.getByRole("button", { name: /^Planning week 43\./ })).toBeVisible();
+    await page.getByRole("button", { name: "Eigenaar kiezen" }).first().click();
+    await page
+      .getByRole("dialog", { name: "Eigenaar kiezen" })
+      .getByRole("button", { name: /Sofie De Smet/ })
+      .click();
+    await expect(page.getByText("1 agendapunt heeft nog geen eigenaar")).toBeVisible();
+    await page.getByRole("button", { name: "Toevoegen aan Planning week 43" }).click();
+    await page.getByRole("button", { name: "Duur", exact: true }).click();
+    await page.getByRole("button", { name: "45", exact: true }).click();
+    await expect(page.getByRole("button", { name: "Duur: 45 minuten. Wijzigen" })).toBeVisible();
+    // Tijdsindicator: neutraal, bij overschrijding één amber pill.
+    await expect(page.getByText("45 / 90 min")).toBeVisible();
+    await page.getByRole("button", { name: "Toevoegen aan Planning week 43" }).click();
+    await page.getByRole("button", { name: "Doel", exact: true }).click();
+    await page.getByRole("button", { name: "Beslissen" }).click();
+    await page.keyboard.press("Escape");
+    await expect(page.getByRole("button", { name: "Doel: Beslissen. Wijzigen" })).toBeVisible();
+
+    // Beslissing via het "+"-menu; de teller opent de lijst.
+    await page.getByRole("button", { name: "Toevoegen aan Budget Q4" }).click();
+    await page.getByRole("button", { name: "Beslissing", exact: true }).click();
+    await page.getByLabel("Beslissing", { exact: true }).fill("Budget goedgekeurd");
+    await page.keyboard.press("Enter");
+    await page.getByRole("button", { name: "1 beslissing bij Budget Q4" }).click();
+    await expect(page.getByRole("dialog").getByText("Budget goedgekeurd")).toBeVisible();
+    await page.keyboard.press("Escape");
 
     // + Actie
     await page.getByRole("button", { name: "Actie", exact: true }).click();
-    await page.getByLabel("Actie 4", { exact: true }).fill("Nieuwe actie uit overleg");
+    await page.getByLabel("Nieuwe actie").fill("Nieuwe actie uit vergadering");
     await page.keyboard.press("Enter");
-    await expectToast(page, "Actie toegevoegd");
-    await expect(page.getByRole("checkbox", { name: "Nieuwe actie uit overleg afvinken" })).toBeVisible();
+    await expect(page.getByRole("checkbox", { name: "Nieuwe actie uit vergadering afvinken" })).toBeVisible();
+    await page.keyboard.press("Escape");
 
-    // Start overleg
-    await page.getByRole("button", { name: "Start overleg" }).click();
-    await expectToast(page, "Overleg gestart");
-    await expect(page.getByRole("progressbar", { name: /2 van 4/ })).toBeVisible();
+    // Blok of pauze toevoegen
+    await page.getByRole("button", { name: "Blok of pauze toevoegen" }).click();
+    await page.getByRole("button", { name: "Pauze", exact: true }).click();
+    await expect(page.getByRole("button", { name: "Pauze · 5 min. Wijzigen" })).toBeVisible();
 
-    // Uitnodigen met bevestiging
+    // Uitnodigen met bevestiging (checklist)
     await page.getByRole("button", { name: /Sofie en Piet uitnodigen/ }).click();
     const dialog = page.getByRole("dialog", { name: "Collega's uitnodigen" });
     await expect(dialog.getByText("piet@leverancier.be")).toBeVisible();
     await dialog.getByRole("button", { name: "Uitnodigen" }).click();
     await expectToast(page, /Uitnodiging verstuurd naar Sofie De Smet en Piet/);
+    await expect(page.getByRole("progressbar", { name: /2 van 4/ })).toBeVisible();
+
+    // Start vergadering → lopende staat
+    await page.getByRole("button", { name: "Start vergadering" }).click();
+    await expect(page.getByText("Bezig", { exact: true })).toBeVisible();
+    await expect(page.getByText(/verstreken · \d+ min resterend/)).toBeVisible();
+    await expect(page.getByRole("progressbar", { name: /van 4/ })).toHaveCount(0);
+    await page.getByRole("button", { name: "Volgend punt" }).click();
+    await expect(
+      page.getByRole("region", { name: "Openstaande acties" }).getByText("1 afgevinkt · 3 lopen verder"),
+    ).toBeVisible();
+    const current = page.locator("[aria-current=step]");
+    await expect(current.getByRole("heading", { name: "Planning week 43" })).toBeVisible();
+    await current.getByRole("button", { name: "+ Notitie" }).click();
+    await current.getByLabel("Notitie", { exact: true }).fill("Planning ligt goed");
+    await page.keyboard.press("Enter");
+    await expect(current.getByText("Planning ligt goed")).toBeVisible();
+    await current.getByRole("button", { name: "Afronden" }).click();
+    await expect(page.getByRole("img", { name: "Afgerond" })).toBeVisible();
+    await expect(page.locator("[aria-current=step]").getByRole("heading", { name: "Budget Q4" })).toBeVisible();
+    await page.getByRole("button", { name: "Naar volgende vergadering" }).click();
+    await page.getByRole("button", { name: "Beëindigen" }).click();
+    await expect(page.getByText("Bezig", { exact: true })).toHaveCount(0);
+    // Afgerond verdwijnt, uitgesteld blijft; afgevinkte acties zijn af.
+    await expect(page.getByRole("button", { name: /^Planning week 43\./ })).toHaveCount(0);
+    await expect(page.getByRole("button", { name: /^Budget Q4\./ })).toBeVisible();
+    await expect(page.getByRole("checkbox", { name: "Instructie heftruck bijwerken afvinken" })).toHaveCount(0);
     await expect(page.getByRole("progressbar", { name: /3 van 4/ })).toBeVisible();
 
-    // Modal andere overlegmomenten: opent niet vanzelf, wel via checklist
+    // Modal andere vergaderingen: opent niet vanzelf, wel via checklist
     await expect(page.getByRole("dialog")).toHaveCount(0);
-    await page.getByRole("button", { name: /Je andere vaste overlegmomenten toevoegen/ }).click();
+    await page.getByRole("button", { name: /Je andere vaste vergaderingen toevoegen/ }).click();
     const modal = page.getByRole("dialog", { name: "Je andere vaste overlegmomenten" });
     await expect(modal.getByText("Managementoverleg")).toHaveCount(0); // al toegevoegd
     await expect(modal.getByRole("checkbox", { name: /Productieoverleg/ })).toBeChecked();
@@ -96,30 +164,25 @@ test.describe("Hoofdflow: Microsoft slaagt, reeksen gevonden", () => {
     await modal.getByRole("button", { name: "+ Raad van bestuur" }).click();
     await modal.getByRole("button", { name: "5 overleggen toevoegen" }).click();
     await expectToast(page, "5 overleggen toegevoegd");
-    await expect(page.getByRole("progressbar", { name: /4 van 4/ })).toBeVisible();
+    await expect(page.getByRole("complementary", { name: "Aan de slag" })).toHaveCount(0);
+
+    // Geen subitems in de zijbalk; "Vergaderingen" toont de lijst.
     const menu = page.getByRole("navigation", { name: "Hoofdmenu" });
-    await expect(menu.getByRole("link", { name: "Raad van bestuur" })).toBeVisible();
-    await menu.getByRole("link", { name: "Kwaliteitsoverleg" }).click();
+    await expect(menu.getByRole("link", { name: "Raad van bestuur" })).toHaveCount(0);
+    await page.getByRole("link", { name: "Vergaderingen" }).first().click();
+    await expect(page).toHaveURL(/\/app$/);
+    await page
+      .getByRole("main")
+      .getByRole("link", { name: /Kwaliteitsoverleg/ })
+      .click();
     await expect(page).toHaveURL(/\/app\/overleg\/kwaliteitsoverleg$/);
     await expect(
-      page
-        .getByRole("main")
-        .locator("p", { hasText: /^Maandelijks$/ })
-        .filter({ visible: true }),
+      page.getByRole("heading", { level: 1, name: "Kwaliteitsoverleg" }).filter({ visible: true }),
     ).toBeVisible();
-
-    // "+ Overleggen toevoegen" in de zijbalk opent dezelfde modal
-    await menu.getByRole("button", { name: "Overleggen toevoegen" }).click();
-    await expect(page.getByRole("dialog", { name: "Je andere vaste overlegmomenten" })).toBeVisible();
-    await page.getByRole("button", { name: "Later" }).click();
-    await expect(page.getByRole("dialog")).toHaveCount(0);
 
     // Zijbalk-items buiten het prototype
     await menu.getByRole("link", { name: "Dashboard" }).click();
     await expectToast(page, "Niet beschikbaar in dit prototype");
-    // "← Alle vergaderingen" en "Inloggen" landen in het eerste overleg
-    await page.getByRole("link", { name: "← Alle vergaderingen" }).click();
-    await expect(page).toHaveURL(/\/app\/overleg\/managementoverleg$/);
     errors.assertNone();
   });
 
@@ -218,12 +281,16 @@ test.describe("Terugvalpaden", () => {
     await expect(page).toHaveURL(/\/acties$/);
     await page.getByRole("button", { name: "Sla over, doe ik tijdens het overleg" }).click();
     await expect(page).toHaveURL(/\/app\/overleg\/veiligheidsoverleg-hal-2$/);
+    // Lege staat: invoerveld in focus, met uitleg; uitnodigen i.p.v. avatars.
+    await expect(page.getByLabel("Agendapunt toevoegen aan Lopende zaken")).toBeFocused();
     await expect(
-      page.getByText("Je veiligheidsoverleg hal 2 staat klaar. Noteer je acties tijdens het overleg."),
+      page.getByText("Eigenaar, duur en doel voeg je later toe — of nooit. Een titel volstaat om te starten."),
     ).toBeVisible();
+    await expect(page.getByRole("button", { name: "Collega's uitnodigen", exact: true })).toBeVisible();
+    await expect(page.getByText(/^Nog niets open\./)).toBeVisible();
     await expect(page.getByRole("main").getByText(/^Om de 2 weken op maandag · 10:30–11:00/)).toBeVisible();
 
-    await page.getByRole("button", { name: /Je andere vaste overlegmomenten toevoegen/ }).click();
+    await page.getByRole("button", { name: /Je andere vaste vergaderingen toevoegen/ }).click();
     const modal = page.getByRole("dialog", { name: "Je andere vaste overlegmomenten" });
     await expect(modal.getByText("Gevonden in je Outlook-agenda")).toHaveCount(0);
     await expect(modal.getByRole("button", { name: "Koppel Outlook" })).toHaveCount(0);
@@ -254,10 +321,8 @@ test.describe("Terugvalpaden", () => {
     await page.getByLabel("Actie 1", { exact: true }).fill("Budget 2026 voorbereiden");
     await page.getByRole("button", { name: "Toon mijn overleg" }).click();
     await expect(page).toHaveURL(/\/app\/overleg\/mt-vergadering$/);
-    await expect(
-      page.getByText("Je MT-vergadering staat klaar. Je 1 openstaande actie komt dinsdag vanzelf aan bod."),
-    ).toBeVisible();
-    await expect(page.getByRole("main").getByText(/· 4 deelnemers$/)).toBeVisible();
+    await expect(page.getByRole("checkbox", { name: "Budget 2026 voorbereiden afvinken" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "4 deelnemers tonen" })).toBeVisible();
     errors.assertNone();
   });
 
@@ -318,9 +383,16 @@ test.describe("Later en lege toestand", () => {
     await page.getByLabel("Hoe vaak").selectOption("biweekly");
     await page.getByRole("button", { name: "Maak overleg aan" }).click();
     await expect(page).toHaveURL(/\/app\/overleg\/teamoverleg$/);
-    await expect(page.getByText(/Om de 2 weken op donderdag · 09:30–10:30 · volgende: do \d+ \w+/)).toBeVisible();
-    // /app met een overleg toont dat overleg
+    await expect(
+      page.getByText(/Om de 2 weken op donderdag · 09:30–10:30 · volgende: do \d+ \w+/).filter({ visible: true }),
+    ).toBeVisible();
+    // /app met een vergadering toont de lijst
     await page.goto("/app");
+    await expect(page.getByRole("heading", { level: 1, name: "Vergaderingen" })).toBeVisible();
+    await page
+      .getByRole("main")
+      .getByRole("link", { name: /Teamoverleg/ })
+      .click();
     await expect(page).toHaveURL(/\/app\/overleg\/teamoverleg$/);
     errors.assertNone();
   });
@@ -351,7 +423,7 @@ test.describe("Later en lege toestand", () => {
     await page.getByLabel("Naam", { exact: true }).fill("Productieoverleg");
     await page.getByRole("button", { name: "Maak overleg aan" }).click();
     const open = async () => {
-      await page.getByRole("button", { name: /Je andere vaste overlegmomenten toevoegen/ }).click();
+      await page.getByRole("button", { name: /Je andere vaste vergaderingen toevoegen/ }).click();
       return page.getByRole("dialog", { name: "Je andere vaste overlegmomenten" });
     };
     for (const [outcome, check] of [

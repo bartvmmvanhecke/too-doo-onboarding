@@ -47,6 +47,23 @@
   --panel-to: #b9e3fa;
   --panel-ink: #0f3b7a;
 
+  /* Product-app (vergaderingen): achtergrond, band en tokens van de detailpagina */
+  --shell-from: #4a74cc;
+  --shell-mid: #1b2f75;
+  --shell-to: #0f1b52;
+  --band-from: #4a74cc;
+  --band-to: #8db8ec;
+  --ink-subtle: #6b7489;
+  --row-hover: #f7f8fb;
+  --current-bg: #f5f7fe;
+  --current-line: #cbd5f7;
+  --purpose-discuss: #2341c4;
+  --purpose-discuss-bg: #eef1fd;
+  --purpose-inform: #1c6650;
+  --purpose-inform-bg: #e9f5f0;
+  --purpose-decide: #6236b0;
+  --purpose-decide-bg: #f3eefc;
+
   /* Website (homepage vanaf sectie 2, too-doo-website-nieuwe-copy) */
   --site-navy: #0d0e2a;
   --site-blue-dark: #1e429f;
@@ -79,6 +96,33 @@
   --border: var(--line);
   --input: var(--line);
   --ring: var(--brand);
+}
+
+/*
+ * De product-app gebruikt een eigen set waarden voor dezelfde tokens. Zet
+ * `app-theme` op de shell en op inhoud die erbuiten portalt (popovers, dialogen).
+ */
+.app-theme {
+  --ink: #141a33;
+  --ink-3: #5b6478;
+  --brand: #2747d6;
+  --brand-hover: #1d38ab;
+  --brand-soft: #eef1fd;
+  --brand-selected: #f5f7fe;
+  --line-soft: #e3e7ef;
+  --line-faint: #eef1f6;
+  --app: #f5f7fb;
+  --danger: #b42318;
+  --danger-bg: #fdecea;
+  --warning: #8a4b00;
+  --warning-bg: #fff3df;
+  --foreground: var(--ink);
+  --muted-foreground: var(--ink-3);
+  --primary: var(--brand);
+  font-family: var(--font-dm-sans), system-ui, sans-serif;
+  font-size: 14px;
+  line-height: 1.45;
+  color: var(--ink);
 }
 
 @theme inline {
@@ -122,6 +166,16 @@
   --color-warning-line: var(--warning-line);
   --color-danger: var(--danger);
   --color-danger-bg: var(--danger-bg);
+  --color-ink-subtle: var(--ink-subtle);
+  --color-row-hover: var(--row-hover);
+  --color-current-bg: var(--current-bg);
+  --color-current-line: var(--current-line);
+  --color-purpose-discuss: var(--purpose-discuss);
+  --color-purpose-discuss-bg: var(--purpose-discuss-bg);
+  --color-purpose-inform: var(--purpose-inform);
+  --color-purpose-inform-bg: var(--purpose-inform-bg);
+  --color-purpose-decide: var(--purpose-decide);
+  --color-purpose-decide-bg: var(--purpose-decide-bg);
   --color-nav-from: var(--nav-from);
   --color-nav-to: var(--nav-to);
   --color-nav-ink: var(--nav-ink);
@@ -158,6 +212,14 @@
 
 @utility bg-onboarding-panel {
   background: linear-gradient(170deg, var(--panel-from) 0%, var(--panel-to) 100%);
+}
+
+@utility bg-app-shell {
+  background: linear-gradient(180deg, var(--shell-from) 0%, var(--shell-mid) 42%, var(--shell-to) 100%);
+}
+
+@utility bg-app-band {
+  background: linear-gradient(90deg, var(--band-from) 0%, var(--band-to) 100%);
 }
 
 @utility bg-app-nav {

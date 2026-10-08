@@ -42,8 +42,27 @@ const CASES: { name: string; path: string; setup?: (page: import("@playwright/te
       await page.getByLabel("Actie 1", { exact: true }).fill("Offerte opvragen");
       await page.getByRole("button", { name: "Toon mijn overleg" }).click();
       await page.getByRole("heading", { level: 1, name: "Productieoverleg" }).waitFor();
-      await page.getByRole("button", { name: /Je andere vaste overlegmomenten toevoegen/ }).click();
+      await page.getByRole("button", { name: /Je andere vaste vergaderingen toevoegen/ }).click();
       await page.getByRole("dialog").waitFor();
+    },
+  },
+  {
+    name: "vergadering met agenda en lopende vergadering",
+    path: "/app",
+    setup: async (page) => {
+      await page.getByLabel("Naam", { exact: true }).fill("Teamoverleg");
+      await page.getByLabel("Wanneer").fill("ma 08:00");
+      await page.getByRole("button", { name: "Maak overleg aan" }).click();
+      const add = page.getByLabel("Agendapunt toevoegen aan Lopende zaken");
+      await add.fill("Planning week 42");
+      await add.press("Enter");
+      await page.getByRole("button", { name: "Toevoegen aan Planning week 42" }).click();
+      await page.getByRole("button", { name: "Doel", exact: true }).click();
+      await page.getByRole("button", { name: "Bespreken" }).click();
+      await page.keyboard.press("Escape");
+      await page.getByRole("button", { name: "Start vergadering" }).click();
+      await page.getByRole("button", { name: "Volgend punt" }).click();
+      await page.locator("[aria-current=step]").waitFor();
     },
   },
   { name: "prototype", path: "/prototype" },

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, type FormEvent } from "react";
+import { useRef, useState, type FormEvent } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Loader2 } from "lucide-react";
@@ -16,6 +16,7 @@ import { QUICK_NAME_SUGGESTIONS, RECURRENCE_LABEL, type Recurrence } from "@/lib
 import { useCalendarConsent } from "@/lib/simulate";
 import { useOutlookBlocked, useStore, useUserFirstName } from "@/lib/store";
 import { parseWhen } from "@/lib/when";
+import { MeetingsList } from "./meetings-list";
 
 const RHYTHMS: Recurrence[] = ["weekly", "biweekly", "monthly", "once"];
 
@@ -46,12 +47,8 @@ export function EmptyScreen() {
   const [recurrence, setRecurrence] = useState<Recurrence>("weekly");
   const [errors, setErrors] = useState<{ name?: string; when?: string }>({});
 
-  // Met een overleg is /app geen lege toestand meer: toon het eerste overleg.
-  useEffect(() => {
-    if (meetings.length > 0) router.replace(`/app/overleg/${meetings[0].id}`);
-  }, [meetings, router]);
-
-  if (meetings.length > 0) return null;
+  // Met een vergadering is /app geen lege toestand meer: toon de lijst.
+  if (meetings.length > 0) return <MeetingsList />;
 
   const create = (e: FormEvent) => {
     e.preventDefault();

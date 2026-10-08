@@ -384,8 +384,8 @@ function EntryTooltip({ entries }: { entries: Entry[] }) {
 }
 
 /**
- * Beslissingen, acties, notities en documenten in vaste kolommen. Wat leeg is,
- * verschijnt enkel bij hover. Hover toont de inhoud; klikken opent het paneel.
+ * Beslissingen, acties, notities en documenten in vaste kolommen, ook als ze leeg zijn.
+ * Hover toont de inhoud; klikken opent het paneel.
  */
 export function EntryColumns({ item }: { item: AgendaItem }) {
   return (
@@ -415,11 +415,24 @@ function EntryColumn({ item, kind }: { item: AgendaItem; kind: EntryKind }) {
             : `${meta.label} toevoegen bij ${item.text}`
         }
         className={cn(
-          "flex min-h-11 w-12 shrink-0 cursor-pointer items-center justify-center gap-1 rounded-lg text-[13px] tabular-nums hover:bg-row-hover",
-          n ? "text-ink-2" : cn("text-ink-subtle max-sm:hidden", reveal),
+          "flex min-h-11 w-12 shrink-0 cursor-pointer items-center justify-center gap-1 rounded-lg text-sm tabular-nums hover:bg-row-hover sm:w-20",
+          n === 0 ? "text-ink-subtle" : kind === "decision" || kind === "action" ? "text-brand" : "text-ink-3",
         )}
       >
-        <Icon className={cn(icon, n ? "text-ink-3" : "")} strokeWidth={STROKE} aria-hidden />
+        <Icon
+          className={cn(
+            icon,
+            n === 0
+              ? "opacity-40"
+              : kind === "decision"
+                ? "text-purpose-decide"
+                : kind === "action"
+                  ? ""
+                  : "text-ink-3",
+          )}
+          strokeWidth={STROKE}
+          aria-hidden
+        />
         {n}
       </button>
     </PopoverTrigger>

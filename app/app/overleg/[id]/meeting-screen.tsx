@@ -70,7 +70,7 @@ function AddBlockButton({ meeting }: { meeting: Meeting }) {
   const add = (kind: AgendaBlock["kind"]) => {
     const id = addBlock(meeting.id, kind);
     setOpen(false);
-    if (kind === "topics") requestAnimationFrame(() => document.getElementById(`add-${id}`)?.focus());
+    if (kind === "topics") requestAnimationFrame(() => document.getElementById(`add-${id}`)?.click());
   };
   return (
     <Popover open={open} onOpenChange={setOpen}>

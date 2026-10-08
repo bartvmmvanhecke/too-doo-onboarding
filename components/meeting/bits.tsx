@@ -63,7 +63,7 @@ export function Grip({
       onKeyDown={onKeyDown}
       onPointerDown={() => onArm(true)}
       onPointerUp={() => onArm(false)}
-      className={cn(iconButton, "-mx-2 w-8 cursor-grab active:cursor-grabbing", reveal, className)}
+      className={cn(iconButton, "-mx-2 w-8 cursor-grab active:cursor-grabbing", className)}
     >
       <GripVertical className={icon} strokeWidth={STROKE} aria-hidden />
     </button>
@@ -233,34 +233,23 @@ export function PurposeEditor({ value, onApply }: { value: Purpose[]; onApply: (
   );
 }
 
-/** De gekozen doelen, of "+ Doel" bij hover; klikken opent de keuze. */
-export function PurposePicker({
-  value,
-  onChange,
-  showEmpty,
-}: {
-  value: Purpose[];
-  onChange: (v: Purpose[]) => void;
-  /** "+ Doel" altijd tonen, niet enkel bij hover. */
-  showEmpty?: boolean;
-}) {
+/** De gekozen doelen, of "+ Doel"; klikken opent de keuze. */
+export function PurposePicker({ value, onChange }: { value: Purpose[]; onChange: (v: Purpose[]) => void }) {
   const [open, setOpen] = useState(false);
   const labels = value.map((v) => PURPOSES.find((p) => p.value === v)?.label).join(", ");
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
         {value.length ? (
-          <button type="button" aria-label={`Doel: ${labels}. Wijzigen`} className={cn(chipButton, "gap-1")}>
-            {value.map((p) => (
-              <PurposeChip key={p} purpose={p} />
-            ))}
+          <button type="button" aria-label={`Doel: ${labels}. Wijzigen`} className={chipButton}>
+            <span
+              className={cn("rounded-full px-2.5 py-0.5 text-xs font-medium whitespace-nowrap", PURPOSE_CLASS.discuss)}
+            >
+              {value.map((v) => PURPOSES.find((p) => p.value === v)?.label).join(" - ")}
+            </span>
           </button>
         ) : (
-          <button
-            type="button"
-            aria-label="Doel toevoegen"
-            className={cn(chipButton, !showEmpty && cn(reveal, "max-sm:hidden"))}
-          >
+          <button type="button" aria-label="Doel toevoegen" className={chipButton}>
             <span className={dashedChip}>
               <Plus className="size-3" strokeWidth={STROKE} aria-hidden />
               Doel
@@ -360,23 +349,34 @@ export function OwnersPicker({
           id={id}
           type="button"
           aria-label={chosen.length ? `Eigenaar: ${chosen.map((p) => p.name).join(", ")}. Wijzigen` : "Eigenaar kiezen"}
-          className={cn(chipButton, "min-w-11 justify-center gap-0.5 rounded-full")}
+          className={cn(chipButton, "min-w-11 justify-center")}
         >
-          {chosen.length ? (
-            <>
-              <span className="flex items-center">
-                {chosen.slice(0, 2).map((p) => (
-                  <Avatar key={p.id} person={p} size={22} decorative className="-ml-1.5 ring-2 ring-white first:ml-0" />
-                ))}
-              </span>
-              {chosen.length > 2 && <span className="text-xs text-ink-3">+{chosen.length - 2}</span>}
-              <ChevronDown className="size-3.5 text-ink-subtle" strokeWidth={STROKE} aria-hidden />
-            </>
-          ) : (
-            <span className="flex size-6 items-center justify-center rounded-full border border-dashed border-ink-subtle text-ink-subtle">
-              <Plus className="size-3" strokeWidth={2} aria-hidden />
-            </span>
-          )}
+          <span className="inline-flex items-center gap-0.5 rounded-full border border-line-soft py-0.5 pr-1 pl-0.5">
+            {chosen.length ? (
+              <>
+                <span className="flex items-center">
+                  {chosen.slice(0, 2).map((p) => (
+                    <Avatar
+                      key={p.id}
+                      person={p}
+                      size={22}
+                      decorative
+                      className="-ml-1.5 ring-2 ring-white first:ml-0"
+                    />
+                  ))}
+                </span>
+                {chosen.length > 2 && <span className="text-xs text-ink-3">+{chosen.length - 2}</span>}
+                <ChevronDown className="size-3.5 text-ink-subtle" strokeWidth={STROKE} aria-hidden />
+              </>
+            ) : (
+              <>
+                <span className="flex size-[22px] items-center justify-center rounded-full border border-dashed border-ink-subtle text-ink-subtle">
+                  <Plus className="size-3" strokeWidth={2} aria-hidden />
+                </span>
+                <ChevronDown className="size-3.5 text-ink-subtle" strokeWidth={STROKE} aria-hidden />
+              </>
+            )}
+          </span>
         </button>
       </PopoverTrigger>
       <PopoverContent align="start" className="app-theme w-[min(380px,calc(100vw-32px))]">
@@ -473,16 +473,8 @@ export function DurationEditor({
   );
 }
 
-/** "⏱ 5 min", of "+ Duur" bij hover; klikken opent − 5 + met snelkeuzes. */
-export function DurationPicker({
-  value,
-  onChange,
-  showEmpty,
-}: {
-  value: number | null;
-  onChange: (v: number | null) => void;
-  showEmpty?: boolean;
-}) {
+/** "⏱ 5 min", of "Duur"; klikken opent − 5 + met snelkeuzes. */
+export function DurationPicker({ value, onChange }: { value: number | null; onChange: (v: number | null) => void }) {
   const [open, setOpen] = useState(false);
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -490,7 +482,7 @@ export function DurationPicker({
         <button
           type="button"
           aria-label={value ? `Duur: ${value} minuten. Wijzigen` : "Duur toevoegen"}
-          className={cn(chipButton, !value && !showEmpty && cn(reveal, "max-sm:hidden"))}
+          className={chipButton}
         >
           {value ? (
             <span className="inline-flex items-center gap-1 rounded-full border border-line-soft px-2 py-0.5 text-xs whitespace-nowrap text-ink-3 tabular-nums">

@@ -51,8 +51,8 @@ function ItemDialogBody({ item, onClose }: { item: AgendaItem; onClose: () => vo
       </div>
       <div className="-ml-1 flex flex-wrap items-center gap-1">
         <OwnersPicker value={item.ownerIds} onChange={(ownerIds) => update({ ownerIds })} />
-        <PurposePicker showEmpty value={item.purposes} onChange={(purposes) => update({ purposes })} />
-        <DurationPicker showEmpty value={item.duration} onChange={(duration) => update({ duration })} />
+        <PurposePicker value={item.purposes} onChange={(purposes) => update({ purposes })} />
+        <DurationPicker value={item.duration} onChange={(duration) => update({ duration })} />
       </div>
       {ENTRY_KINDS.map(({ kind, plural }) => (
         <section key={kind} aria-label={plural} className="flex flex-col gap-1.5">

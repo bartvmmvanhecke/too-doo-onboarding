@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, type DragEvent, type ReactNode } from "react";
-import { ArrowRight, ChevronDown, CircleCheck, MoreHorizontal, Pencil, Trash2 } from "lucide-react";
+import { ArrowRight, ChevronDown, CircleCheck, MoreHorizontal, Pencil, Plus, Trash2 } from "lucide-react";
 import {
   card,
   DurationEditor,
@@ -23,7 +23,15 @@ import { EntryColumns, EntryForm, EntryRow, ItemEditButton } from "@/components/
 import { useMeeting } from "@/components/meeting/meeting-context";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { blockDuration, formatClock, plural, type AgendaBlock, type AgendaItem, type EntryKind } from "@/lib/agenda";
+import {
+  blockDuration,
+  ENTRY_KINDS,
+  formatClock,
+  plural,
+  type AgendaBlock,
+  type AgendaItem,
+  type EntryKind,
+} from "@/lib/agenda";
 import { findPerson, useStore } from "@/lib/store";
 import { cn } from "@/lib/utils";
 
@@ -121,9 +129,9 @@ export function AgendaItemRow({
         moves.dropItem(id, block.id, dropBefore(e) ? index : index + 1);
       }}
       className={cn(
-        "group relative flex min-h-11 flex-wrap items-center gap-x-1 rounded-[10px] pr-1 pl-1 hover:bg-row-hover focus-within:bg-row-hover",
-        dropAt === "before" && "shadow-[inset_0_2px_0_var(--brand)]",
-        dropAt === "after" && "shadow-[inset_0_-2px_0_var(--brand)]",
+        "group relative flex min-h-14 flex-wrap items-center gap-x-1 rounded-[12px] border border-line-soft bg-white py-1 pr-1.5 pl-2",
+        dropAt === "before" && "shadow-[0_-3px_0_var(--brand)]",
+        dropAt === "after" && "shadow-[0_3px_0_var(--brand)]",
       )}
     >
       <Grip
@@ -138,7 +146,7 @@ export function AgendaItemRow({
         label="Titel wijzigen"
         onSave={(text) => update({ text })}
         className={cn(
-          "text-sm font-medium",
+          "text-[15px] font-semibold",
           status === "done" && "text-ink-3 line-through",
           status === "postponed" && "text-ink-3",
         )}
@@ -155,9 +163,10 @@ export function AgendaItemRow({
         <DurationPicker value={item.duration} onChange={(duration) => update({ duration })} />
       )}
       {status === "postponed" && <span className="text-[13px] text-ink-3">naar volgende vergadering</span>}
-      <span className="flex-1" />
-      <EntryColumns item={item} />
-      <ItemEditButton item={item} onOpen={() => onOpenDetails(item)} />
+      <span className="ml-auto flex items-center">
+        <EntryColumns item={item} />
+        <ItemEditButton item={item} onOpen={() => onOpenDetails(item)} />
+      </span>
     </li>
   );
 }
@@ -315,6 +324,7 @@ export function BlockCard({
   meta,
   children,
   bodyId,
+  tinted,
 }: {
   block: AgendaBlock;
   index: number;
@@ -329,6 +339,8 @@ export function BlockCard({
   meta?: ReactNode;
   children: ReactNode;
   bodyId: string;
+  /** Lichtgrijs blok met witte kaarten per agendapunt. */
+  tinted?: boolean;
 }) {
   const { meeting } = useMeeting();
   const updateBlock = useStore((s) => s.updateBlock);
@@ -361,6 +373,7 @@ export function BlockCard({
       className={cn(
         card,
         "flex flex-col px-3 py-1.5 sm:px-4",
+        tinted && "bg-row-hover",
         dropAt === "before" && "shadow-[0_-3px_0_var(--brand)]",
         dropAt === "after" && "shadow-[0_3px_0_var(--brand)]",
       )}
@@ -374,7 +387,12 @@ export function BlockCard({
         />
         <div className="flex min-w-0 flex-1 flex-col py-1">
           <div className="flex min-w-0 flex-wrap items-center gap-x-1">
-            <h2 className="flex max-w-full min-w-0 shrink-0 text-[15px] font-semibold">
+            <h2
+              className={cn(
+                "flex max-w-full min-w-0 shrink-0 font-semibold",
+                tinted ? "text-[17px] font-bold" : "text-[15px]",
+              )}
+            >
               <InlineText
                 value={block.title}
                 label="Blok hernoemen"
@@ -435,12 +453,14 @@ export function TopicsBlock({
   const { meeting, people } = useMeeting();
   const { addAgendaItem, updateBlock } = useStore.getState();
   const [text, setText] = useState("");
+  const [adding, setAdding] = useState(false);
   const run = meeting.run;
   const total = blockDuration(block);
   const current = run && block.items.find((i) => i.id === run.currentId);
   const presenter = findPerson(people, block.presenterId);
   const inputId = `add-${block.id}`;
   const hintId = `${inputId}-hint`;
+  const showInput = adding || focusInput;
 
   const summary = !expanded
     ? block.items.length === 0
@@ -458,20 +478,38 @@ export function TopicsBlock({
       expanded={expanded}
       onToggle={onToggle}
       bodyId={`block-${block.id}`}
-      summary={summary && <span className="px-1 text-[13px] whitespace-nowrap text-ink-3 tabular-nums">{summary}</span>}
+      tinted
       aside={
-        <OwnerButton
-          role="Presentator"
-          hideEmpty
-          ownerId={block.presenterId}
-          onPick={(presenterId) => updateBlock(meeting.id, block.id, { presenterId })}
-        />
+        <>
+          <OwnerButton
+            role="Presentator"
+            ownerId={block.presenterId}
+            onPick={(presenterId) => updateBlock(meeting.id, block.id, { presenterId })}
+          />
+          {summary && <span className="px-1 text-[13px] whitespace-nowrap text-ink-3 tabular-nums">{summary}</span>}
+        </>
       }
       meta={block.subtitle && <p className="px-1 text-[13px] text-ink-3">{block.subtitle}</p>}
     >
       {presenter && <span className="sr-only">Presentator: {presenter.name}</span>}
+      {block.items.length > 0 && (
+        // Kolomkoppen; elke teller heeft zelf een volledig label.
+        <div aria-hidden className="hidden justify-end pr-[51px] pb-1.5 sm:flex">
+          {ENTRY_KINDS.map(({ kind, plural: label }) => (
+            <span
+              key={kind}
+              className={cn(
+                "w-20 text-center text-[13px] font-medium",
+                kind === "decision" || kind === "action" ? "text-brand" : "text-ink-3",
+              )}
+            >
+              {label === "documenten" ? "Docs" : label.charAt(0).toUpperCase() + label.slice(1)}
+            </span>
+          ))}
+        </div>
+      )}
       <ul
-        className="flex flex-col"
+        className="flex flex-col gap-2"
         onDragOver={(e) => {
           if (e.dataTransfer.types.includes(ITEM_TYPE)) e.preventDefault();
         }}
@@ -497,39 +535,60 @@ export function TopicsBlock({
           ),
         )}
       </ul>
-      <div className="relative mt-1.5">
-        <input
-          id={inputId}
-          type="text"
-          aria-label={`Agendapunt toevoegen aan ${block.title}`}
-          aria-describedby={focusInput ? hintId : undefined}
-          placeholder="Typ een agendapunt en druk Enter"
-          autoFocus={focusInput}
-          value={text}
-          onChange={(e) => setText(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter" && text.trim()) {
-              e.preventDefault();
-              addAgendaItem(meeting.id, block.id, text.trim());
-              setText("");
-            }
-          }}
-          className={cn(
-            "min-h-11 w-full rounded-[10px] border border-dashed border-line bg-transparent px-3 text-sm text-ink outline-none",
-            "focus-visible:border-solid focus-visible:border-brand focus-visible:bg-white focus-visible:outline-none",
-            focusInput && "pr-20",
+      {showInput ? (
+        <>
+          <div className="relative mt-2">
+            <input
+              id={inputId}
+              type="text"
+              aria-label={`Agendapunt toevoegen aan ${block.title}`}
+              aria-describedby={focusInput ? hintId : undefined}
+              placeholder="Typ een agendapunt en druk Enter"
+              autoFocus
+              value={text}
+              onChange={(e) => setText(e.target.value)}
+              // Ook in de lege staat blijft het veld open zolang je typt.
+              onFocus={() => setAdding(true)}
+              onBlur={() => !text.trim() && setAdding(false)}
+              onKeyDown={(e) => {
+                if (e.key === "Escape") {
+                  setText("");
+                  setAdding(false);
+                }
+                if (e.key === "Enter" && text.trim()) {
+                  e.preventDefault();
+                  addAgendaItem(meeting.id, block.id, text.trim());
+                  setText("");
+                }
+              }}
+              className={cn(
+                "min-h-11 w-full rounded-[10px] border border-dashed border-line bg-white px-3 text-sm text-ink outline-none",
+                "focus-visible:border-solid focus-visible:border-brand focus-visible:outline-none",
+                focusInput && "pr-20",
+              )}
+            />
+            {focusInput && (
+              <span className="pointer-events-none absolute top-1/2 right-3 -translate-y-1/2" aria-hidden>
+                <Kbd>Enter</Kbd>
+              </span>
+            )}
+          </div>
+          {focusInput && (
+            <p id={hintId} className="mt-1.5 px-1 text-[13px] text-ink-3">
+              Eigenaar, duur en doel voeg je later toe — of nooit. Een titel volstaat om te starten.
+            </p>
           )}
-        />
-        {focusInput && (
-          <span className="pointer-events-none absolute top-1/2 right-3 -translate-y-1/2" aria-hidden>
-            <Kbd>Enter</Kbd>
-          </span>
-        )}
-      </div>
-      {focusInput && (
-        <p id={hintId} className="mt-1.5 px-1 text-[13px] text-ink-3">
-          Eigenaar, duur en doel voeg je later toe — of nooit. Een titel volstaat om te starten.
-        </p>
+        </>
+      ) : (
+        <button
+          id={inputId}
+          type="button"
+          onClick={() => setAdding(true)}
+          className="mt-1.5 inline-flex min-h-11 cursor-pointer items-center gap-2 self-start rounded-[10px] px-2 text-[15px] font-medium text-brand hover:bg-white"
+        >
+          <Plus className="size-5" strokeWidth={STROKE} aria-hidden />
+          Agendapunt toevoegen<span className="sr-only"> aan {block.title}</span>
+        </button>
       )}
     </BlockCard>
   );

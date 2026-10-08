@@ -59,6 +59,7 @@ test.describe("Hoofdflow: Microsoft slaagt, reeksen gevonden", () => {
     await expect(page.getByRole("checkbox", { name: "Instructie heftruck bijwerken afvinken" })).toBeChecked();
 
     // Agendapunt via Enter; de focus blijft in het veld.
+    await page.getByRole("button", { name: "Agendapunt toevoegen aan Lopende zaken" }).click();
     const add = page.getByLabel("Agendapunt toevoegen aan Lopende zaken");
     await add.fill("Planning week 42");
     await add.press("Enter");

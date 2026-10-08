@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<title>Stap 1 – account</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800&amp;display=swap">
+<style>
+body{margin:0;background:#FFFFFF}
+a{color:#0B5FD8}a:hover{color:#08449C}
+</style>
+</helmet>
+<div style="font-family: 'Nunito', system-ui, sans-serif; color: #16213A; background: #FFFFFF; min-height: 900px; display: flex; flex-wrap: wrap; padding: 24px; box-sizing: border-box; gap: 24px">
+  <div style="flex: 1 1 520px; min-width: 0; display: flex; flex-direction: column; padding: 32px 40px; box-sizing: border-box">
+    <div style="display: flex; justify-content: space-between; align-items: center; gap: 16px">
+      <span style="font-size: 26px; font-weight: 800; color: #0E7FB8">too-doo</span>
+      <label style="font-size: 14px; font-weight: 600; color: #3E4860; display: flex; align-items: center; gap: 8px">Taal
+        <select style="font-family: inherit; font-size: 14px; padding: 8px 10px; border: 1px solid #C9D3E3; border-radius: 8px; background: #FFFFFF; color: #16213A"><option>Nederlands</option><option>Français</option><option>English</option></select>
+      </label>
+    </div>
+
+    <div style="max-width: 420px; width: 100%; margin: 72px auto 0; display: flex; flex-direction: column; gap: 20px">
+      <div style="display: flex; flex-direction: column; gap: 8px">
+        <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px"><span style="height: 4px; border-radius: 4px; background: #0B5FD8"></span><span style="height: 4px; border-radius: 4px; background: #DCE3EE"></span><span style="height: 4px; border-radius: 4px; background: #DCE3EE"></span></div>
+        <span style="font-size: 13px; font-weight: 700; color: #5B6478">Stap 1 van 3 · ongeveer 3 minuten</span>
+      </div>
+      <h1 style="margin: 0; font-size: 34px; line-height: 1.15; font-weight: 800">Maak je account aan</h1>
+      <p style="margin: 0; font-size: 16px; color: #3E4860">30 dagen gratis. Geen creditcard nodig.</p>
+
+      <sc-if value="{{start}}" hint-placeholder-val="{{ true }}">
+        <div style="display: flex; flex-direction: column; gap: 20px">
+          <button type="button" style="font-family: inherit; display: flex; align-items: center; justify-content: center; gap: 12px; background: #16213A; color: #FFFFFF; border: none; border-radius: 12px; padding: 15px 18px; font-size: 16px; font-weight: 700; min-height: 48px; cursor: pointer">
+            <span style="display: grid; grid-template-columns: repeat(2, 9px); gap: 2px"><span style="width: 9px; height: 9px; background: #F25022"></span><span style="width: 9px; height: 9px; background: #7FBA00"></span><span style="width: 9px; height: 9px; background: #00A4EF"></span><span style="width: 9px; height: 9px; background: #FFB900"></span></span>
+            Doorgaan met Microsoft
+          </button>
+          <button type="button" style="font-family: inherit; display: flex; align-items: center; justify-content: center; gap: 12px; background: #FFFFFF; color: #16213A; border: 1px solid #C9D3E3; border-radius: 12px; padding: 15px 18px; font-size: 16px; font-weight: 700; min-height: 48px; cursor: pointer">
+            <span style="width: 20px; height: 20px; border-radius: 50%; border: 2px solid #4A5470; font-size: 12px; font-weight: 800; display: flex; align-items: center; justify-content: center; box-sizing: border-box">G</span>
+            Doorgaan met Google
+          </button>
+
+          <div style="display: flex; align-items: center; gap: 12px; color: #5B6478; font-size: 14px; font-weight: 600"><span style="flex: 1; height: 1px; background: #DCE3EE"></span>of met je werk-e-mail<span style="flex: 1; height: 1px; background: #DCE3EE"></span></div>
+
+          <div style="display: flex; flex-direction: column; gap: 8px">
+            <label for="mail" style="font-size: 14px; font-weight: 700">Werk-e-mail</label>
+            <div style="display: flex; gap: 8px; flex-wrap: wrap">
+              <input id="mail" type="email" value="jan.peeters@metaalwerken.be" style="font-family: inherit; flex: 1 1 220px; min-width: 0; font-size: 16px; padding: 13px 14px; border: 1px solid #C9D3E3; border-radius: 10px; color: #16213A">
+              <button type="button" onClick="{{go}}" style="font-family: inherit; display: inline-flex; align-items: center; justify-content: center; background: #0B5FD8; color: #FFFFFF; border: none; padding: 0 20px; border-radius: 10px; font-size: 16px; font-weight: 700; min-height: 48px; cursor: pointer">Doorgaan</button>
+            </div>
+          </div>
+
+          <div style="font-size: 13px; line-height: 1.5; color: #3E4860; background: #F4F7FB; border-radius: 10px; padding: 12px 14px">Met Microsoft of Google nemen we enkel je naam en e-mail over. Je agenda koppelen is een aparte, vrije keuze in de volgende stap.</div>
+
+          <span style="font-size: 14px; color: #3E4860">Al een account? <a href="#login" style="font-weight: 700">Inloggen</a></span>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{details}}" hint-placeholder-val="{{ false }}">
+        <div style="display: flex; flex-direction: column; gap: 18px">
+          <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px; border: 1px solid #DCE3EE; background: #F7F9FC; border-radius: 10px; padding: 12px 14px">
+            <span style="display: flex; flex-direction: column"><span style="font-size: 12px; font-weight: 700; color: #5B6478">Werk-e-mail</span><span style="font-size: 15px; font-weight: 700">jan.peeters@metaalwerken.be</span></span>
+            <button type="button" onClick="{{back}}" style="font-family: inherit; background: none; border: none; color: #0B5FD8; font-size: 14px; font-weight: 700; min-height: 44px; padding: 0 6px; cursor: pointer">Wijzig</button>
+          </div>
+
+          <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px">
+            <div style="display: flex; flex-direction: column; gap: 8px">
+              <label for="vn" style="font-size: 14px; font-weight: 700">Voornaam</label>
+              <input id="vn" type="text" value="Jan" style="font-family: inherit; font-size: 16px; padding: 13px 14px; border: 2px solid #0B5FD8; border-radius: 10px; color: #16213A; min-width: 0">
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 8px">
+              <label for="an" style="font-size: 14px; font-weight: 700">Achternaam</label>
+              <input id="an" type="text" placeholder="Achternaam" style="font-family: inherit; font-size: 16px; padding: 13px 14px; border: 1px solid #C9D3E3; border-radius: 10px; color: #16213A; min-width: 0">
+            </div>
+          </div>
+
+          <div style="display: flex; flex-direction: column; gap: 8px">
+            <label for="pw" style="font-size: 14px; font-weight: 700">Wachtwoord</label>
+            <input id="pw" type="password" placeholder="Minstens 8 tekens" style="font-family: inherit; font-size: 16px; padding: 13px 14px; border: 1px solid #C9D3E3; border-radius: 10px; color: #16213A">
+          </div>
+
+          <a href="Stap2-Overleg-Outlook.dc.html" style="display: flex; align-items: center; justify-content: center; gap: 8px; background: #0B5FD8; color: #FFFFFF; text-decoration: none; border-radius: 12px; font-size: 16px; font-weight: 700; min-height: 48px">Account aanmaken
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"></path></svg>
+          </a>
+          <span style="font-size: 13px; line-height: 1.5; color: #5B6478">Je bedrijf (Metaalwerken) vullen we in op basis van je e-mail. De bevestigingsmail volgt; je hoeft er niet op te wachten.</span>
+          <span style="font-size: 12px; line-height: 1.5; color: #5B6478">Met "Account aanmaken" ga je akkoord met de <a href="#voorwaarden">voorwaarden</a> en het <a href="#privacy">privacybeleid</a>.</span>
+        </div>
+      </sc-if>
+    </div>
+  </div>
+
+  <div style="flex: 1 1 520px; min-width: 0; min-height: 852px; border-radius: 24px; background: linear-gradient(170deg, #E3F2FD 0%, #B9E3FA 100%); display: flex; align-items: center; justify-content: center; padding: 48px; box-sizing: border-box">
+    <div style="max-width: 460px; width: 100%; display: flex; flex-direction: column; gap: 20px">
+      <div style="background: #FFFFFF; border-radius: 18px; padding: 28px; box-shadow: 0 20px 50px rgba(14,60,140,0.12); display: flex; flex-direction: column; gap: 16px">
+        <div style="font-size: 20px; font-weight: 800">Binnen 3 minuten heb je</div>
+        <div style="display: flex; gap: 12px; align-items: flex-start"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#1E7A4C" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0"><path d="M20 6L9 17l-5-5"></path></svg><span style="font-size: 16px; line-height: 1.45">je belangrijkste vaste overleg in too-doo staan</span></div>
+        <div style="display: flex; gap: 12px; align-items: flex-start"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#1E7A4C" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0"><path d="M20 6L9 17l-5-5"></path></svg><span style="font-size: 16px; line-height: 1.45">de acties die nu openstaan, met een eigenaar</span></div>
+        <div style="display: flex; gap: 12px; align-items: flex-start"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#1E7A4C" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0"><path d="M20 6L9 17l-5-5"></path></svg><span style="font-size: 16px; line-height: 1.45">een agenda die openstaande acties vanzelf terugbrengt</span></div>
+      </div>
+      <figure style="margin: 0; background: rgba(255,255,255,0.7); border-radius: 18px; padding: 22px 24px">
+        <blockquote style="margin: 0; font-size: 16px; line-height: 1.5; font-weight: 600">"[Kort citaat van een KMO-zaakvoerder]"</blockquote>
+        <figcaption style="margin-top: 8px; font-size: 14px; color: #3E4860">[Naam], [functie] · [bedrijf]</figcaption>
+      </figure>
+      <div style="display: flex; flex-wrap: wrap; gap: 14px; font-size: 13px; font-weight: 700; color: #0F3B7A"><span>Data in de EU</span><span>·</span><span>GDPR</span><span>·</span><span>Belgisch bedrijf</span></div>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"startDetails":{"editor":"boolean","default":false},"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+renderVals() {
+const d = this.state && this.state.details !== undefined ? this.state.details : (this.props.startDetails ?? false);
+return {
+start: !d,
+details: d,
+go: () => this.setState({ details: true }),
+back: () => this.setState({ details: false })
+};
+}
+}
+</script>
+</body>
+</html>

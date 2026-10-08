@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<title>Landen zonder overleg</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800&amp;display=swap">
+<style>
+body{margin:0;background:#F4F7FB}
+a{color:#0B5FD8}a:hover{color:#08449C}
+</style>
+</helmet>
+<div style="font-family: 'Nunito', system-ui, sans-serif; color: #16213A; background: #F4F7FB; min-height: 900px; display: flex; flex-wrap: wrap">
+  <nav aria-label="Hoofdmenu" style="flex: 1 1 220px; max-width: 240px; min-height: 900px; background: linear-gradient(180deg, #123A80 0%, #0C2A5E 100%); color: #FFFFFF; padding: 24px 14px; box-sizing: border-box; display: flex; flex-direction: column; gap: 4px">
+    <span style="font-size: 26px; font-weight: 800; padding: 0 10px 24px">too-doo</span>
+    <a href="#dashboard" style="color: #D5E2F7; text-decoration: none; font-size: 16px; font-weight: 600; padding: 11px 12px; border-radius: 10px">Dashboard</a>
+    <a href="#overleg" style="color: #FFFFFF; text-decoration: none; font-size: 16px; font-weight: 800; padding: 11px 12px; border-radius: 10px; background: rgba(255,255,255,0.14)">Vergaderingen</a>
+    <a href="#acties" style="color: #D5E2F7; text-decoration: none; font-size: 16px; font-weight: 600; padding: 11px 12px; border-radius: 10px">Acties</a>
+    <a href="#beslissingen" style="color: #D5E2F7; text-decoration: none; font-size: 16px; font-weight: 600; padding: 11px 12px; border-radius: 10px">Beslissingen</a>
+    <span style="margin-top: auto; font-size: 13px; color: #B7C8E6; padding: 12px; border-top: 1px solid rgba(255,255,255,0.14)">Proefperiode · nog 30 dagen</span>
+  </nav>
+
+  <main style="flex: 999 1 560px; min-width: 0; padding: 32px 36px 40px; box-sizing: border-box; display: flex; flex-direction: column; gap: 20px">
+    <div>
+      <span style="font-size: 15px; color: #3E4860; font-weight: 600">Welkom, Jan</span>
+      <h1 style="margin: 6px 0 0; font-size: 32px; font-weight: 800">Zet je eerste vaste overleg klaar</h1>
+      <p style="margin: 6px 0 0; font-size: 16px; color: #3E4860; max-width: 640px">Daarna verschijnen hier je agenda en de acties die openstaan. Het kost ongeveer een minuut.</p>
+    </div>
+
+    <div style="display: flex; flex-wrap: wrap; gap: 20px; align-items: flex-start">
+      <div style="flex: 999 1 520px; min-width: 0; display: flex; flex-direction: column; gap: 16px">
+        <section aria-label="Snel een overleg aanmaken" style="background: #FFFFFF; border: 1px solid #DCE3EE; border-radius: 16px; padding: 22px; display: flex; flex-direction: column; gap: 14px">
+          <span style="font-size: 17px; font-weight: 800">Welk overleg wil je opvolgen?</span>
+          <div style="display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr) minmax(0, 1fr); gap: 10px">
+            <div style="display: flex; flex-direction: column; gap: 6px">
+              <label for="q-naam" style="font-size: 13px; font-weight: 700">Naam</label>
+              <input id="q-naam" type="text" placeholder="Bijv. Productieoverleg" style="font-family: inherit; font-size: 16px; padding: 12px; border: 2px solid #0B5FD8; border-radius: 10px; color: #16213A; min-width: 0">
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 6px">
+              <label for="q-wanneer" style="font-size: 13px; font-weight: 700">Wanneer</label>
+              <input id="q-wanneer" type="text" placeholder="ma 08:00" style="font-family: inherit; font-size: 16px; padding: 12px; border: 1px solid #C9D3E3; border-radius: 10px; color: #16213A; min-width: 0">
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 6px">
+              <label for="q-ritme" style="font-size: 13px; font-weight: 700">Hoe vaak</label>
+              <select id="q-ritme" style="font-family: inherit; font-size: 16px; padding: 12px; border: 1px solid #C9D3E3; border-radius: 10px; background: #FFFFFF; color: #16213A; min-width: 0"><option>Elke week</option><option>Om de 2 weken</option><option>Maandelijks</option><option>Eenmalig</option></select>
+            </div>
+          </div>
+          <div style="display: flex; flex-wrap: wrap; gap: 8px">
+            <button type="button" style="font-family: inherit; font-size: 14px; font-weight: 600; color: #16213A; background: #FFFFFF; border: 1px solid #C9D3E3; border-radius: 999px; padding: 6px 12px; min-height: 34px">Productieoverleg</button>
+            <button type="button" style="font-family: inherit; font-size: 14px; font-weight: 600; color: #16213A; background: #FFFFFF; border: 1px solid #C9D3E3; border-radius: 999px; padding: 6px 12px; min-height: 34px">Managementoverleg</button>
+            <button type="button" style="font-family: inherit; font-size: 14px; font-weight: 600; color: #16213A; background: #FFFFFF; border: 1px solid #C9D3E3; border-radius: 999px; padding: 6px 12px; min-height: 34px">Teamoverleg</button>
+          </div>
+          <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 12px; padding-top: 4px">
+            <a href="Product-Overleg.dc.html" style="display: inline-flex; align-items: center; gap: 8px; background: #0B5FD8; color: #FFFFFF; text-decoration: none; border-radius: 10px; padding: 0 20px; min-height: 46px; font-size: 15px; font-weight: 700">Maak overleg aan</a>
+            <span style="font-size: 14px; color: #5B6478">of</span>
+            <a href="Stap2-Overleg-Outlook.dc.html" style="display: inline-flex; align-items: center; gap: 10px; background: #FFFFFF; color: #16213A; text-decoration: none; border: 1px solid #C9D3E3; border-radius: 10px; padding: 0 16px; min-height: 46px; font-size: 15px; font-weight: 700">
+              <span style="display: grid; grid-template-columns: repeat(2, 7px); gap: 2px"><span style="width: 7px; height: 7px; background: #F25022"></span><span style="width: 7px; height: 7px; background: #7FBA00"></span><span style="width: 7px; height: 7px; background: #00A4EF"></span><span style="width: 7px; height: 7px; background: #FFB900"></span></span>
+              Haal uit Outlook
+            </a>
+            <a href="Stap2d-Voorbeelddata.dc.html" style="font-size: 14px; font-weight: 700; margin-left: auto">Bekijk eerst een voorbeeld</a>
+          </div>
+        </section>
+
+        <section aria-label="Zo ziet je overleg eruit" style="display: flex; flex-direction: column; gap: 10px">
+          <span style="font-size: 13px; font-weight: 800; letter-spacing: 0.5px; text-transform: uppercase; color: #5B6478">Zo ziet je overleg er straks uit</span>
+          <div style="border: 2px dashed #C9D3E3; border-radius: 14px; padding: 18px 20px; display: flex; flex-direction: column; gap: 6px; background: rgba(255,255,255,0.5)">
+            <span style="font-size: 16px; font-weight: 800; color: #3E4860">Openstaande acties</span>
+            <span style="font-size: 14px; color: #5B6478">Wie doet wat tegen wanneer. Wat niet af is, komt vanzelf terug op het volgende overleg.</span>
+          </div>
+          <div style="border: 2px dashed #C9D3E3; border-radius: 14px; padding: 18px 20px; display: flex; flex-direction: column; gap: 6px; background: rgba(255,255,255,0.5)">
+            <span style="font-size: 16px; font-weight: 800; color: #3E4860">Lopende zaken</span>
+            <span style="font-size: 14px; color: #5B6478">Je agendapunten. Geen vaste tijden of rollen nodig.</span>
+          </div>
+          <div style="border: 2px dashed #C9D3E3; border-radius: 14px; padding: 18px 20px; display: flex; flex-direction: column; gap: 6px; background: rgba(255,255,255,0.5)">
+            <span style="font-size: 16px; font-weight: 800; color: #3E4860">Varia</span>
+            <span style="font-size: 14px; color: #5B6478">Wat onverwacht ter sprake komt, ook als actie.</span>
+          </div>
+        </section>
+      </div>
+
+      <aside aria-label="Aan de slag" style="flex: 1 1 280px; min-width: 0; background: #FFFFFF; border: 1px solid #E3E8F1; border-radius: 14px; padding: 18px 20px; display: flex; flex-direction: column; gap: 12px">
+        <div style="display: flex; justify-content: space-between; align-items: center"><span style="font-size: 17px; font-weight: 800">Aan de slag</span><span style="font-size: 13px; font-weight: 700; color: #3E4860">0 van 4</span></div>
+        <div style="height: 6px; background: #E3E8F1; border-radius: 6px"></div>
+        <div style="display: flex; gap: 10px; align-items: center; font-size: 15px; font-weight: 800; padding: 10px; margin: 0 -10px; border-radius: 8px; background: #F2F7FF"><span style="width: 16px; height: 16px; border: 2px solid #0B5FD8; border-radius: 50%; flex-shrink: 0"></span><span style="flex: 1">Je eerste overleg klaarzetten</span><span style="font-size: 13px; color: #0B5FD8">1 min</span></div>
+        <div style="display: flex; gap: 10px; align-items: center; font-size: 15px; font-weight: 600; color: #3E4860"><span style="width: 16px; height: 16px; border: 2px solid #A9B4C8; border-radius: 50%; flex-shrink: 0"></span>De acties noteren die nu openstaan</div>
+        <div style="display: flex; gap: 10px; align-items: center; font-size: 15px; font-weight: 600; color: #3E4860"><span style="width: 16px; height: 16px; border: 2px solid #A9B4C8; border-radius: 50%; flex-shrink: 0"></span>Je andere vaste overleggen toevoegen</div>
+        <div style="display: flex; gap: 10px; align-items: center; font-size: 15px; font-weight: 600; color: #3E4860"><span style="width: 16px; height: 16px; border: 2px solid #A9B4C8; border-radius: 50%; flex-shrink: 0"></span>Je collega's uitnodigen</div>
+      </aside>
+    </div>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+renderVals() {
+return {};
+}
+}
+</script>
+</body>
+</html>

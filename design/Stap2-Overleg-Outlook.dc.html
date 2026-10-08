@@ -1,0 +1,159 @@
+<!doctype html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<title>Stap 2 – eerste overleg uit Outlook</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800&amp;display=swap">
+<style>
+body{margin:0;background:#FFFFFF}
+a{color:#0B5FD8}a:hover{color:#08449C}
+</style>
+</helmet>
+<div style="font-family: 'Nunito', system-ui, sans-serif; color: #16213A; background: #FFFFFF; min-height: 900px; display: flex; flex-wrap: wrap; padding: 24px; box-sizing: border-box; gap: 24px">
+  <div style="flex: 1 1 520px; min-width: 0; display: flex; flex-direction: column; padding: 32px 40px; box-sizing: border-box">
+    <span style="font-size: 26px; font-weight: 800; color: #0E7FB8">too-doo</span>
+
+    <div style="max-width: 520px; width: 100%; margin: 48px auto 0; display: flex; flex-direction: column; gap: 18px">
+      <div style="display: flex; flex-direction: column; gap: 8px">
+        <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px"><span style="height: 4px; border-radius: 4px; background: #0B5FD8"></span><span style="height: 4px; border-radius: 4px; background: #0B5FD8"></span><span style="height: 4px; border-radius: 4px; background: #DCE3EE"></span></div>
+        <span style="font-size: 13px; font-weight: 700; color: #5B6478">Stap 2 van 3</span>
+      </div>
+      <h1 style="margin: 0; font-size: 32px; line-height: 1.15; font-weight: 800">Welk overleg wil je als eerste opvolgen?</h1>
+      <p style="margin: 0; font-size: 16px; line-height: 1.5; color: #3E4860">Kies je belangrijkste vaste overleg. Je andere overlegmomenten voeg je later in één keer toe.</p>
+
+      <sc-if value="{{notConnected}}" hint-placeholder-val="{{ true }}">
+        <div style="display: flex; flex-direction: column; gap: 18px">
+          <div style="border: 1px solid #C9D3E3; border-radius: 16px; padding: 24px; display: flex; flex-direction: column; gap: 14px; background: #FBFCFE">
+            <div style="display: flex; gap: 14px; align-items: flex-start">
+              <span style="width: 44px; height: 44px; border-radius: 10px; background: #EDF4FE; display: flex; align-items: center; justify-content: center; flex-shrink: 0">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#0B5FD8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"></rect><path d="M3 10h18M8 3v4M16 3v4"></path></svg>
+              </span>
+              <span style="display: flex; flex-direction: column; gap: 4px">
+                <span style="font-size: 18px; font-weight: 800">Haal je vaste overleggen uit Outlook</span>
+                <span style="font-size: 14px; line-height: 1.5; color: #3E4860">Uur, herhaling en deelnemers staan er meteen in. We lezen alleen je terugkerende afspraken, niets van je mails.</span>
+              </span>
+            </div>
+            <button type="button" onClick="{{connect}}" style="font-family: inherit; display: flex; align-items: center; justify-content: center; gap: 12px; background: #16213A; color: #FFFFFF; border: none; border-radius: 12px; padding: 0 18px; min-height: 50px; font-size: 16px; font-weight: 700; cursor: pointer">
+              <span style="display: grid; grid-template-columns: repeat(2, 9px); gap: 2px"><span style="width: 9px; height: 9px; background: #F25022"></span><span style="width: 9px; height: 9px; background: #7FBA00"></span><span style="width: 9px; height: 9px; background: #00A4EF"></span><span style="width: 9px; height: 9px; background: #FFB900"></span></span>
+              Toon mijn overleggen uit Outlook
+            </button>
+            <span style="font-size: 13px; color: #5B6478">Microsoft vraagt je één keer om toestemming. Lukt dat niet, dan vul je het gewoon zelf in.</span>
+          </div>
+          <a href="Stap2b-Overleg-Manueel.dc.html" style="font-size: 15px; font-weight: 700">Liever niet koppelen? Vul het zelf in</a>
+          <div style="display: flex; flex-wrap: wrap; justify-content: space-between; gap: 12px">
+            <a href="Stap2d-Voorbeelddata.dc.html" style="font-size: 14px; font-weight: 600; color: #3E4860">Eerst rondkijken met voorbeelddata</a>
+            <a href="Product-Leeg.dc.html" style="font-size: 14px; font-weight: 600; color: #3E4860">Ik doe dit later</a>
+          </div>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{noSeries}}" hint-placeholder-val="{{ false }}">
+        <div style="display: flex; flex-direction: column; gap: 18px">
+          <div role="status" style="display: flex; gap: 12px; align-items: flex-start; background: #F4F7FB; border: 1px solid #DCE3EE; border-radius: 12px; padding: 14px 16px">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#3E4860" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0; margin-top: 1px"><rect x="3" y="5" width="18" height="16" rx="2"></rect><path d="M3 10h18M8 3v4M16 3v4"></path></svg>
+            <div style="display: flex; flex-direction: column; gap: 4px">
+              <span style="font-size: 16px; font-weight: 800">Je agenda is gekoppeld, maar we vonden geen vaste overleggen</span>
+              <span style="font-size: 14px; line-height: 1.5; color: #3E4860">Misschien plan je je overleg telkens als losse afspraak in. Geen probleem: vul het zelf in, of vertrek van een afspraak die al in je agenda staat.</span>
+            </div>
+          </div>
+
+          <a href="Stap2b-Overleg-Manueel.dc.html" style="display: flex; align-items: center; justify-content: center; gap: 8px; background: #0B5FD8; color: #FFFFFF; text-decoration: none; border-radius: 12px; font-size: 16px; font-weight: 700; min-height: 50px">Vul je overleg zelf in
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"></path></svg>
+          </a>
+
+          <div style="display: flex; flex-direction: column; gap: 10px">
+            <span style="font-size: 13px; font-weight: 800; letter-spacing: 0.5px; text-transform: uppercase; color: #5B6478">Of vertrek van een afspraak uit de komende 2 weken</span>
+            <a href="Stap2b-Overleg-Manueel.dc.html" style="display: flex; align-items: center; gap: 14px; border: 1px solid #C9D3E3; border-radius: 12px; padding: 14px 16px; text-decoration: none; color: #16213A">
+              <span style="flex: 1; display: flex; flex-direction: column; gap: 2px"><span style="font-size: 16px; font-weight: 800">Overleg productie</span><span style="font-size: 14px; color: #3E4860">ma 13 okt · 08:00–09:00 · 6 deelnemers</span></span>
+              <span style="font-size: 14px; font-weight: 700; color: #0B5FD8">Gebruik</span>
+            </a>
+            <a href="Stap2b-Overleg-Manueel.dc.html" style="display: flex; align-items: center; gap: 14px; border: 1px solid #C9D3E3; border-radius: 12px; padding: 14px 16px; text-decoration: none; color: #16213A">
+              <span style="flex: 1; display: flex; flex-direction: column; gap: 2px"><span style="font-size: 16px; font-weight: 800">MT-vergadering</span><span style="font-size: 14px; color: #3E4860">di 14 okt · 14:00–15:30 · 4 deelnemers</span></span>
+              <span style="font-size: 14px; font-weight: 700; color: #0B5FD8">Gebruik</span>
+            </a>
+            <span style="font-size: 13px; line-height: 1.5; color: #5B6478">We nemen naam, uur, duur en deelnemers over. Hoe vaak het terugkomt, kies je in de volgende stap.</span>
+          </div>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{hasSeries}}" hint-placeholder-val="{{ false }}">
+      <div style="display: flex; flex-direction: column; gap: 18px">
+      <fieldset style="border: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px">
+        <legend style="font-size: 13px; font-weight: 800; letter-spacing: 0.5px; text-transform: uppercase; color: #5B6478; margin-bottom: 10px">Terugkerend in je Outlook-agenda</legend>
+        <label style="display: flex; align-items: center; gap: 14px; border: 2px solid #0B5FD8; background: #F2F7FF; border-radius: 12px; padding: 14px 16px; cursor: pointer">
+          <input type="radio" name="ov" checked style="width: 18px; height: 18px; accent-color: #0B5FD8; margin: 0">
+          <span style="flex: 1; display: flex; flex-direction: column; gap: 2px"><span style="font-size: 16px; font-weight: 800">Productieoverleg</span><span style="font-size: 14px; color: #3E4860">Elke maandag · 08:00–09:00 · 6 deelnemers</span></span>
+        </label>
+        <label style="display: flex; align-items: center; gap: 14px; border: 1px solid #C9D3E3; border-radius: 12px; padding: 15px 17px; cursor: pointer">
+          <input type="radio" name="ov" style="width: 18px; height: 18px; accent-color: #0B5FD8; margin: 0">
+          <span style="flex: 1; display: flex; flex-direction: column; gap: 2px"><span style="font-size: 16px; font-weight: 800">Managementoverleg</span><span style="font-size: 14px; color: #3E4860">Om de 2 weken op dinsdag · 14:00–15:30 · 4 deelnemers</span></span>
+        </label>
+        <label style="display: flex; align-items: center; gap: 14px; border: 1px solid #C9D3E3; border-radius: 12px; padding: 15px 17px; cursor: pointer">
+          <input type="radio" name="ov" style="width: 18px; height: 18px; accent-color: #0B5FD8; margin: 0">
+          <span style="flex: 1; display: flex; flex-direction: column; gap: 2px"><span style="font-size: 16px; font-weight: 800">Veiligheidsoverleg</span><span style="font-size: 14px; color: #3E4860">Eerste donderdag van de maand · 10:00–11:00 · 8 deelnemers</span></span>
+        </label>
+        <label style="display: flex; align-items: center; gap: 14px; border: 1px solid #C9D3E3; border-radius: 12px; padding: 15px 17px; cursor: pointer">
+          <input type="radio" name="ov" style="width: 18px; height: 18px; accent-color: #0B5FD8; margin: 0">
+          <span style="flex: 1; display: flex; flex-direction: column; gap: 2px"><span style="font-size: 16px; font-weight: 800">Weekstart sales</span><span style="font-size: 14px; color: #3E4860">Elke maandag · 09:30–10:00 · 3 deelnemers</span></span>
+        </label>
+      </fieldset>
+      <a href="Stap2b-Overleg-Manueel.dc.html" style="font-size: 15px; font-weight: 700">Staat er niet tussen? Vul het zelf in</a>
+
+      <div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 12px; margin-top: 8px">
+        <a href="Stap2d-Voorbeelddata.dc.html" style="font-size: 14px; font-weight: 600; color: #3E4860">Eerst rondkijken met voorbeelddata</a>
+        <a href="Stap3-Acties.dc.html" style="display: inline-flex; align-items: center; gap: 8px; background: #0B5FD8; color: #FFFFFF; text-decoration: none; padding: 0 24px; border-radius: 12px; font-size: 16px; font-weight: 700; min-height: 48px">Volgende
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"></path></svg>
+        </a>
+      </div>
+      </div>
+      </sc-if>
+    </div>
+  </div>
+
+  <div style="flex: 1 1 520px; min-width: 0; min-height: 852px; border-radius: 24px; background: linear-gradient(170deg, #E3F2FD 0%, #B9E3FA 100%); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; padding: 48px; box-sizing: border-box">
+    <span style="font-size: 13px; font-weight: 800; letter-spacing: 0.5px; text-transform: uppercase; color: #0F3B7A">Zo komt jouw overleg in too-doo</span>
+    <div style="max-width: 480px; width: 100%; background: #FFFFFF; border-radius: 18px; padding: 26px; box-shadow: 0 20px 50px rgba(14,60,140,0.14); display: flex; flex-direction: column; gap: 18px">
+      <div>
+        <div style="font-size: 24px; font-weight: 800">Productieoverleg</div>
+        <div style="font-size: 14px; color: #3E4860; margin-top: 4px">Elke maandag · 08:00–09:00 · volgende: ma 13 okt</div>
+      </div>
+      <div style="display: flex; align-items: center; gap: 6px">
+        <span style="width: 30px; height: 30px; border-radius: 50%; background: #F2C9A8; color: #6A3412; font-size: 12px; font-weight: 800; display: flex; align-items: center; justify-content: center">JP</span>
+        <span style="width: 30px; height: 30px; border-radius: 50%; background: #C9DDF6; color: #0F3B7A; font-size: 12px; font-weight: 800; display: flex; align-items: center; justify-content: center">SD</span>
+        <span style="width: 30px; height: 30px; border-radius: 50%; background: #D6EDD9; color: #1E5A2E; font-size: 12px; font-weight: 800; display: flex; align-items: center; justify-content: center">PV</span>
+        <span style="width: 30px; height: 30px; border-radius: 50%; background: #E7DDF6; color: #4B2A7A; font-size: 12px; font-weight: 800; display: flex; align-items: center; justify-content: center">LM</span>
+        <span style="font-size: 13px; font-weight: 700; color: #3E4860; margin-left: 4px">+2 uit je agenda</span>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 8px">
+        <span style="font-size: 13px; font-weight: 800; letter-spacing: 0.5px; text-transform: uppercase; color: #5B6478">Agenda</span>
+        <div style="display: flex; align-items: center; justify-content: space-between; border: 1px solid #E3E8F1; border-radius: 10px; padding: 12px 14px; font-size: 15px; font-weight: 700"><span>Openstaande acties</span><span style="font-size: 13px; color: #5B6478; font-weight: 600">vult zich vanzelf</span></div>
+        <div style="border: 1px solid #E3E8F1; border-radius: 10px; padding: 12px 14px; font-size: 15px; font-weight: 700">Lopende zaken</div>
+        <div style="border: 1px solid #E3E8F1; border-radius: 10px; padding: 12px 14px; font-size: 15px; font-weight: 700">Varia</div>
+      </div>
+      <span style="font-size: 13px; color: #5B6478">Een eenvoudige startagenda. Punten, tijden en volgorde pas je aan wanneer je wil.</span>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"startConnected":{"editor":"boolean","default":false},"noSeriesFound":{"editor":"boolean","default":false},"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+renderVals() {
+const st = this.state || {};
+const c = st.connected !== undefined ? st.connected : (this.props.startConnected ?? false);
+const none = this.props.noSeriesFound ?? false;
+return {
+notConnected: !c,
+hasSeries: c && !none,
+noSeries: c && none,
+connect: () => this.setState({ connected: true })
+};
+}
+}
+</script>
+</body>
+</html>

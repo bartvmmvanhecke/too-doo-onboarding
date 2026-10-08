@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<title>Rondkijken met voorbeelddata</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800&amp;display=swap">
+<style>
+body{margin:0;background:#F4F7FB}
+a{color:#0B5FD8}a:hover{color:#08449C}
+</style>
+</helmet>
+<div style="font-family: 'Nunito', system-ui, sans-serif; color: #16213A; background: #F4F7FB; min-height: 900px; display: flex; flex-direction: column">
+  <div role="region" aria-label="Voorbeeldmodus" style="background: #16213A; color: #FFFFFF; padding: 12px 24px; display: flex; flex-wrap: wrap; align-items: center; gap: 12px 20px">
+    <span style="font-size: 13px; font-weight: 800; letter-spacing: 0.5px; text-transform: uppercase; background: #FFD66B; color: #3A2A00; border-radius: 6px; padding: 4px 10px">Voorbeeld</span>
+    <span style="flex: 1 1 320px; font-size: 15px; font-weight: 600">Je bekijkt een voorbeeldbedrijf. Klik gerust overal; niets hiervan wordt bewaard of verstuurd.</span>
+    <a href="Stap2-Overleg-Outlook.dc.html" style="display: inline-flex; align-items: center; gap: 8px; background: #FFFFFF; color: #16213A; text-decoration: none; border-radius: 10px; padding: 0 18px; min-height: 44px; font-size: 15px; font-weight: 800">Voeg je eigen overleg toe
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#16213A" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"></path></svg>
+    </a>
+  </div>
+
+  <div style="display: flex; flex-wrap: wrap; flex: 1">
+    <nav aria-label="Hoofdmenu" style="flex: 1 1 220px; max-width: 240px; min-height: 850px; background: linear-gradient(180deg, #123A80 0%, #0C2A5E 100%); color: #FFFFFF; padding: 24px 14px; box-sizing: border-box; display: flex; flex-direction: column; gap: 4px">
+      <span style="font-size: 26px; font-weight: 800; padding: 0 10px 8px">too-doo</span>
+      <span style="font-size: 13px; color: #B7C8E6; padding: 0 12px 18px">Voorbeeld NV · 48 medewerkers</span>
+      <a href="#dashboard" style="color: #D5E2F7; text-decoration: none; font-size: 16px; font-weight: 600; padding: 11px 12px; border-radius: 10px">Dashboard</a>
+      <a href="#overleg" style="color: #FFFFFF; text-decoration: none; font-size: 16px; font-weight: 800; padding: 11px 12px; border-radius: 10px; background: rgba(255,255,255,0.14)">Vergaderingen</a>
+      <a href="#acties" style="color: #D5E2F7; text-decoration: none; font-size: 16px; font-weight: 600; padding: 11px 12px; border-radius: 10px; display: flex; justify-content: space-between">Acties <span style="font-size: 13px; font-weight: 800; background: rgba(255,255,255,0.18); color: #FFFFFF; border-radius: 999px; padding: 1px 9px">7</span></a>
+      <a href="#beslissingen" style="color: #D5E2F7; text-decoration: none; font-size: 16px; font-weight: 600; padding: 11px 12px; border-radius: 10px">Beslissingen</a>
+    </nav>
+
+    <main style="flex: 999 1 560px; min-width: 0; padding: 28px 36px 40px; box-sizing: border-box; display: flex; flex-direction: column; gap: 20px">
+      <div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-end; gap: 16px">
+        <div>
+          <h1 style="margin: 0 0 4px; font-size: 32px; font-weight: 800">Productieoverleg</h1>
+          <div style="font-size: 15px; color: #3E4860">Elke maandag · 08:00–09:00 · 5 deelnemers · 3e keer in too-doo</div>
+        </div>
+        <span style="font-size: 14px; font-weight: 700; color: #1E6B45; background: #E2F4EA; border-radius: 999px; padding: 8px 14px">4 van 7 acties afgerond sinds vorige week</span>
+      </div>
+
+      <div style="display: flex; flex-wrap: wrap; gap: 20px; align-items: flex-start">
+        <section aria-label="Agenda" style="flex: 999 1 480px; min-width: 0; display: flex; flex-direction: column; gap: 14px">
+          <div style="background: #FFFFFF; border: 1px solid #E3E8F1; border-radius: 14px; padding: 18px 20px; display: flex; flex-direction: column; gap: 4px">
+            <div style="display: flex; align-items: center; gap: 10px; padding-bottom: 8px"><span style="font-size: 17px; font-weight: 800; flex: 1">Openstaande acties</span><span style="font-size: 13px; color: #5B6478; font-weight: 600">uit vorige overleggen</span></div>
+            <div style="display: flex; align-items: center; gap: 12px; padding: 10px 0; border-top: 1px solid #EEF2F8">
+              <input type="checkbox" aria-label="Offerte nieuwe plooibank afvinken" style="width: 18px; height: 18px; accent-color: #0B5FD8; margin: 0">
+              <span style="flex: 1; font-size: 15px; font-weight: 600">Offerte nieuwe plooibank opvragen</span>
+              <span style="width: 28px; height: 28px; border-radius: 50%; background: #F2C9A8; color: #6A3412; font-size: 11px; font-weight: 800; display: flex; align-items: center; justify-content: center">KM</span>
+              <span style="font-size: 13px; font-weight: 700; color: #A3271D; background: #FCE6E3; padding: 4px 10px; border-radius: 6px">2 dagen te laat</span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 12px; padding: 10px 0; border-top: 1px solid #EEF2F8">
+              <input type="checkbox" aria-label="Instructie heftruck afvinken" style="width: 18px; height: 18px; accent-color: #0B5FD8; margin: 0">
+              <span style="flex: 1; font-size: 15px; font-weight: 600">Instructie heftruck bijwerken</span>
+              <span style="width: 28px; height: 28px; border-radius: 50%; background: #C9DDF6; color: #0F3B7A; font-size: 11px; font-weight: 800; display: flex; align-items: center; justify-content: center">LD</span>
+              <span style="font-size: 13px; font-weight: 700; color: #3E4860; background: #EEF2F8; padding: 4px 10px; border-radius: 6px">vrijdag</span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 12px; padding: 10px 0; border-top: 1px solid #EEF2F8">
+              <input type="checkbox" aria-label="Leverancier staal afvinken" style="width: 18px; height: 18px; accent-color: #0B5FD8; margin: 0">
+              <span style="flex: 1; font-size: 15px; font-weight: 600">Leverancier staal opnieuw contacteren</span>
+              <span style="width: 28px; height: 28px; border-radius: 50%; background: #D6EDD9; color: #1E5A2E; font-size: 11px; font-weight: 800; display: flex; align-items: center; justify-content: center">PV</span>
+              <span style="font-size: 13px; font-weight: 700; color: #3E4860; background: #EEF2F8; padding: 4px 10px; border-radius: 6px">volgende week</span>
+            </div>
+          </div>
+
+          <div style="background: #FFFFFF; border: 1px solid #E3E8F1; border-radius: 14px; padding: 18px 20px; display: flex; flex-direction: column; gap: 10px">
+            <span style="font-size: 17px; font-weight: 800">Lopende zaken</span>
+            <div style="display: flex; justify-content: space-between; gap: 12px; border: 1px solid #EEF2F8; border-radius: 10px; padding: 12px 14px"><span style="font-size: 15px; font-weight: 600">Planning week 42 en bezetting</span><span style="font-size: 13px; color: #5B6478">1 beslissing</span></div>
+            <div style="display: flex; justify-content: space-between; gap: 12px; border: 1px solid #EEF2F8; border-radius: 10px; padding: 12px 14px"><span style="font-size: 15px; font-weight: 600">Klachten klant Verhaeghe</span><span style="font-size: 13px; color: #5B6478">2 acties</span></div>
+          </div>
+        </section>
+
+        <aside aria-label="Rondleiding" style="flex: 1 1 280px; min-width: 0; background: #FFFFFF; border: 2px solid #0B5FD8; border-radius: 14px; padding: 20px; display: flex; flex-direction: column; gap: 12px">
+          <span style="font-size: 13px; font-weight: 800; color: #0B5FD8">Wat je hier ziet · 1 van 3</span>
+          <span style="font-size: 18px; font-weight: 800; line-height: 1.3">Acties komen vanzelf terug</span>
+          <span style="font-size: 15px; line-height: 1.5; color: #3E4860">Alles wat vorige week niet afgevinkt werd, staat bovenaan de agenda. Niemand hoeft te onthouden wat er nog openstond.</span>
+          <div style="display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-top: 4px">
+            <button type="button" style="font-family: inherit; background: none; border: none; color: #3E4860; font-size: 14px; font-weight: 700; min-height: 44px; padding: 0; cursor: pointer">Sluiten</button>
+            <button type="button" style="font-family: inherit; background: #0B5FD8; color: #FFFFFF; border: none; border-radius: 10px; padding: 0 18px; min-height: 44px; font-size: 14px; font-weight: 700; cursor: pointer">Volgende</button>
+          </div>
+        </aside>
+      </div>
+    </main>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+renderVals() {
+return {};
+}
+}
+</script>
+</body>
+</html>

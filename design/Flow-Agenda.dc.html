@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<title>Flow agenda koppelen</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800&amp;display=swap">
+<style>
+body{margin:0;background:#FFFFFF}
+</style>
+</helmet>
+<div style="width: 1440px; height: 1000px; box-sizing: border-box; padding: 40px 56px; font-family: 'Nunito', system-ui, sans-serif; color: #16213A; background: #FFFFFF; display: flex; flex-direction: column; gap: 22px">
+  <div>
+    <h1 style="margin: 0; font-size: 32px; font-weight: 800">Elke weg eindigt bij stap 3: openstaande acties</h1>
+    <p style="margin: 8px 0 0; font-size: 17px; color: #3E4860">Agenda koppelen is een versneller, nooit een voorwaarde. Na het account kiest de gebruiker in stap 2 hoe hij zijn eerste overleg toevoegt.</p>
+  </div>
+
+  <div style="display: grid; grid-template-columns: 250px minmax(0, 1fr); gap: 0; border-top: 1px solid #E3E8F1">
+    <div style="padding: 18px 16px 18px 0; border-bottom: 1px solid #E3E8F1; background: #FFFAF2">
+      <div style="font-size: 16px; font-weight: 800">Stap 1: Microsoft-login geblokkeerd</div>
+      <div style="font-size: 14px; color: #3E4860; margin-top: 2px">Bedrijf laat geen externe apps toe</div>
+    </div>
+    <div style="display: flex; align-items: center; gap: 10px; padding: 18px 0; border-bottom: 1px solid #E3E8F1; background: #FFFAF2">
+      <span style="border: 2px solid #B4610A; background: #FFF4E5; border-radius: 10px; padding: 11px 14px; font-size: 14px; font-weight: 700; flex: 1">1b · "Je bedrijf blokkeert deze login"</span>
+      <svg width="22" height="14" viewBox="0 0 22 14" fill="none" stroke="#8A95AB" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 7h19M14 1l6 6-6 6"></path></svg>
+      <span style="border: 1px solid #A9B4C8; border-radius: 10px; padding: 12px 14px; font-size: 14px; font-weight: 700; flex: 1">Account met werk-e-mail + wachtwoord</span>
+      <svg width="22" height="14" viewBox="0 0 22 14" fill="none" stroke="#8A95AB" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 7h19M14 1l6 6-6 6"></path></svg>
+      <span style="border: 1px solid #A9B4C8; border-radius: 10px; padding: 12px 14px; font-size: 14px; font-weight: 700; flex: 1">2b · Zelf invullen (Outlook-optie verborgen)</span>
+      <svg width="22" height="14" viewBox="0 0 22 14" fill="none" stroke="#8A95AB" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 7h19M14 1l6 6-6 6"></path></svg>
+      <span style="border: 2px solid #0B5FD8; background: #EDF4FE; border-radius: 10px; padding: 11px 14px; font-size: 14px; font-weight: 800; width: 170px">3 · Acties</span>
+    </div>
+
+    <div style="padding: 18px 16px 18px 0; border-bottom: 1px solid #E3E8F1">
+      <div style="font-size: 16px; font-weight: 800">Koppelen lukt</div>
+      <div style="font-size: 14px; color: #3E4860; margin-top: 2px">Gebruiker kiest Outlook en geeft toestemming</div>
+    </div>
+    <div style="display: flex; align-items: center; gap: 10px; padding: 18px 0; border-bottom: 1px solid #E3E8F1">
+      <span style="border: 1px solid #A9B4C8; border-radius: 10px; padding: 12px 14px; font-size: 14px; font-weight: 700; flex: 1">Microsoft vraagt toestemming agenda</span>
+      <svg width="22" height="14" viewBox="0 0 22 14" fill="none" stroke="#8A95AB" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 7h19M14 1l6 6-6 6"></path></svg>
+      <span style="border: 1px solid #A9B4C8; border-radius: 10px; padding: 12px 14px; font-size: 14px; font-weight: 700; flex: 1">Terugkerende afspraken gevonden</span>
+      <svg width="22" height="14" viewBox="0 0 22 14" fill="none" stroke="#8A95AB" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 7h19M14 1l6 6-6 6"></path></svg>
+      <span style="border: 1px solid #A9B4C8; border-radius: 10px; padding: 12px 14px; font-size: 14px; font-weight: 700; flex: 1">2a · Kies één overleg</span>
+      <svg width="22" height="14" viewBox="0 0 22 14" fill="none" stroke="#8A95AB" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 7h19M14 1l6 6-6 6"></path></svg>
+      <span style="border: 2px solid #0B5FD8; background: #EDF4FE; border-radius: 10px; padding: 11px 14px; font-size: 14px; font-weight: 800; width: 170px">3 · Acties</span>
+    </div>
+
+    <div style="padding: 18px 16px 18px 0; border-bottom: 1px solid #E3E8F1">
+      <div style="font-size: 16px; font-weight: 800">Geen reeksen gevonden</div>
+      <div style="font-size: 14px; color: #3E4860; margin-top: 2px">Agenda gekoppeld, maar leeg of alleen losse afspraken</div>
+    </div>
+    <div style="display: flex; align-items: center; gap: 10px; padding: 18px 0; border-bottom: 1px solid #E3E8F1">
+      <span style="border: 1px solid #A9B4C8; border-radius: 10px; padding: 12px 14px; font-size: 14px; font-weight: 700; flex: 1">2a · Melding + kies een losse afspraak als vertrekpunt</span>
+      <svg width="22" height="14" viewBox="0 0 22 14" fill="none" stroke="#8A95AB" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 7h19M14 1l6 6-6 6"></path></svg>
+      <span style="border: 1px solid #A9B4C8; border-radius: 10px; padding: 12px 14px; font-size: 14px; font-weight: 700; flex: 2">2b · Zelf invullen (deelnemers uit agenda blijven voorgesteld)</span>
+      <svg width="22" height="14" viewBox="0 0 22 14" fill="none" stroke="#8A95AB" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 7h19M14 1l6 6-6 6"></path></svg>
+      <span style="border: 2px solid #0B5FD8; background: #EDF4FE; border-radius: 10px; padding: 11px 14px; font-size: 14px; font-weight: 800; width: 170px">3 · Acties</span>
+    </div>
+
+    <div style="padding: 18px 16px 18px 0; border-bottom: 1px solid #E3E8F1">
+      <div style="font-size: 16px; font-weight: 800">Stap 2: agenda vraagt goedkeuring</div>
+      <div style="font-size: 14px; color: #3E4860; margin-top: 2px">Login mocht, agendatoegang niet zonder beheerder</div>
+    </div>
+    <div style="display: flex; align-items: center; gap: 10px; padding: 18px 0; border-bottom: 1px solid #E3E8F1">
+      <span style="border: 2px solid #B4610A; background: #FFF4E5; border-radius: 10px; padding: 11px 14px; font-size: 14px; font-weight: 700; flex: 1">2c · Uitleg + bericht voor beheerder</span>
+      <svg width="22" height="14" viewBox="0 0 22 14" fill="none" stroke="#8A95AB" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 7h19M14 1l6 6-6 6"></path></svg>
+      <span style="border: 1px solid #A9B4C8; border-radius: 10px; padding: 12px 14px; font-size: 14px; font-weight: 700; flex: 1">2b · Zelf invullen</span>
+      <svg width="22" height="14" viewBox="0 0 22 14" fill="none" stroke="#8A95AB" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 7h19M14 1l6 6-6 6"></path></svg>
+      <span style="border: 2px solid #0B5FD8; background: #EDF4FE; border-radius: 10px; padding: 11px 14px; font-size: 14px; font-weight: 800; width: 170px">3 · Acties</span>
+      <span style="font-size: 13px; color: #3E4860; width: 200px; line-height: 1.35">Na goedkeuring: e-mail "Koppel nu je agenda"</span>
+    </div>
+
+    <div style="padding: 18px 16px 18px 0; border-bottom: 1px solid #E3E8F1">
+      <div style="font-size: 16px; font-weight: 800">Geannuleerd of fout</div>
+      <div style="font-size: 14px; color: #3E4860; margin-top: 2px">Venster gesloten, "Weigeren" of technische fout</div>
+    </div>
+    <div style="display: flex; align-items: center; gap: 10px; padding: 18px 0; border-bottom: 1px solid #E3E8F1">
+      <span style="border: 1px solid #A9B4C8; border-radius: 10px; padding: 12px 14px; font-size: 14px; font-weight: 700; flex: 1">Terug naar 2a, rustige melding: "Geen probleem, vul het zelf in"</span>
+      <svg width="22" height="14" viewBox="0 0 22 14" fill="none" stroke="#8A95AB" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 7h19M14 1l6 6-6 6"></path></svg>
+      <span style="border: 1px solid #A9B4C8; border-radius: 10px; padding: 12px 14px; font-size: 14px; font-weight: 700; flex: 1">2b · Zelf invullen</span>
+      <svg width="22" height="14" viewBox="0 0 22 14" fill="none" stroke="#8A95AB" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 7h19M14 1l6 6-6 6"></path></svg>
+      <span style="border: 2px solid #0B5FD8; background: #EDF4FE; border-radius: 10px; padding: 11px 14px; font-size: 14px; font-weight: 800; width: 170px">3 · Acties</span>
+    </div>
+
+    <div style="padding: 18px 16px 18px 0; border-bottom: 1px solid #E3E8F1">
+      <div style="font-size: 16px; font-weight: 800">Wil niet koppelen</div>
+      <div style="font-size: 14px; color: #3E4860; margin-top: 2px">Kiest zelf invullen, of registreerde met Google of e-mail</div>
+    </div>
+    <div style="display: flex; align-items: center; gap: 10px; padding: 18px 0; border-bottom: 1px solid #E3E8F1">
+      <span style="border: 1px solid #A9B4C8; border-radius: 10px; padding: 12px 14px; font-size: 14px; font-weight: 700; flex: 2">2b · Zelf invullen (4 velden, ongeveer 1 minuut)</span>
+      <svg width="22" height="14" viewBox="0 0 22 14" fill="none" stroke="#8A95AB" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 7h19M14 1l6 6-6 6"></path></svg>
+      <span style="border: 2px solid #0B5FD8; background: #EDF4FE; border-radius: 10px; padding: 11px 14px; font-size: 14px; font-weight: 800; width: 170px">3 · Acties</span>
+      <span style="flex: 1"></span>
+    </div>
+  </div>
+
+  <p style="margin: 0; font-size: 14px; color: #3E4860">Agenda koppelen blijft daarna altijd mogelijk via de checklist "Aan de slag" en via Instellingen.</p>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1000}}'>
+class Component extends DCLogic {
+renderVals() {
+return {};
+}
+}
+</script>
+</body>
+</html>

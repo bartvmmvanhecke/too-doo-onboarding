@@ -26,6 +26,8 @@ function Sidebar() {
   const meetings = useStore((s) => s.meetings);
   // Variant B (flow 3): "Dashboard" opent het overzicht.
   const bMode = useStore((s) => s.flow === 3 || s.meetings.some((m) => m.origin === "b"));
+  // De voorbeeldvergadering (/voorbeeld) hoort ook bij "Vergaderingen".
+  const inMeetings = pathname.startsWith("/app") || pathname === "/voorbeeld";
   const openActions = meetings.reduce((n, m) => n + m.actions.filter((a) => !a.done).length, 0);
 
   const comingSoon = (label: string, badge?: ReactNode) => (
@@ -60,11 +62,7 @@ function Sidebar() {
         ) : (
           comingSoon("Dashboard")
         )}
-        <Link
-          href="/app"
-          aria-current={pathname.startsWith("/app") ? "page" : undefined}
-          className={cn(item, pathname.startsWith("/app") && active)}
-        >
+        <Link href="/app" aria-current={inMeetings ? "page" : undefined} className={cn(item, inMeetings && active)}>
           Vergaderingen
         </Link>
         {comingSoon("Acties", openActions > 0 ? <Badge>{openActions}</Badge> : undefined)}

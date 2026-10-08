@@ -209,7 +209,7 @@ test.describe("Vier randgevallen vanaf /prototype", () => {
     const shot = shooter(page, "rand-voorbeeld");
     await startFlow(page, /Eerst rondkijken met voorbeelddata/);
     await expect(page).toHaveURL(/\/voorbeeld$/);
-    await expect(page.getByRole("complementary", { name: "Rondleiding" })).toBeVisible();
+    await expect(page.getByRole("dialog", { name: "Rondleiding" })).toBeVisible();
     await shot("voorbeeld");
   });
 });

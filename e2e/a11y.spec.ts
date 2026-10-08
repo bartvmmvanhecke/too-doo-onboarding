@@ -46,6 +46,34 @@ const CASES: { name: string; path: string; setup?: (page: import("@playwright/te
       await page.getByRole("dialog").waitFor();
     },
   },
+  { name: "prototype", path: "/prototype" },
+  { name: "website B", path: "/b" },
+  { name: "voorbeeld B", path: "/b/voorbeeld" },
+  { name: "reis", path: "/b/reis" },
+  { name: "mail", path: "/b/mail" },
+  {
+    name: "variant B: voorstellen uit notities",
+    path: "/prototype",
+    setup: async (page) => {
+      await page.getByRole("button", { name: /Start flow 3:/ }).click();
+      await page.getByRole("button", { name: "Doorgaan met Microsoft" }).click();
+      await page.getByRole("button", { name: "Volg deze 2 overleggen op" }).click();
+      await page.getByRole("button", { name: "Haal de acties eruit" }).click();
+      await page.getByRole("heading", { name: "4 voorstellen uit je notities" }).waitFor();
+    },
+  },
+  {
+    name: "variant B: overzicht",
+    path: "/prototype",
+    setup: async (page) => {
+      await page.getByRole("button", { name: /Start flow 3:/ }).click();
+      await page.getByRole("button", { name: "Doorgaan met Microsoft" }).click();
+      await page.getByRole("button", { name: "Volg deze 2 overleggen op" }).click();
+      await page.getByRole("button", { name: "Haal de acties eruit" }).click();
+      await page.getByRole("button", { name: "Bevestig 4 punten" }).click();
+      await page.getByRole("heading", { name: "Dit volgt too-doo nu voor je op" }).waitFor();
+    },
+  },
 ];
 
 for (const c of CASES) {

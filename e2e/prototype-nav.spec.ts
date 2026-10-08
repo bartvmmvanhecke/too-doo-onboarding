@@ -1,7 +1,8 @@
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test } from "@playwright/test";
+import { overlapsWithNav } from "./helpers";
 
 /** Alle routes met de lijst-knop; overleg- en B-schermen krijgen eerst state via een flow. */
-export const NAV_ROUTES = [
+const NAV_ROUTES = [
   "/",
   "/start",
   "/start/geblokkeerd",
@@ -10,34 +11,12 @@ export const NAV_ROUTES = [
   "/overleg/goedkeuring",
   "/voorbeeld",
   "/app",
+  "/b",
+  "/b/voorbeeld",
+  "/b/reis",
+  "/b/mail",
+  "/b/structuur",
 ];
-
-/** Elementen met eigen tekst of interactie die de knop raken. */
-export async function overlapsWithNav(page: Page): Promise<string[]> {
-  return page.evaluate(() => {
-    const nav = document.querySelector("[data-prototype-nav]");
-    if (!nav) return ["(geen lijst-knop gevonden)"];
-    const r = nav.getBoundingClientRect();
-    const hits: string[] = [];
-    const candidates = document.querySelectorAll<HTMLElement>(
-      "a, button, input, select, textarea, label, h1, h2, h3, p, span, li, img, svg",
-    );
-    for (const el of candidates) {
-      if (nav.contains(el) || el.closest("[data-sonner-toaster], [aria-label='Demo-instellingen']")) continue;
-      const style = getComputedStyle(el);
-      if (style.visibility === "hidden" || style.display === "none") continue;
-      const hasOwnText = [...el.childNodes].some((n) => n.nodeType === 3 && n.textContent?.trim());
-      const interactive = el.matches("a, button, input, select, textarea, img, svg");
-      if (!hasOwnText && !interactive) continue;
-      const b = el.getBoundingClientRect();
-      if (b.width === 0 || b.height === 0) continue;
-      if (b.right > r.left && b.left < r.right && b.bottom > r.top && b.top < r.bottom) {
-        hits.push(`${el.tagName.toLowerCase()} "${(el.textContent ?? "").trim().slice(0, 40)}"`);
-      }
-    }
-    return hits;
-  });
-}
 
 test.describe("lijst-knop naar de flowkeuze", () => {
   for (const route of NAV_ROUTES) {
@@ -51,6 +30,24 @@ test.describe("lijst-knop naar de flowkeuze", () => {
       await expect(page).toHaveURL(/\/prototype$/);
     });
   }
+
+  test("overlapt niets op de schermen met state (acties, overzicht, overleg)", async ({ page }) => {
+    await page.goto("/prototype");
+    await page.getByRole("button", { name: /Start flow 3:/ }).click();
+    await page.getByRole("button", { name: "Doorgaan met Microsoft" }).click();
+    await page.getByRole("button", { name: "Volg deze 2 overleggen op" }).click();
+    await page.getByRole("button", { name: "Haal de acties eruit" }).click();
+    await page.getByRole("button", { name: "Bevestig 4 punten" }).waitFor();
+    expect(await overlapsWithNav(page), "/b/acties").toEqual([]);
+    await page.getByRole("button", { name: "Bevestig 4 punten" }).click();
+    await page.getByRole("heading", { name: "Dit volgt too-doo nu voor je op" }).waitFor();
+    expect(await overlapsWithNav(page), "/b/overzicht").toEqual([]);
+    await page.getByRole("link", { name: "Bekijk de agenda" }).click();
+    await page.getByRole("heading", { level: 1, name: "Productieoverleg" }).waitFor();
+    expect(await overlapsWithNav(page), "/app/overleg").toEqual([]);
+    await page.goto("/acties");
+    expect(await overlapsWithNav(page), "/acties").toEqual([]);
+  });
 
   test("ontbreekt op /prototype", async ({ page }) => {
     await page.goto("/prototype");

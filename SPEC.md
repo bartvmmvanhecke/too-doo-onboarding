@@ -171,3 +171,29 @@ Aanvullingen op deze specificatie, afgesproken tijdens het bouwen van het protot
 **Data**
 - Geen vaste demodatum: alle data worden relatief vanaf vandaag berekend. "Volgende keer" = de eerstvolgende juiste weekdag per reeks (bv. eerstvolgende maandag); voorbeelddeadlines liggen enkele dagen daarna. Getoond in het formaat uit de mockups ("ma 13 okt").
 - Deelnemers: Jan Peeters (JP), Sofie De Smet (SD), Pieter Vermeulen (PV), Lotte Maes (LM) en twee extra voor Productieoverleg. Losse afspraken: "Overleg productie" en "MT-vergadering".
+
+### Flows, flowkeuze en variant B (SPEC-FLOWS.md)
+
+**Flowkeuze en lijst-knop**
+- `/prototype` heeft een sobere grijze stijl met label "Prototype". De korte uitleg per flow en de stappenlijsten zijn voor het prototype geschreven.
+- Randgevallen starten één klik vóór het randgeval: geblokkeerd → `/start` (login "bedrijf blokkeert"); IT-goedkeuring → `/overleg` (ingelogd als Jan, agenda "IT-goedkeuring nodig"); geen reeksen → `/overleg` (agenda "geen reeksen"); voorbeelddata → `/voorbeeld`. Voor randgevallen is `flow` leeg.
+- De lijst-knop staat vast rechtsboven. Elke layout houdt in zijn bovenste rij ruimte vrij (extra padding rechts in headers en balken, extra ruimte bovenaan in de app). Een e2e-test controleert in de rustpositie bovenaan dat hij niets overlapt, op desktop en mobiel. Tijdens het scrollen schuift inhoud onder de (half-transparante) knop door. Linksonder was nergens nodig.
+- Op `/` gaan enkel "Probeer gratis" en "Start gratis met Microsoft" naar `/prototype`; "Liever met je werk-e-mail starten" blijft naar `/start` gaan en "Inloggen" naar `/app`.
+
+**Variant A**
+- `Stap2-Keuze.dc.html` is verwijderd: het aparte keuzescherm bestaat niet meer.
+- Kwaliteitsoverleg (om de 2 weken wo 11:00, 1u30, 5 personen, deelnemer) staat in de mockdata en dus ook in de lijst en de modal van variant A: 5 reeksen overal.
+- In de lege toestand `/app` blijft "Koppel Outlook" staan zolang de agenda niet gekoppeld is (zie hoger).
+- Flow 3: elk geslaagd account (Microsoft, Google of e-mail) gaat naar `/b/structuur`.
+
+**Variant B**
+- `/b/structuur` vindt altijd de reeksen (flow 3 zet "reeksen"); de agenda-uitkomst in de demo-balk stuurt enkel variant A.
+- Nieuwe personen voor de juiste telling (11 collega's, ±14 uur per maand): Karen Dhondt (KD) en Tom Claes (TC).
+- "Mis je een overleg? Voeg het toe": de aangevinkte reeksen worden eerst bewaard, daarna `/overleg/zelf`; "Volgende" voegt dat overleg toe en gaat naar `/b/acties`; "Toch kiezen uit je Outlook-agenda" gaat terug naar `/b/structuur`.
+- Extractie: bevat de tekst opsommingstekens (`-`, `*`, `•`, cijfers), dan worden enkel die regels voorstellen; anders elke regel of zin. Regels worden licht opgeschoond (naam en datumwoorden eruit, "wk" → "week"); de onderwerpen uit de voorbeeldtekst krijgen de titels uit de mockup.
+- Transcript na "Inspreken": "Jan vraagt een nieuwe offerte voor de plooibank, liefst voor vrijdag. Sofie past de instructie van de heftruck aan na het incident. De leverancier van staal moet opnieuw gebeld worden. Over de planning van week 42 moeten we volgende keer beslissen."
+- "Zelf typen": ingevulde rijen verschijnen live in de lijst met voorstellen (label "zelf getypt") en tellen mee in "Bevestig N punten".
+- "Bekijk wat zij ontvangen" opent een modal met dezelfde mail als `/b/mail` (eerste aangevinkte actie met een eigenaar die niet de gebruiker is).
+- `/b/overzicht`: begroeting volgens het uur (Goedemorgen/Goedemiddag/Goedenavond). "Wat er nu gebeurt" noemt de echte eigenaars; zonder eigenaars: "Eigenaars krijgen hun acties per mail zodra je ze aanwijst."
+- `/b/voorbeeld` "Zet het op voor jouw bedrijf" → `/prototype` (de spec wint van de mockup).
+- Zelf geschreven teksten (niet in de mockups): "Kies een flow", de uitleg op `/prototype`, "Kies minstens één overleg om op te volgen.", "too-doo haalt de acties uit je tekst…", "Nog geen voorstellen. Haal de acties uit je notities, spreek ze in of typ ze zelf.", de teksten bij "Inspreken" ("Druk en vertel kort wat er openstaat.", "Aan het luisteren…"), "Niets dat nu je aandacht vraagt.", "Nog geen acties met een eigenaar.", "De startagenda staat klaar", het label "beslissing" in het overleg.

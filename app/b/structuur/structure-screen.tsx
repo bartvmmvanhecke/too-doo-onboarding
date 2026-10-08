@@ -201,7 +201,7 @@ export function StructureScreen() {
             >
               Mis je een overleg? Voeg het toe
             </Link>
-            <Button type="submit" aria-disabled={count === 0}>
+            <Button type="submit">
               {count === 1
                 ? "Volg dit overleg op"
                 : count === 0

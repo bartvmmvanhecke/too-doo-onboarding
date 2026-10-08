@@ -47,6 +47,18 @@
   --panel-to: #b9e3fa;
   --panel-ink: #0f3b7a;
 
+  /* Website (homepage vanaf sectie 2, too-doo-website-nieuwe-copy) */
+  --site-navy: #0d0e2a;
+  --site-blue-dark: #1e429f;
+  --site-primary: #1a56db;
+  --site-purple: #7b2fef;
+  --site-muted: #6e728e;
+  --site-bg: #fafbfc;
+  --site-pill: #f0f1f7;
+  --site-mint: #d5f5f6;
+  --site-green: #08c489;
+  --site-border: #e2e4ef;
+
   /* shadcn/ui */
   --radius: 0.625rem;
   --background: #ffffff;
@@ -71,6 +83,18 @@
 
 @theme inline {
   --font-sans: var(--font-nunito), system-ui, sans-serif;
+  --font-site: var(--font-rubik), Arial, sans-serif;
+
+  --color-site-navy: var(--site-navy);
+  --color-site-blue-dark: var(--site-blue-dark);
+  --color-site-primary: var(--site-primary);
+  --color-site-purple: var(--site-purple);
+  --color-site-muted: var(--site-muted);
+  --color-site-bg: var(--site-bg);
+  --color-site-pill: var(--site-pill);
+  --color-site-mint: var(--site-mint);
+  --color-site-green: var(--site-green);
+  --color-site-border: var(--site-border);
 
   --color-brand: var(--brand);
   --color-brand-hover: var(--brand-hover);
@@ -138,6 +162,15 @@
 
 @utility bg-app-nav {
   background: linear-gradient(180deg, var(--nav-from) 0%, var(--nav-to) 100%);
+}
+
+/* Paars-naar-blauw verloop in titels van de website. */
+@utility text-gradient-site {
+  background: linear-gradient(90deg, var(--site-purple), var(--site-primary));
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: var(--site-primary);
 }
 
 @utility bg-hero {

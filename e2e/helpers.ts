@@ -4,7 +4,8 @@ import { expect, type Page } from "@playwright/test";
 export function trackErrors(page: Page) {
   const errors: string[] = [];
   page.on("console", (m) => {
-    if (m.type() === "error") errors.push(m.text());
+    // Afbeeldingen van de Webflow-CDN zijn in de testomgeving niet altijd bereikbaar.
+    if (m.type() === "error" && !m.location().url.includes("cdn.prod.website-files.com")) errors.push(m.text());
   });
   page.on("pageerror", (e) => errors.push(String(e)));
   return {

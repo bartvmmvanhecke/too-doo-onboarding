@@ -21,7 +21,12 @@ for (const route of ROUTES) {
   test(`geen horizontale scroll op smal scherm: ${route}`, async ({ page }) => {
     await page.goto(route);
     await page.waitForLoadState("networkidle");
-    const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
+    // Op mobiel zoomt Chrome uit als iets te breed is: vergelijk ook met de echte schermbreedte.
+    const overflow = await page.evaluate(
+      () =>
+        Math.max(document.documentElement.scrollWidth, window.innerWidth) -
+        (window.visualViewport?.width ?? window.innerWidth),
+    );
     expect(overflow).toBeLessThanOrEqual(0);
   });
 }

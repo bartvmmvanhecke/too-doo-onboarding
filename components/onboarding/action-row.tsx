@@ -1,5 +1,6 @@
 "use client";
 
+import { DatePicker } from "@/components/date-picker";
 import { OwnerCombobox, type OwnerOption } from "@/components/onboarding/owner-combobox";
 import type { Person } from "@/lib/mock-data";
 import { cn } from "@/lib/utils";
@@ -78,12 +79,11 @@ export function ActionRow({
         onSelect={(ownerId) => onChange({ ownerId })}
         onAddPerson={(text) => onChange({ ownerId: onAddPerson(text).id, ownerText: "" })}
       />
-      <input
-        type="text"
+      <DatePicker
         aria-label={`Deadline actie ${n}`}
         placeholder="optioneel"
         value={value.deadline}
-        onChange={(e) => onChange({ deadline: e.target.value })}
+        onChange={(deadline) => onChange({ deadline })}
         onKeyDown={enter}
         className={field}
       />

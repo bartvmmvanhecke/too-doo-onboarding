@@ -6,9 +6,19 @@
  */
 import { create } from "zustand";
 import { createJSONStorage, persist, type StateStorage } from "zustand/middleware";
-import { nextWeekday, toISO, WEEKDAY } from "@/lib/date";
+import { formatShortDate, nextWeekday, toISO, WEEKDAY } from "@/lib/date";
+import type { Proposal } from "@/lib/extract";
+import type { FlowId, FlowPreset } from "@/lib/flows";
 import { deriveMeetingType, slugify, type MeetingSchedule } from "@/lib/meeting";
-import { PEOPLE, SERIES, USER_PERSON_ID, seriesSchedule, type Appointment, type Person } from "@/lib/mock-data";
+import {
+  MOCK_USER,
+  PEOPLE,
+  SERIES,
+  USER_PERSON_ID,
+  seriesSchedule,
+  type Appointment,
+  type Person,
+} from "@/lib/mock-data";
 import { createPerson, initialsFrom } from "@/lib/people";
 import { uid } from "@/lib/utils";
 
@@ -45,11 +55,15 @@ export interface Action {
   ownerId: string | null;
   deadline: string;
   done: boolean;
+  /** Variant B: de eigenaar kreeg de actie per mail (gesimuleerd). */
+  mailed?: boolean;
 }
 
 export interface AgendaItem {
   id: string;
   text: string;
+  /** Vraagt een beslissing (variant B). */
+  decision?: boolean;
 }
 
 export interface Meeting extends MeetingSchedule {
@@ -63,6 +77,23 @@ export interface Meeting extends MeetingSchedule {
   showWelcome: boolean;
   invited: boolean;
   held: boolean;
+  /** Aangemaakt via variant B (/b/structuur). */
+  origin?: "b";
+}
+
+export type ExtractionTab = "plak" | "inspreken" | "typen";
+
+export interface BState {
+  /** Aangevinkte reeksen op /b/structuur; null = nog de standaardselectie. */
+  selection: string[] | null;
+  /** Overleg waarvoor /b/acties de acties verzamelt. */
+  targetMeetingId: string | null;
+  extraction: {
+    tab: ExtractionTab;
+    text: string;
+    proposals: Proposal[] | null;
+    typed: ActionDraft[];
+  };
 }
 
 export type CalendarState = "idle" | "series" | "none";
@@ -79,6 +110,11 @@ interface Data {
   extraPeople: Person[];
   meetings: Meeting[];
   moreMeetingsAdded: boolean;
+  /** Gekozen flow op /prototype. */
+  flow: FlowId | null;
+  /** Waar "Volgende" op /overleg/zelf naartoe gaat als je er vanuit variant B komt. */
+  manualReturn: string | null;
+  b: BState;
 }
 
 interface Actions {
@@ -102,6 +138,16 @@ interface Actions {
   dismissWelcome: (meetingId: string) => void;
   markInvited: (meetingId: string) => void;
   markHeld: (meetingId: string) => void;
+  startFlow: (flow: FlowId | null, preset: FlowPreset) => void;
+  setManualReturn: (route: string | null) => void;
+  setBSelection: (ids: string[]) => void;
+  followSeries: (ids: string[], preferredId: string) => void;
+  addManualMeetingToB: () => string | null;
+  updateExtraction: (patch: Partial<BState["extraction"]>) => void;
+  updateProposal: (id: string, patch: Partial<Proposal>) => void;
+  updateTypedRow: (index: number, patch: Partial<ActionDraft>) => void;
+  confirmProposals: () => void;
+  assignOwner: (meetingId: string, actionId: string, ownerId: string) => void;
 }
 
 export type Store = Data & Actions;
@@ -121,6 +167,13 @@ const initialData = (): Data => ({
   extraPeople: [],
   meetings: [],
   moreMeetingsAdded: false,
+  flow: null,
+  manualReturn: null,
+  b: {
+    selection: null,
+    targetMeetingId: null,
+    extraction: { tab: "plak", text: "", proposals: null, typed: emptyActionDrafts() },
+  },
 });
 
 /** Lege draft voor 2b: eerstvolgende maandag, 08:00, 1 uur, elke week. */
@@ -296,11 +349,142 @@ export const useStore = create<Store>()(
         dismissWelcome: (meetingId) => updateMeeting(meetingId, (m) => ({ ...m, showWelcome: false })),
         markInvited: (meetingId) => updateMeeting(meetingId, (m) => ({ ...m, invited: true })),
         markHeld: (meetingId) => updateMeeting(meetingId, (m) => ({ ...m, held: true })),
+
+        startFlow: (flow, preset) => {
+          const base = initialData();
+          set({
+            ...base,
+            flow,
+            demo: { ...base.demo, ...preset.demo },
+            user: preset.signedIn ? { ...MOCK_USER, method: "microsoft" } : null,
+          });
+        },
+        setManualReturn: (manualReturn) => set({ manualReturn }),
+
+        setBSelection: (selection) => set((s) => ({ b: { ...s.b, selection } })),
+
+        followSeries: (ids, preferredId) => {
+          const s = get();
+          // Overleggen uit B die niet meer aangevinkt zijn en nog leeg zijn, vallen weg.
+          let meetings = s.meetings.filter(
+            (m) =>
+              m.origin !== "b" ||
+              !m.seriesId ||
+              ids.includes(m.seriesId) ||
+              m.actions.length > 0 ||
+              m.agendaItems.length > 0,
+          );
+          for (const sid of ids) {
+            if (meetings.some((m) => m.seriesId === sid)) continue;
+            const series = SERIES.find((x) => x.id === sid);
+            if (!series) continue;
+            const id = uniqueId(series.name, meetings);
+            meetings = [
+              ...meetings,
+              newMeeting(seriesSchedule(series), id, {
+                seriesId: sid,
+                participants: series.participants,
+                origin: "b",
+                showWelcome: false,
+              }),
+            ];
+          }
+          const targetSeries = ids.includes(preferredId) ? preferredId : ids[0];
+          const target = meetings.find((m) => m.seriesId === targetSeries);
+          set({ meetings, b: { ...s.b, selection: ids, targetMeetingId: target?.id ?? null }, calendar: "series" });
+        },
+
+        addManualMeetingToB: () => {
+          const s = get();
+          const draft = s.manualDraft;
+          if (!draft?.name.trim()) return null;
+          const id = uniqueId(draft.name, s.meetings);
+          const meeting = newMeeting({ ...draft, name: draft.name.trim() }, id, {
+            participants: draft.participants,
+            origin: "b",
+            showWelcome: false,
+          });
+          set({
+            meetings: [...s.meetings, meeting],
+            b: { ...s.b, targetMeetingId: s.b.targetMeetingId ?? id },
+            manualReturn: null,
+          });
+          return id;
+        },
+
+        updateExtraction: (patch) => set((s) => ({ b: { ...s.b, extraction: { ...s.b.extraction, ...patch } } })),
+        updateProposal: (id, patch) =>
+          set((s) => ({
+            b: {
+              ...s.b,
+              extraction: {
+                ...s.b.extraction,
+                proposals: (s.b.extraction.proposals ?? []).map((p) => (p.id === id ? { ...p, ...patch } : p)),
+              },
+            },
+          })),
+        updateTypedRow: (index, patch) =>
+          set((s) => ({
+            b: {
+              ...s.b,
+              extraction: {
+                ...s.b.extraction,
+                typed: s.b.extraction.typed.map((r, i) => (i === index ? { ...r, ...patch } : r)),
+              },
+            },
+          })),
+
+        confirmProposals: () => {
+          const s = get();
+          const targetId = s.b.targetMeetingId;
+          if (!targetId) return;
+          const { proposals, typed } = s.b.extraction;
+          const actions: Action[] = [];
+          const items: AgendaItem[] = [];
+          const toAction = (what: string, ownerId: string | null, deadline: string): Action => ({
+            id: uid("a-"),
+            what,
+            ownerId,
+            deadline,
+            done: false,
+            mailed: !!ownerId && ownerId !== USER_PERSON_ID,
+          });
+          for (const p of (proposals ?? []).filter((x) => x.checked && x.text.trim())) {
+            if (p.kind === "agenda") items.push({ id: uid("i-"), text: p.text.trim(), decision: true });
+            else actions.push(toAction(p.text.trim(), p.ownerId, p.date ? formatShortDate(p.date) : ""));
+          }
+          for (const r of typed.filter((x) => x.what.trim())) {
+            let ownerId = r.ownerId;
+            if (!ownerId && r.ownerText.trim()) ownerId = get().addPerson(r.ownerText).id;
+            actions.push(toAction(r.what.trim(), ownerId, r.deadline.trim()));
+          }
+          updateMeeting(targetId, (m) => ({
+            ...m,
+            actions: [...m.actions, ...actions],
+            agendaItems: [...m.agendaItems, ...items],
+          }));
+          set((st) => ({
+            b: {
+              ...st.b,
+              extraction: { ...st.b.extraction, text: "", proposals: null, typed: emptyActionDrafts() },
+            },
+          }));
+        },
+
+        assignOwner: (meetingId, actionId, ownerId) =>
+          updateMeeting(meetingId, (m) => ({
+            ...m,
+            actions: m.actions.map((a) =>
+              a.id === actionId ? { ...a, ownerId, mailed: ownerId !== USER_PERSON_ID } : a,
+            ),
+          })),
       };
     },
     {
       name: STORAGE_KEY,
-      version: 1,
+      version: 2,
+      // Oude opgeslagen state (versie 1) mist de velden voor flows en variant B: begin opnieuw.
+      migrate: () => initialData(),
       storage: createJSONStorage(() => (typeof window === "undefined" ? noopStorage : window.localStorage)),
     },
   ),

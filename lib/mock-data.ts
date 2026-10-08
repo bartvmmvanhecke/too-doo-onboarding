@@ -50,6 +50,8 @@ export const PEOPLE: Person[] = [
   { id: "ne", name: "Nora El Amrani", email: "nora.elamrani@metaalwerken.be", initials: "NE", color: AVATAR_COLORS[7] },
   { id: "wh", name: "Wim Hermans", email: "wim.hermans@metaalwerken.be", initials: "WH", color: AVATAR_COLORS[0] },
   { id: "ig", name: "Ines Goossens", email: "ines.goossens@metaalwerken.be", initials: "IG", color: AVATAR_COLORS[1] },
+  { id: "kd", name: "Karen Dhondt", email: "karen.dhondt@metaalwerken.be", initials: "KD", color: AVATAR_COLORS[0] },
+  { id: "tc", name: "Tom Claes", email: "tom.claes@metaalwerken.be", initials: "TC", color: AVATAR_COLORS[2] },
 ];
 
 /** De gebruiker zelf in de mockdata. */
@@ -60,6 +62,10 @@ type SeriesRule = { kind: "weekly" | "biweekly"; weekday: number } | { kind: "mo
 export interface Series {
   id: string;
   name: string;
+  /** Korte naam voor het weekraster in variant B. */
+  short: string;
+  /** Organiseert de gebruiker dit overleg (variant B: "Jij organiseert" / "Deelnemer")? */
+  organizer: boolean;
   rule: SeriesRule;
   time: Minutes;
   duration: Minutes;
@@ -71,6 +77,8 @@ export interface Series {
 export const SERIES: Series[] = [
   {
     id: "productie",
+    short: "Productie",
+    organizer: true,
     name: "Productieoverleg",
     rule: { kind: "weekly", weekday: WEEKDAY.ma },
     time: 8 * 60,
@@ -80,15 +88,19 @@ export const SERIES: Series[] = [
   },
   {
     id: "management",
+    short: "MT",
+    organizer: true,
     name: "Managementoverleg",
     rule: { kind: "biweekly", weekday: WEEKDAY.di },
     time: 14 * 60,
     duration: 90,
-    participants: ["jp", "sd", "lm", "kw"],
+    participants: ["lm", "kd", "jp", "sd"],
     suggested: true,
   },
   {
     id: "veiligheid",
+    short: "Veiligheid",
+    organizer: false,
     name: "Veiligheidsoverleg",
     rule: { kind: "monthly", nth: 1, weekday: WEEKDAY.do },
     time: 10 * 60,
@@ -98,11 +110,24 @@ export const SERIES: Series[] = [
   },
   {
     id: "sales",
+    short: "Sales",
+    organizer: true,
     name: "Weekstart sales",
     rule: { kind: "weekly", weekday: WEEKDAY.ma },
     time: 9 * 60 + 30,
     duration: 30,
     participants: ["jp", "wh", "ig"],
+    suggested: false,
+  },
+  {
+    id: "kwaliteit",
+    short: "Kwaliteit",
+    organizer: false,
+    name: "Kwaliteitsoverleg",
+    rule: { kind: "biweekly", weekday: WEEKDAY.wo },
+    time: 11 * 60,
+    duration: 90,
+    participants: ["tc", "jp", "pv", "sd", "kd"],
     suggested: false,
   },
 ];

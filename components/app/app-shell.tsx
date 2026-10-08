@@ -12,6 +12,8 @@ import { notAvailable } from "@/lib/not-available";
 import { useStore } from "@/lib/store";
 import { cn } from "@/lib/utils";
 
+const active = "bg-white/15 font-extrabold text-white";
+
 const item =
   "flex min-h-11 items-center justify-between gap-2 rounded-[10px] px-3 py-2.5 text-base font-semibold text-nav-ink no-underline hover:bg-white/10 hover:text-white";
 
@@ -26,6 +28,9 @@ function Sidebar() {
   const pathname = usePathname();
   const meetings = useStore((s) => s.meetings);
   const { setAddMeetingsOpen } = useAppUi();
+  // Variant B (flow 3): "Overzicht" bovenaan, "Vergaderingen" opent het opgevolgde overleg.
+  const bMode = useStore((s) => s.flow === 3 || s.meetings.some((m) => m.origin === "b"));
+  const target = useStore((s) => s.meetings.find((m) => m.id === s.b.targetMeetingId) ?? s.meetings[0]);
   const openActions = meetings.reduce((n, m) => n + m.actions.filter((a) => !a.done).length, 0);
 
   const comingSoon = (label: string, badge?: ReactNode) => (
@@ -49,8 +54,22 @@ function Sidebar() {
     >
       <Logo href="/app" tone="white" className="self-start px-2.5 lg:pb-4" />
       <div className="flex flex-wrap gap-1 lg:flex-col">
-        {comingSoon("Dashboard")}
-        <Link href="/app" aria-current="page" className={cn(item, "bg-white/15 font-extrabold text-white")}>
+        {bMode ? (
+          <Link
+            href="/b/overzicht"
+            aria-current={pathname === "/b/overzicht" ? "page" : undefined}
+            className={cn(item, pathname === "/b/overzicht" && active)}
+          >
+            Overzicht
+          </Link>
+        ) : (
+          comingSoon("Dashboard")
+        )}
+        <Link
+          href={bMode && target ? `/app/overleg/${target.id}` : "/app"}
+          aria-current={pathname.startsWith("/app") ? "page" : undefined}
+          className={cn(item, pathname.startsWith("/app") && active)}
+        >
           Vergaderingen
         </Link>
         {meetings.length > 0 && (
@@ -87,7 +106,7 @@ function Sidebar() {
         )}
         {comingSoon("Acties", openActions > 0 ? <Badge>{openActions}</Badge> : undefined)}
         {comingSoon("Beslissingen")}
-        {meetings.length > 0 && comingSoon("Notities")}
+        {meetings.length > 0 && !bMode && comingSoon("Notities")}
       </div>
       <p className="mt-auto hidden border-t border-white/15 p-3 text-[13px] text-nav-muted lg:block">
         Proefperiode · nog 30 dagen

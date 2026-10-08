@@ -23,6 +23,8 @@ const MIN_PASSWORD = 8;
 export function AccountScreen() {
   const router = useRouter();
   const signIn = useStore((s) => s.signIn);
+  // Flow 3 (variant B) gaat na het account naar de overlegstructuur (SPEC-FLOWS.md §2).
+  const nextRoute = useStore((s) => (s.flow === 3 ? "/b/structuur" : "/overleg"));
   const { start, pending } = useSsoLogin();
 
   const [details, setDetails] = useState(false);
@@ -39,7 +41,7 @@ export function AccountScreen() {
 
   const sso = async (provider: "microsoft" | "google") => {
     const outcome = await start(provider);
-    router.push(outcome === "success" ? "/overleg" : "/start/geblokkeerd");
+    router.push(outcome === "success" ? nextRoute : "/start/geblokkeerd");
   };
 
   const continueWithEmail = (e: FormEvent) => {
@@ -68,7 +70,7 @@ export function AccountScreen() {
       return;
     }
     signIn({ firstName: first.trim(), lastName: last.trim(), email: email.trim(), company, method: "email" });
-    router.push("/overleg");
+    router.push(nextRoute);
   };
 
   const languageSelect = (

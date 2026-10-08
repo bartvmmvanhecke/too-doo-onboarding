@@ -61,7 +61,7 @@ export function PanelCard({ children, className }: { children: ReactNode; classN
 }
 
 /** Kleine hoofdletterkop, bv. "Zo komt jouw overleg in too-doo". */
-export function Eyebrow({ children, className, as: Tag = "p" }: { children: ReactNode; className?: string; as?: "p" | "h2" | "span" | "legend" }) {
+export function Eyebrow({ children, className, as: Tag = "p" }: { children: ReactNode; className?: string; as?: "p" | "h2" | "h3" | "span" | "legend" }) {
   return (
     <Tag className={cn("text-[13px] font-extrabold tracking-[0.5px] text-ink-3 uppercase", className)}>{children}</Tag>
   );

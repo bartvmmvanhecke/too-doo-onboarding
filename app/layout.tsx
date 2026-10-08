@@ -1,6 +1,8 @@
+import { Suspense } from "react";
 import type { Metadata } from "next";
 import { Nunito } from "next/font/google";
 import { DemoBar } from "@/components/demo/demo-bar";
+import { PrototypeNav } from "@/components/prototype/prototype-nav";
 import { Toaster } from "@/components/ui/sonner";
 import "./globals.css";
 
@@ -20,6 +22,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="nl-BE" className={`${nunito.variable} h-full`}>
       <body className="min-h-full">
         {children}
+        <Suspense fallback={null}>
+          <PrototypeNav />
+        </Suspense>
         <DemoBar />
         <Toaster />
       </body>

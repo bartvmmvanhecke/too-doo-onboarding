@@ -1,7 +1,11 @@
 # too-doo onboarding: klikbaar prototype
 
 Werkend prototype van de nieuwe onboarding van too-doo, van de website-hero tot het eerste overleg met acties.
-Functionele specificatie: [`SPEC.md`](SPEC.md) (inclusief §8, de beslissingen tijdens de bouw). Mockups: [`design/`](design/).
+Functionele specificatie: [`SPEC.md`](SPEC.md) (inclusief §8, de beslissingen tijdens de bouw) en de aanvulling
+[`SPEC-FLOWS.md`](SPEC-FLOWS.md) (flowkeuze en variant B). Mockups: [`design/`](design/).
+
+Start bij **`/prototype`**: kies een van de vier flows of randgevallen. De knop rechtsboven op elk scherm brengt je
+terug naar de flowkeuze.
 
 Dit is een **prototype met nepdata**: geen echte login, Microsoft Graph, e-mail of backend. Externe stappen worden
 gesimuleerd. De uitkomst kies je in de **demo-balk** (knop "Demo" rechtsonder).
@@ -21,7 +25,8 @@ npm run dev            # http://localhost:3000
 | `npm run format`    | Prettier                                                               |
 | `npm run test:e2e`  | Playwright: alle routes × demo-uitkomsten, links, mobiel en axe (WCAG) |
 
-`test:e2e` start zelf `next start` op poort 3200; draai dus eerst `npm run build`.
+`test:e2e` start zelf `next start` op poort 3200; draai dus eerst `npm run build`. De flowtests bewaren per stap een
+schermafdruk in `screenshots/` (niet in git).
 
 ## Routes
 
@@ -47,6 +52,8 @@ components/
                          ChipSuggestions, ChoiceGroup, DurationPicker, ActionRow, OwnerCombobox,
                          Field, BenefitList, ItEmailForm
   app/                   AppShell (zijbalk), Checklist, AddMeetingsDialog, InviteDialog
+  b/                     variant B: WeekGrid, ProposalRow, OwnerPicker, MailPreview, StatTile
+  prototype/             PrototypeNav, de lijst-knop (alleen prototype)
   demo/                  DemoBar (alleen prototype)
   ui/                    shadcn/ui-basis (button, input, label, dialog, sonner)
 lib/
@@ -55,6 +62,9 @@ lib/
   simulate.ts            gesimuleerde login, agendatoestemming en verzending
   time.ts, date.ts, when.ts   uur- en datumparsing ("8u", "0800", "ma 13 okt", "13/10", "ma 08:00")
   meeting.ts             ritmelabels, overlegtype afleiden uit de naam
+  flows.ts               de vier flows en randgevallen voor /prototype
+  extract.ts             gesimuleerde extractie van acties uit notities (geen AI)
+  variant-b.ts           aanbevolen start, standaardselectie, samenvatting, mailgegevens
 e2e/                     Playwright-tests
 ```
 
@@ -69,4 +79,5 @@ e2e/                     Playwright-tests
   gerust vervangen worden via `npx shadcn add …`.
 - **Data** is altijd relatief vanaf vandaag berekend ("volgende: ma 13 okt" klopt dus elke week).
 - **Te vervangen bij productie**: `lib/simulate.ts` (echte OAuth/Graph), `lib/mock-data.ts`, `lib/store.ts`
-  (localStorage → backend) en `components/demo/`.
+  (localStorage → backend), `lib/extract.ts` (echte extractie), `components/demo/`, `components/prototype/` en
+  `app/prototype/`.

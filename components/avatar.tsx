@@ -26,7 +26,7 @@ export function Avatar({
         height: size,
         background: person.color.bg,
         color: person.color.fg,
-        fontSize: size >= 30 ? 12 : 11,
+        fontSize: size >= 30 ? 12 : size >= 26 ? 11 : 10,
       }}
       {...(decorative || !person.name
         ? { "aria-hidden": true }

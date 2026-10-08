@@ -9,6 +9,12 @@ const ROUTES = [
   "/overleg/goedkeuring",
   "/voorbeeld",
   "/app",
+  "/prototype",
+  "/b",
+  "/b/voorbeeld",
+  "/b/reis",
+  "/b/mail",
+  "/b/structuur",
 ];
 
 /** Geen doodlopende links: elke interne link wijst naar een bestaande route. */

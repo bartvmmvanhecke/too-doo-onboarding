@@ -12,6 +12,7 @@ export function OnboardingLayout({
   panelLabel,
   headerAside,
   contentClassName,
+  columnClassName,
   panelClassName,
 }: {
   children: ReactNode;
@@ -20,12 +21,14 @@ export function OnboardingLayout({
   headerAside?: ReactNode;
   /** Breedte en bovenmarge van de formulierkolom, bv. "max-w-[520px] lg:mt-12". */
   contentClassName?: string;
+  /** Breedte van de formulierkolom naast het paneel, bv. "lg:flex-[1_1_620px]". */
+  columnClassName?: string;
   panelClassName?: string;
 }) {
   return (
     <div className="flex min-h-dvh flex-col gap-6 bg-white p-4 text-ink sm:p-6 lg:flex-row">
-      <div className="flex min-w-0 flex-1 flex-col px-1 py-2 sm:px-6 sm:py-6 lg:px-10 lg:py-8">
-        <header className="flex items-center justify-between gap-4">
+      <div className={cn("flex min-w-0 flex-1 flex-col px-1 py-2 sm:px-6 sm:py-6 lg:px-10 lg:py-8", columnClassName)}>
+        <header className="flex items-center justify-between gap-4 max-lg:pr-24">
           <Logo />
           {headerAside}
         </header>

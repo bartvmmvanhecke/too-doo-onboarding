@@ -24,6 +24,9 @@ export function ManualScreen() {
   const stored = useStore((s) => s.manualDraft);
   const update = useStore((s) => s.updateManualDraft);
   const choosePending = useStore((s) => s.choosePending);
+  // Vanuit variant B ("Mis je een overleg?") keert 2b terug naar de B-flow.
+  const manualReturn = useStore((s) => s.manualReturn);
+  const addManualMeetingToB = useStore((s) => s.addManualMeetingToB);
   const blocked = useOutlookBlocked();
   const people = usePeople();
   const [fallback] = useState(emptyManualDraft);
@@ -38,6 +41,12 @@ export function ManualScreen() {
     if (!draft.name.trim()) {
       setNameError("Geef je overleg een naam.");
       document.getElementById("naam")?.focus();
+      return;
+    }
+    if (manualReturn) {
+      update({ name: draft.name.trim() });
+      addManualMeetingToB();
+      router.push(manualReturn);
       return;
     }
     choosePending({ ...draft, name: draft.name.trim() });
@@ -123,7 +132,7 @@ export function ManualScreen() {
           {blocked ? (
             <span />
           ) : (
-            <Link href="/overleg" className="text-sm font-semibold text-ink-2">
+            <Link href={manualReturn ? "/b/structuur" : "/overleg"} className="text-sm font-semibold text-ink-2">
               Toch kiezen uit je Outlook-agenda
             </Link>
           )}

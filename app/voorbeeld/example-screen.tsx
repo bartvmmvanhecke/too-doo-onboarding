@@ -59,7 +59,7 @@ export function ExampleScreen() {
       <div
         role="region"
         aria-label="Voorbeeldmodus"
-        className="flex flex-wrap items-center gap-x-5 gap-y-3 bg-ink px-4 py-3 text-white sm:px-6"
+        className="flex flex-wrap items-center gap-x-5 gap-y-3 bg-ink py-3 pr-24 pl-4 text-white sm:pl-6"
       >
         <span className="rounded-md bg-[#FFD66B] px-2.5 py-1 text-[13px] font-extrabold tracking-[0.5px] text-[#3A2A00] uppercase">
           Voorbeeld

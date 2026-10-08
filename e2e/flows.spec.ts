@@ -6,6 +6,8 @@ test.describe("Hoofdflow: Microsoft slaagt, reeksen gevonden", () => {
     const errors = trackErrors(page);
     await page.goto("/");
     await page.getByRole("link", { name: "Start gratis met Microsoft" }).click();
+    await expect(page).toHaveURL(/\/prototype$/);
+    await page.getByRole("button", { name: /Start flow 1:/ }).click();
     await expect(page).toHaveURL(/\/start$/);
     await page.getByRole("button", { name: "Doorgaan met Microsoft" }).click();
     await expect(page).toHaveURL(/\/overleg$/);
@@ -39,11 +41,9 @@ test.describe("Hoofdflow: Microsoft slaagt, reeksen gevonden", () => {
     await page.getByRole("button", { name: "Toon mijn overleg" }).click();
     await expect(page).toHaveURL(/\/app\/overleg\/managementoverleg$/);
     await expect(
-      page
-        .getByRole("status")
-        .filter({
-          hasText: "Je managementoverleg staat klaar. Je 3 openstaande acties komen dinsdag vanzelf aan bod.",
-        }),
+      page.getByRole("status").filter({
+        hasText: "Je managementoverleg staat klaar. Je 3 openstaande acties komen dinsdag vanzelf aan bod.",
+      }),
     ).toBeVisible();
     await expect(page.getByRole("heading", { level: 1 })).toHaveText("Managementoverleg");
     await expect(page.getByRole("main").getByText(/· 4 deelnemers$/)).toBeVisible();

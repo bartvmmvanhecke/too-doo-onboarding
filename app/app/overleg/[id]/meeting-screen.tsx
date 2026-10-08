@@ -6,6 +6,7 @@ import { useParams, useRouter } from "next/navigation";
 import { Check, Play, Plus, X } from "lucide-react";
 import { toast } from "sonner";
 import { ActionMeta } from "@/components/action-item";
+import { Tag } from "@/components/tag";
 import { useAppUi } from "@/components/app/app-ui";
 import { Checklist } from "@/components/app/checklist";
 import { InviteDialog } from "@/components/app/invite-dialog";
@@ -176,7 +177,7 @@ export function MeetingScreen() {
                     <ActionMeta
                       owner={findPerson(people, a.ownerId)}
                       deadline={a.deadline}
-                      emptyDeadline="geen deadline"
+                      emptyDeadline={a.mailed ? "mail verstuurd" : "geen deadline"}
                       size={28}
                     />
                   </li>
@@ -230,9 +231,10 @@ export function MeetingScreen() {
                 {meeting.agendaItems.map((item) => (
                   <li
                     key={item.id}
-                    className="rounded-[10px] border border-line-faint px-3.5 py-3 text-[15px] font-semibold"
+                    className="flex items-center justify-between gap-3 rounded-[10px] border border-line-faint px-3.5 py-3 text-[15px] font-semibold"
                   >
                     {item.text}
+                    {item.decision && <Tag tone="decision">beslissing</Tag>}
                   </li>
                 ))}
               </ul>

@@ -2,7 +2,15 @@ import Link from "next/link";
 import { cn } from "@/lib/utils";
 
 /** Woordmerk "too-doo"; linkt naar de website-hero. */
-export function Logo({ className, href = "/", tone = "brand" }: { className?: string; href?: string; tone?: "brand" | "white" }) {
+export function Logo({
+  className,
+  href = "/",
+  tone = "brand",
+}: {
+  className?: string;
+  href?: string;
+  tone?: "brand" | "white";
+}) {
   return (
     <Link
       href={href}

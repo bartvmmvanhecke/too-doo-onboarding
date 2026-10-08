@@ -198,7 +198,10 @@ export function EmptyScreen() {
               <span id="preview-titel">Zo ziet je overleg er straks uit</span>
             </Eyebrow>
             {PREVIEW_BLOCKS.map((b) => (
-              <div key={b.title} className="flex flex-col gap-1.5 rounded-[14px] border-2 border-dashed border-line bg-white/50 px-5 py-[18px]">
+              <div
+                key={b.title}
+                className="flex flex-col gap-1.5 rounded-[14px] border-2 border-dashed border-line bg-white/50 px-5 py-[18px]"
+              >
                 <h3 className="text-base font-extrabold text-ink-2">{b.title}</h3>
                 <p className="text-sm text-ink-3">{b.text}</p>
               </div>

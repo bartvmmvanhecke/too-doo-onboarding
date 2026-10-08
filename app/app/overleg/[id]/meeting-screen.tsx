@@ -54,10 +54,17 @@ export function MeetingScreen() {
 
   if (!meeting) return null;
 
-  const owners = ownerOptions(people, meeting.participants, meeting.name, extraPeople.map((p) => p.id));
+  const owners = ownerOptions(
+    people,
+    meeting.participants,
+    meeting.name,
+    extraPeople.map((p) => p.id),
+  );
 
   // Uit te nodigen: eigenaars van acties (behalve jijzelf), anders de deelnemers.
-  const ownerIds = [...new Set(meeting.actions.map((a) => a.ownerId).filter((x): x is string => !!x && x !== USER_PERSON_ID))];
+  const ownerIds = [
+    ...new Set(meeting.actions.map((a) => a.ownerId).filter((x): x is string => !!x && x !== USER_PERSON_ID)),
+  ];
   const inviteIds = ownerIds.length ? ownerIds : meeting.participants.filter((p) => p !== USER_PERSON_ID);
   const invitees = inviteIds.map((pid) => findPerson(people, pid)).filter((p): p is Person => !!p);
   const inviteLabel = ownerIds.length
@@ -99,7 +106,10 @@ export function MeetingScreen() {
   return (
     <>
       {meeting.showWelcome && (
-        <div role="status" className="flex items-center gap-3 rounded-xl bg-success-bg py-1 pr-1 pl-[18px] text-[15px] font-bold text-success-ink">
+        <div
+          role="status"
+          className="flex items-center gap-3 rounded-xl bg-success-bg py-1 pr-1 pl-[18px] text-[15px] font-bold text-success-ink"
+        >
           <Check className="size-5 shrink-0" strokeWidth={2.5} aria-hidden />
           <span className="flex-1 py-2.5">{welcomeText(meeting)}</span>
           <button
@@ -119,7 +129,9 @@ export function MeetingScreen() {
             ← Alle vergaderingen
           </Link>
           <h1 className="mt-0.5 mb-1 text-[32px] font-extrabold">{meeting.name}</h1>
-          <p className="text-[15px] text-ink-2">{scheduleLine(meeting, { participants: meeting.participants.length })}</p>
+          <p className="text-[15px] text-ink-2">
+            {scheduleLine(meeting, { participants: meeting.participants.length })}
+          </p>
         </div>
         <div className="flex flex-wrap gap-2.5">
           <Button ref={addButtonRef} variant="outline" size="md" onClick={startAdding} aria-expanded={adding}>
@@ -157,9 +169,16 @@ export function MeetingScreen() {
                         aria-label={`${a.what} afvinken`}
                         className="m-0 size-[18px] shrink-0 accent-brand"
                       />
-                      <span className={cn("flex-1 text-[15px] font-semibold", a.done && "text-ink-3 line-through")}>{a.what}</span>
+                      <span className={cn("flex-1 text-[15px] font-semibold", a.done && "text-ink-3 line-through")}>
+                        {a.what}
+                      </span>
                     </label>
-                    <ActionMeta owner={findPerson(people, a.ownerId)} deadline={a.deadline} emptyDeadline="geen deadline" size={28} />
+                    <ActionMeta
+                      owner={findPerson(people, a.ownerId)}
+                      deadline={a.deadline}
+                      emptyDeadline="geen deadline"
+                      size={28}
+                    />
                   </li>
                 ))}
               </ul>
@@ -188,7 +207,9 @@ export function MeetingScreen() {
                   autoFocus
                   onEnter={saveAction}
                 />
-                {draftError && <p className="text-[13px] font-bold text-danger">Beschrijf eerst wat er moet gebeuren.</p>}
+                {draftError && (
+                  <p className="text-[13px] font-bold text-danger">Beschrijf eerst wat er moet gebeuren.</p>
+                )}
                 <div className="flex flex-wrap items-center gap-2">
                   <Button size="sm" onClick={saveAction}>
                     Actie opslaan
@@ -207,7 +228,10 @@ export function MeetingScreen() {
             {meeting.agendaItems.length > 0 && (
               <ul className="flex flex-col gap-2">
                 {meeting.agendaItems.map((item) => (
-                  <li key={item.id} className="rounded-[10px] border border-line-faint px-3.5 py-3 text-[15px] font-semibold">
+                  <li
+                    key={item.id}
+                    className="rounded-[10px] border border-line-faint px-3.5 py-3 text-[15px] font-semibold"
+                  >
                     {item.text}
                   </li>
                 ))}
@@ -232,7 +256,9 @@ export function MeetingScreen() {
 
           <div className={cn(card, "gap-2.5")}>
             <h2 className="text-[17px] font-extrabold">Varia</h2>
-            <p className="text-sm text-ink-3">Wat onverwacht ter sprake komt. Ook hier kun je meteen een actie noteren.</p>
+            <p className="text-sm text-ink-3">
+              Wat onverwacht ter sprake komt. Ook hier kun je meteen een actie noteren.
+            </p>
           </div>
         </section>
 
@@ -250,7 +276,9 @@ export function MeetingScreen() {
             { id: "uitnodigen", label: inviteLabel, done: meeting.invited, onSelect: () => setInviteOpen(true) },
             {
               id: "houden",
-              label: meeting.date ? `${upperFirst(weekdayLong(meeting.date))} het overleg houden` : "Het overleg houden",
+              label: meeting.date
+                ? `${upperFirst(weekdayLong(meeting.date))} het overleg houden`
+                : "Het overleg houden",
               done: meeting.held,
             },
           ]}

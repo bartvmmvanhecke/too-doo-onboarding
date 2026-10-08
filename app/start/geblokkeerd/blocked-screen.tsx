@@ -34,7 +34,8 @@ export function BlockedScreen() {
     const next = {
       email: isEmail(email) ? undefined : "Vul een geldig e-mailadres in.",
       name: name.trim() ? undefined : "Vul je naam in.",
-      password: password.length >= MIN_PASSWORD ? undefined : `Je wachtwoord heeft minstens ${MIN_PASSWORD} tekens nodig.`,
+      password:
+        password.length >= MIN_PASSWORD ? undefined : `Je wachtwoord heeft minstens ${MIN_PASSWORD} tekens nodig.`,
     };
     setErrors(next);
     const firstError = (["email", "name", "password"] as const).find((k) => next[k]);
@@ -43,7 +44,13 @@ export function BlockedScreen() {
       return;
     }
     const [firstName, ...rest] = name.trim().split(/\s+/);
-    signIn({ firstName, lastName: rest.join(" "), email: email.trim(), company: companyFromEmail(email), method: "email-blocked" });
+    signIn({
+      firstName,
+      lastName: rest.join(" "),
+      email: email.trim(),
+      company: companyFromEmail(email),
+      method: "email-blocked",
+    });
     startManualDraft();
     router.push("/overleg/zelf");
   };
@@ -68,7 +75,10 @@ export function BlockedScreen() {
           <BenefitList
             items={[
               { text: "Alles van too-doo werkt: overleggen, agenda's, acties, opvolging en herinneringen" },
-              { text: "Alleen je vaste overleggen haal je niet automatisch uit Outlook. Je typt ze zelf in.", muted: true },
+              {
+                text: "Alleen je vaste overleggen haal je niet automatisch uit Outlook. Je typt ze zelf in.",
+                muted: true,
+              },
               { text: "Koppelen kan later nog, zodra je IT-beheerder too-doo goedkeurt.", muted: true },
             ]}
           />
@@ -77,7 +87,12 @@ export function BlockedScreen() {
     >
       <StepProgress step={1} />
 
-      <Callout live variant="warning" icon={<CircleAlert className="text-warning" />} title="Je bedrijf laat inloggen met Microsoft voor nieuwe apps niet toe">
+      <Callout
+        live
+        variant="warning"
+        icon={<CircleAlert className="text-warning" />}
+        title="Je bedrijf laat inloggen met Microsoft voor nieuwe apps niet toe"
+      >
         Dat is een instelling van je IT-beheerder, geen fout van jou. Je kunt too-doo gewoon testen met je werk-e-mail.
       </Callout>
 
@@ -133,8 +148,8 @@ export function BlockedScreen() {
         </summary>
         <div className="mt-2.5 flex flex-col gap-2.5">
           <p className="text-sm leading-normal text-ink-2">
-            Je beheerder moet too-doo eenmalig goedkeuren in Microsoft. Wij sturen hem een korte uitleg; jij hoeft niet te
-            wachten om te testen.
+            Je beheerder moet too-doo eenmalig goedkeuren in Microsoft. Wij sturen hem een korte uitleg; jij hoeft niet
+            te wachten om te testen.
           </p>
           <div className="flex flex-wrap gap-2">
             <Button variant="outline" size="sm" onClick={copyMessage}>

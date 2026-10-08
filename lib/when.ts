@@ -17,7 +17,10 @@ export function parseWhen(input: string): { date: ISODate | null; time: Minutes 
   if (asDate) return { date: toISO(asDate), time: null };
   if (tokens.length === 1) return null;
   const time = parseTime(tokens[tokens.length - 1].replace(/^om$/, ""));
-  const datePart = tokens.slice(0, -1).filter((t) => t !== "om").join(" ");
+  const datePart = tokens
+    .slice(0, -1)
+    .filter((t) => t !== "om")
+    .join(" ");
   const date = parseDateInput(datePart);
   if (time === null || !date) return null;
   return { date: toISO(date), time };

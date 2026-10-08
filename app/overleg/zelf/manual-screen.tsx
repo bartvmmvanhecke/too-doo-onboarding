@@ -104,7 +104,8 @@ export function ManualScreen() {
             </Field>
           </div>
           <p id="uur-hint" className="text-[13px] text-ink-3">
-            Typ het uur (&quot;8u&quot;, &quot;0800&quot;, &quot;8:30&quot;), gebruik − en + per kwartier, of kies uit de lijst.
+            Typ het uur (&quot;8u&quot;, &quot;0800&quot;, &quot;8:30&quot;), gebruik − en + per kwartier, of kies uit
+            de lijst.
           </p>
         </div>
 

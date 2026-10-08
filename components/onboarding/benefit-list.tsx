@@ -12,7 +12,9 @@ export function BenefitList({ items }: { items: { text: ReactNode; muted?: boole
           ) : (
             <Check className="size-[22px] shrink-0 text-success" strokeWidth={2.5} aria-hidden />
           )}
-          <span className={item.muted ? "text-base leading-[1.45] text-ink-2" : "text-base leading-[1.45]"}>{item.text}</span>
+          <span className={item.muted ? "text-base leading-[1.45] text-ink-2" : "text-base leading-[1.45]"}>
+            {item.text}
+          </span>
         </li>
       ))}
     </ul>

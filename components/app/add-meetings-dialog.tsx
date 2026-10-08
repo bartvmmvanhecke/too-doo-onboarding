@@ -9,7 +9,15 @@ import { Callout } from "@/components/callout";
 import { ChipSuggestions } from "@/components/onboarding/chip-suggestions";
 import { Eyebrow } from "@/components/onboarding/onboarding-layout";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { MORE_NAME_SUGGESTIONS, RECURRENCE_LABEL, shortRhythmLine, type Recurrence } from "@/lib/meeting";
 import { SERIES, seriesSchedule } from "@/lib/mock-data";
 import { useCalendarConsent } from "@/lib/simulate";
@@ -49,7 +57,9 @@ function AddMeetingsForm({ onDone }: { onDone: () => void }) {
   const [needsAdmin, setNeedsAdmin] = useState(false);
 
   const available = SERIES.filter((s) => !meetings.some((m) => m.seriesId === s.id || m.name === s.name));
-  const [checked, setChecked] = useState<Set<string>>(() => new Set(available.filter((s) => s.suggested).map((s) => s.id)));
+  const [checked, setChecked] = useState<Set<string>>(
+    () => new Set(available.filter((s) => s.suggested).map((s) => s.id)),
+  );
   const [rows, setRows] = useState<Row[]>(() => [newRow()]);
   const rowRefs = useRef(new Map<string, HTMLInputElement>());
 
@@ -98,7 +108,9 @@ function AddMeetingsForm({ onDone }: { onDone: () => void }) {
     <>
       <DialogHeader>
         <DialogTitle>Je andere vaste overlegmomenten</DialogTitle>
-        <DialogDescription>Naam en ritme volstaan. Elk overleg krijgt dezelfde eenvoudige startagenda.</DialogDescription>
+        <DialogDescription>
+          Naam en ritme volstaan. Elk overleg krijgt dezelfde eenvoudige startagenda.
+        </DialogDescription>
       </DialogHeader>
 
       {!blocked && (
@@ -126,7 +138,9 @@ function AddMeetingsForm({ onDone }: { onDone: () => void }) {
                         }
                       />
                       <span className="text-[15px] font-bold">{s.name}</span>
-                      <span className="col-start-2 text-sm text-ink-2 sm:col-start-3">{shortRhythmLine(seriesSchedule(s))}</span>
+                      <span className="col-start-2 text-sm text-ink-2 sm:col-start-3">
+                        {shortRhythmLine(seriesSchedule(s))}
+                      </span>
                     </label>
                   </li>
                 ))}
@@ -145,7 +159,7 @@ function AddMeetingsForm({ onDone }: { onDone: () => void }) {
               </Button>
               {needsAdmin && (
                 <Callout live variant="warning" title="Je IT-beheerder moet de agendakoppeling eerst goedkeuren">
-                  <Link href="/overleg/goedkeuring" onClick={onDone}>
+                  <Link href="/overleg/goedkeuring" className="underline" onClick={onDone}>
                     Wat moet ik doen?
                   </Link>
                 </Callout>
@@ -166,7 +180,10 @@ function AddMeetingsForm({ onDone }: { onDone: () => void }) {
         </Eyebrow>
         <ul className="flex flex-col gap-2">
           {rows.map((r, i) => (
-            <li key={r.id} className="grid grid-cols-[minmax(0,1fr)_minmax(0,150px)] gap-2 sm:grid-cols-[minmax(0,1fr)_190px]">
+            <li
+              key={r.id}
+              className="grid grid-cols-[minmax(0,1fr)_minmax(0,150px)] gap-2 sm:grid-cols-[minmax(0,1fr)_190px]"
+            >
               <input
                 ref={(el) => {
                   if (el) rowRefs.current.set(r.id, el);

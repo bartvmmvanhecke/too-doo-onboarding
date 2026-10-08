@@ -5,7 +5,15 @@ import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { Avatar } from "@/components/avatar";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import type { Person } from "@/lib/mock-data";
 import { simulateSend } from "@/lib/simulate";
 import { joinNl } from "@/lib/utils";

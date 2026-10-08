@@ -76,7 +76,10 @@ export function ExampleScreen() {
       </div>
 
       <div className="flex flex-1 flex-col lg:flex-row">
-        <nav aria-label="Hoofdmenu (voorbeeld)" className="flex flex-col gap-1 bg-app-nav px-3.5 py-4 text-white lg:w-60 lg:shrink-0 lg:py-6">
+        <nav
+          aria-label="Hoofdmenu (voorbeeld)"
+          className="flex flex-col gap-1 bg-app-nav px-3.5 py-4 text-white lg:w-60 lg:shrink-0 lg:py-6"
+        >
           <span className="px-2.5 text-[26px] font-extrabold">too-doo</span>
           <span className="px-3 pb-2 text-[13px] text-nav-muted lg:pb-[18px]">Voorbeeld NV · 48 medewerkers</span>
           <div className="flex flex-wrap gap-1 lg:flex-col">
@@ -127,7 +130,9 @@ export function ExampleScreen() {
                           aria-label={`${a.what} afvinken`}
                           className="m-0 size-[18px] accent-brand"
                         />
-                        <span className={cn("flex-1 text-[15px] font-semibold", done[i] && "text-ink-3 line-through")}>{a.what}</span>
+                        <span className={cn("flex-1 text-[15px] font-semibold", done[i] && "text-ink-3 line-through")}>
+                          {a.what}
+                        </span>
                       </label>
                       <Avatar person={a} size={28} decorative />
                       <span

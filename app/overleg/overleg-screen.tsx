@@ -70,14 +70,19 @@ export function OverlegScreen() {
       {calendar === "idle" && (
         <div className="flex flex-col gap-[18px]">
           {notice === "cancelled" && (
-            <Callout live variant="neutral" icon={<CalendarDays className="text-ink-2" />} title={
-              <>
-                Geen probleem,{" "}
-                <Link href="/overleg/zelf" onClick={() => startManualDraft()}>
-                  vul het zelf in
-                </Link>
-              </>
-            } />
+            <Callout
+              live
+              variant="neutral"
+              icon={<CalendarDays className="text-ink-2" />}
+              title={
+                <>
+                  Geen probleem,{" "}
+                  <Link href="/overleg/zelf" className="underline" onClick={() => startManualDraft()}>
+                    vul het zelf in
+                  </Link>
+                </>
+              }
+            />
           )}
           <div className="flex flex-col gap-3.5 rounded-2xl border border-line bg-surface-muted p-6">
             <div className="flex items-start gap-3.5">
@@ -87,8 +92,8 @@ export function OverlegScreen() {
               <span className="flex flex-col gap-1">
                 <h2 className="text-lg font-extrabold">Haal je vaste overleggen uit Outlook</h2>
                 <span className="text-sm leading-normal text-ink-2">
-                  Uur, herhaling en deelnemers staan er meteen in. We lezen alleen je terugkerende afspraken, niets van je
-                  mails.
+                  Uur, herhaling en deelnemers staan er meteen in. We lezen alleen je terugkerende afspraken, niets van
+                  je mails.
                 </span>
               </span>
             </div>
@@ -125,8 +130,8 @@ export function OverlegScreen() {
             icon={<CalendarDays className="text-ink-2" />}
             title="Je agenda is gekoppeld, maar we vonden geen vaste overleggen"
           >
-            Misschien plan je je overleg telkens als losse afspraak in. Geen probleem: vul het zelf in, of vertrek van een
-            afspraak die al in je agenda staat.
+            Misschien plan je je overleg telkens als losse afspraak in. Geen probleem: vul het zelf in, of vertrek van
+            een afspraak die al in je agenda staat.
           </Callout>
           <Button asChild size="lg" className="w-full">
             <Link href="/overleg/zelf" onClick={() => startManualDraft()}>
@@ -178,7 +183,9 @@ export function OverlegScreen() {
                   key={s.id}
                   className={cn(
                     "flex min-h-11 cursor-pointer items-center gap-3.5 rounded-xl has-[:focus-visible]:outline-3 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-brand",
-                    checked ? "border-2 border-brand bg-brand-selected px-4 py-3.5" : "border border-line px-[17px] py-[15px] hover:bg-app",
+                    checked
+                      ? "border-2 border-brand bg-brand-selected px-4 py-3.5"
+                      : "border border-line px-[17px] py-[15px] hover:bg-app",
                   )}
                 >
                   <input

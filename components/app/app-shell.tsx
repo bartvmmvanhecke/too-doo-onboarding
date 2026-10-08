@@ -16,7 +16,9 @@ const item =
   "flex min-h-11 items-center justify-between gap-2 rounded-[10px] px-3 py-2.5 text-base font-semibold text-nav-ink no-underline hover:bg-white/10 hover:text-white";
 
 function Badge({ children }: { children: ReactNode }) {
-  return <span className="rounded-full bg-white/20 px-2.5 py-px text-[13px] font-extrabold text-white">{children}</span>;
+  return (
+    <span className="rounded-full bg-white/20 px-2.5 py-px text-[13px] font-extrabold text-white">{children}</span>
+  );
 }
 
 /** Zijbalk van de product-app; op smalle schermen een balk bovenaan. */

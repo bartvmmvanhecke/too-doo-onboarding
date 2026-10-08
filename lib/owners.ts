@@ -4,7 +4,12 @@ import { USER_PERSON_ID } from "@/lib/mock-data";
 import { inSentence } from "@/lib/utils";
 
 /** Suggesties voor "Wie?": jijzelf, de deelnemers van het overleg, en wie je al toevoegde. */
-export function ownerOptions(people: Person[], participantIds: string[], meetingName: string, extraIds: string[]): OwnerOption[] {
+export function ownerOptions(
+  people: Person[],
+  participantIds: string[],
+  meetingName: string,
+  extraIds: string[],
+): OwnerOption[] {
   const seen = new Set<string>();
   const out: OwnerOption[] = [];
   const push = (id: string, hint: string) => {

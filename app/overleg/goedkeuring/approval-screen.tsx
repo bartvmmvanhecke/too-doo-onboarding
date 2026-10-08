@@ -31,10 +31,12 @@ export function ApprovalScreen() {
       }
     >
       <StepProgress step={2} />
-      <h1 className="text-[30px] leading-[1.2] font-extrabold">Je IT-beheerder moet de agendakoppeling eerst goedkeuren</h1>
+      <h1 className="text-[30px] leading-[1.2] font-extrabold">
+        Je IT-beheerder moet de agendakoppeling eerst goedkeuren
+      </h1>
       <p className="text-base leading-[1.55] text-ink-2">
-        Je bedrijf laat apps niet zelf in agenda&apos;s lezen. Dat is een veilige standaardinstelling, geen fout. Je hoeft er
-        niet op te wachten.
+        Je bedrijf laat apps niet zelf in agenda&apos;s lezen. Dat is een veilige standaardinstelling, geen fout. Je
+        hoeft er niet op te wachten.
       </p>
 
       <Button asChild size="lg" className="w-full">
@@ -57,8 +59,8 @@ export function ApprovalScreen() {
           buttonLabel="Stuur uitleg"
         />
         <p className="text-[13px] leading-normal text-ink-3">
-          We sturen een korte handleiding: welke rechten too-doo vraagt (alleen agenda lezen), en hoe hij goedkeurt. Zodra
-          het rond is, krijg jij een mail om je agenda te koppelen.
+          We sturen een korte handleiding: welke rechten too-doo vraagt (alleen agenda lezen), en hoe hij goedkeurt.
+          Zodra het rond is, krijg jij een mail om je agenda te koppelen.
         </p>
       </section>
     </OnboardingLayout>

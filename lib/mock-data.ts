@@ -36,7 +36,13 @@ export const MOCK_USER = {
 export const PEOPLE: Person[] = [
   { id: "jp", name: "Jan Peeters", email: "jan.peeters@metaalwerken.be", initials: "JP", color: AVATAR_COLORS[0] },
   { id: "sd", name: "Sofie De Smet", email: "sofie.desmet@metaalwerken.be", initials: "SD", color: AVATAR_COLORS[1] },
-  { id: "pv", name: "Pieter Vermeulen", email: "pieter.vermeulen@metaalwerken.be", initials: "PV", color: AVATAR_COLORS[2] },
+  {
+    id: "pv",
+    name: "Pieter Vermeulen",
+    email: "pieter.vermeulen@metaalwerken.be",
+    initials: "PV",
+    color: AVATAR_COLORS[2],
+  },
   { id: "lm", name: "Lotte Maes", email: "lotte.maes@metaalwerken.be", initials: "LM", color: AVATAR_COLORS[3] },
   { id: "kw", name: "Koen Wouters", email: "koen.wouters@metaalwerken.be", initials: "KW", color: AVATAR_COLORS[4] },
   { id: "ej", name: "Els Janssens", email: "els.janssens@metaalwerken.be", initials: "EJ", color: AVATAR_COLORS[5] },
@@ -156,18 +162,29 @@ export function getAppointments(): Appointment[] {
 
 /** Voorbeeldbedrijf voor /voorbeeld en de hero (niets wordt bewaard). */
 export const EXAMPLE_ACTIONS = [
-  { what: "Offerte nieuwe plooibank opvragen", initials: "KM", color: AVATAR_COLORS[0], due: "2 dagen te laat", late: true },
+  {
+    what: "Offerte nieuwe plooibank opvragen",
+    initials: "KM",
+    color: AVATAR_COLORS[0],
+    due: "2 dagen te laat",
+    late: true,
+  },
   { what: "Instructie heftruck bijwerken", initials: "LD", color: AVATAR_COLORS[1], due: "vrijdag", late: false },
-  { what: "Leverancier staal opnieuw contacteren", initials: "PV", color: AVATAR_COLORS[2], due: "volgende week", late: false },
+  {
+    what: "Leverancier staal opnieuw contacteren",
+    initials: "PV",
+    color: AVATAR_COLORS[2],
+    due: "volgende week",
+    late: false,
+  },
 ];
 
-export const IT_MESSAGE = (firstName: string) =>
-  [
-    "Hallo,",
-    "Ik test too-doo om de opvolging van onze vaste overleggen te verbeteren. Om mijn terugkerende vergaderingen uit Outlook op te halen, heeft too-doo leesrechten op mijn agenda nodig.",
-    "Kun je too-doo goedkeuren in Microsoft Entra? De stappen staan hier: [LINK NAAR HANDLEIDING]",
-    `Bedankt, ${firstName}`,
-  ];
+export const IT_MESSAGE = (firstName: string) => [
+  "Hallo,",
+  "Ik test too-doo om de opvolging van onze vaste overleggen te verbeteren. Om mijn terugkerende vergaderingen uit Outlook op te halen, heeft too-doo leesrechten op mijn agenda nodig.",
+  "Kun je too-doo goedkeuren in Microsoft Entra? De stappen staan hier: [LINK NAAR HANDLEIDING]",
+  `Bedankt, ${firstName}`,
+];
 
 /** Domeinen waaruit we geen bedrijfsnaam afleiden. */
 export const GENERIC_EMAIL_DOMAINS = [

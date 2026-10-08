@@ -139,7 +139,13 @@ export function emptyManualDraft(): MeetingDraft {
 
 export function draftFromSeries(seriesId: string): MeetingDraft {
   const s = SERIES.find((x) => x.id === seriesId) ?? SERIES[0];
-  return { id: `series-${s.id}`, ...seriesSchedule(s), participants: s.participants, source: "outlook", seriesId: s.id };
+  return {
+    id: `series-${s.id}`,
+    ...seriesSchedule(s),
+    participants: s.participants,
+    source: "outlook",
+    seriesId: s.id,
+  };
 }
 
 function uniqueId(name: string, meetings: Meeting[], keep?: string): string {
@@ -214,7 +220,9 @@ export const useStore = create<Store>()(
         addPerson: (input) => {
           const s = get();
           const existing = [...PEOPLE, ...s.extraPeople].find(
-            (p) => p.email?.toLowerCase() === input.trim().toLowerCase() || p.name.toLowerCase() === input.trim().toLowerCase(),
+            (p) =>
+              p.email?.toLowerCase() === input.trim().toLowerCase() ||
+              p.name.toLowerCase() === input.trim().toLowerCase(),
           );
           if (existing) return existing;
           const person = createPerson(input, PEOPLE.length + s.extraPeople.length);
@@ -279,7 +287,10 @@ export const useStore = create<Store>()(
             actions: m.actions.map((a) => (a.id === actionId ? { ...a, done: !a.done } : a)),
           })),
         addAction: (meetingId, action) =>
-          updateMeeting(meetingId, (m) => ({ ...m, actions: [...m.actions, { ...action, id: uid("a-"), done: false }] })),
+          updateMeeting(meetingId, (m) => ({
+            ...m,
+            actions: [...m.actions, { ...action, id: uid("a-"), done: false }],
+          })),
         addAgendaItem: (meetingId, text) =>
           updateMeeting(meetingId, (m) => ({ ...m, agendaItems: [...m.agendaItems, { id: uid("i-"), text }] })),
         dismissWelcome: (meetingId) => updateMeeting(meetingId, (m) => ({ ...m, showWelcome: false })),

@@ -104,7 +104,9 @@ export function AccountScreen() {
             />
           </PanelCard>
           <figure className="m-0 rounded-[18px] bg-white/70 px-6 py-[22px]">
-            <blockquote className="text-base leading-normal font-semibold">&quot;[Kort citaat van een KMO-zaakvoerder]&quot;</blockquote>
+            <blockquote className="text-base leading-normal font-semibold">
+              &quot;[Kort citaat van een KMO-zaakvoerder]&quot;
+            </blockquote>
             <figcaption className="mt-2 text-sm text-ink-2">[Naam], [functie] · [bedrijf]</figcaption>
           </figure>
           <ul className="flex flex-wrap gap-3.5 text-[13px] font-bold text-panel-ink">
@@ -166,13 +168,13 @@ export function AccountScreen() {
           </form>
 
           <p className="rounded-[10px] bg-app px-3.5 py-3 text-[13px] leading-normal text-ink-2">
-            Met Microsoft of Google nemen we enkel je naam en e-mail over. Je agenda koppelen is een aparte, vrije keuze in
-            de volgende stap.
+            Met Microsoft of Google nemen we enkel je naam en e-mail over. Je agenda koppelen is een aparte, vrije keuze
+            in de volgende stap.
           </p>
 
           <p className="text-sm text-ink-2">
             Al een account?{" "}
-            <Link href="/app" className="font-bold">
+            <Link href="/app" className="font-bold underline">
               Inloggen
             </Link>
           </p>
@@ -249,13 +251,19 @@ export function AccountScreen() {
             <ArrowRight className="size-[18px]" strokeWidth={2.5} aria-hidden />
           </Button>
           <p className="text-[13px] leading-normal text-ink-3">
-            {company ? `Je bedrijf (${company}) vullen we in op basis van je e-mail. ` : ""}De bevestigingsmail volgt; je
-            hoeft er niet op te wachten.
+            {company ? `Je bedrijf (${company}) vullen we in op basis van je e-mail. ` : ""}De bevestigingsmail volgt;
+            je hoeft er niet op te wachten.
           </p>
           <p className="text-xs leading-normal text-ink-3">
             Met &quot;Account aanmaken&quot; ga je akkoord met de{" "}
-            <NotAvailableLink href="#voorwaarden">voorwaarden</NotAvailableLink> en het{" "}
-            <NotAvailableLink href="#privacy">privacybeleid</NotAvailableLink>.
+            <NotAvailableLink href="#voorwaarden" className="underline">
+              voorwaarden
+            </NotAvailableLink>{" "}
+            en het{" "}
+            <NotAvailableLink href="#privacy" className="underline">
+              privacybeleid
+            </NotAvailableLink>
+            .
           </p>
         </form>
       )}

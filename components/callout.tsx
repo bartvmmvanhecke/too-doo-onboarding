@@ -33,7 +33,9 @@ export function Callout({
       {icon && <span className="mt-px shrink-0 [&_svg]:size-[22px]">{icon}</span>}
       <div className="flex min-w-0 flex-col gap-1">
         {title && <span className="text-base font-extrabold">{title}</span>}
-        {children && <div className={cn("text-sm leading-normal", title && variant === "neutral" && "text-ink-2")}>{children}</div>}
+        {children && (
+          <div className={cn("text-sm leading-normal", title && variant === "neutral" && "text-ink-2")}>{children}</div>
+        )}
       </div>
     </div>
   );

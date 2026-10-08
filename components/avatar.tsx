@@ -28,7 +28,9 @@ export function Avatar({
         color: person.color.fg,
         fontSize: size >= 30 ? 12 : 11,
       }}
-      {...(decorative || !person.name ? { "aria-hidden": true } : { role: "img", "aria-label": person.name, title: person.name })}
+      {...(decorative || !person.name
+        ? { "aria-hidden": true }
+        : { role: "img", "aria-label": person.name, title: person.name })}
     >
       {person.initials}
     </span>

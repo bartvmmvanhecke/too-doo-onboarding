@@ -12,11 +12,7 @@ export function companyFromEmail(email: string): string | null {
   const parts = domain.split(".");
   const base = parts.length > 2 && parts[0] === "www" ? parts[1] : parts[0];
   if (!base || GENERIC_EMAIL_DOMAINS.includes(base)) return null;
-  return base
-    .split(/[-_]/)
-    .filter(Boolean)
-    .map(upperFirst)
-    .join(" ");
+  return base.split(/[-_]/).filter(Boolean).map(upperFirst).join(" ");
 }
 
 /** "jan.peeters@…" → { first: "Jan", last: "Peeters" } */

@@ -19,7 +19,12 @@ export function ActionMeta({
     <>
       {owner && <Avatar person={owner} size={size} />}
       {deadline ? (
-        <span className={cn("rounded-md bg-line-faint px-2 py-[3px] font-bold whitespace-nowrap text-ink-2", size > 26 ? "px-2.5 py-1 text-[13px]" : "text-xs")}>
+        <span
+          className={cn(
+            "rounded-md bg-line-faint px-2 py-[3px] font-bold whitespace-nowrap text-ink-2",
+            size > 26 ? "px-2.5 py-1 text-[13px]" : "text-xs",
+          )}
+        >
           {deadline}
         </span>
       ) : (

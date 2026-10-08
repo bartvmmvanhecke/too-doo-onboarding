@@ -3,7 +3,6 @@
 import { useEffect, useId, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { FlaskConical, RotateCcw, X } from "lucide-react";
-import { toast } from "sonner";
 import { useStore, STORAGE_KEY, type CalendarOutcome, type LoginOutcome } from "@/lib/store";
 import { useHydrated } from "@/lib/use-hydrated";
 import { cn } from "@/lib/utils";
@@ -48,16 +47,15 @@ export function DemoBar() {
 
   if (!hydrated) return null;
 
+  // Volledig herladen naar de hero: zo kan geen scherm nog met oude state doorverwijzen.
   const resetDemo = () => {
-    reset();
     try {
       window.localStorage.removeItem(STORAGE_KEY);
+      window.location.assign(new URL("/", window.location.origin));
     } catch {
-      /* geen opslag beschikbaar */
+      reset();
+      router.push("/");
     }
-    setOpen(false);
-    toast("Demo gereset");
-    router.push("/");
   };
 
   return (
@@ -71,7 +69,9 @@ export function DemoBar() {
         <div className="mb-3 flex items-start justify-between gap-2">
           <div>
             <p className="text-sm font-extrabold">Demo-balk</p>
-            <p className="text-xs text-nav-muted">Alleen in het prototype. Kies de uitkomst van gesimuleerde stappen.</p>
+            <p className="text-xs text-nav-muted">
+              Alleen in het prototype. Kies de uitkomst van gesimuleerde stappen.
+            </p>
           </div>
           <button
             type="button"

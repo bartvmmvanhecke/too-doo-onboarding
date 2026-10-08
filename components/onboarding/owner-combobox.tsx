@@ -54,7 +54,8 @@ export function OwnerCombobox({
 
   const q = text.trim().toLowerCase();
   const matches = options.filter((o) => matchesPerson(o.person, q)).slice(0, 5);
-  const canAdd = q.length > 0 && !matches.some((o) => o.person.name.toLowerCase() === q || o.person.email?.toLowerCase() === q);
+  const canAdd =
+    q.length > 0 && !matches.some((o) => o.person.name.toLowerCase() === q || o.person.email?.toLowerCase() === q);
   const count = matches.length + (canAdd ? 1 : 0);
 
   const choose = (index: number) => {
@@ -142,7 +143,10 @@ export function OwnerCombobox({
             onMouseDown={(e) => e.preventDefault()}
             onMouseEnter={() => setActive(i)}
             onClick={() => choose(i)}
-            className={cn("flex min-h-11 cursor-pointer items-center gap-2.5 rounded-lg p-2.5", i === active && "bg-brand-selected")}
+            className={cn(
+              "flex min-h-11 cursor-pointer items-center gap-2.5 rounded-lg p-2.5",
+              i === active && "bg-brand-selected",
+            )}
           >
             <Avatar person={o.person} size={26} decorative />
             <span className="flex min-w-0 flex-col">

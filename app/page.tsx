@@ -7,9 +7,21 @@ import { AVATAR_COLORS } from "@/lib/mock-data";
 import { cn } from "@/lib/utils";
 
 const HERO_ACTIONS = [
-  { what: "Offerte nieuwe plooibank opvragen", initials: "JP", color: AVATAR_COLORS[0], due: "2 dagen te laat", late: true },
+  {
+    what: "Offerte nieuwe plooibank opvragen",
+    initials: "JP",
+    color: AVATAR_COLORS[0],
+    due: "2 dagen te laat",
+    late: true,
+  },
   { what: "Instructie heftruck bijwerken", initials: "SD", color: AVATAR_COLORS[1], due: "vrijdag", late: false },
-  { what: "Leverancier staal opnieuw contacteren", initials: "PV", color: AVATAR_COLORS[2], due: "volgende week", late: false },
+  {
+    what: "Leverancier staal opnieuw contacteren",
+    initials: "PV",
+    color: AVATAR_COLORS[2],
+    due: "volgende week",
+    late: false,
+  },
 ];
 
 const STEPS = [
@@ -66,8 +78,8 @@ export default function HeroPage() {
               Hou jij niet van vergaderen? Wij wel.
             </h1>
             <p className="max-w-[520px] text-[19px] leading-[1.55] text-ink-2">
-              Omdat onze vergaderingen eindigen in duidelijke beslissingen, en too-doo de acties opvolgt tot ze uitgevoerd
-              zijn. Openstaande acties komen vanzelf terug op je volgende overleg.
+              Omdat onze vergaderingen eindigen in duidelijke beslissingen, en too-doo de acties opvolgt tot ze
+              uitgevoerd zijn. Openstaande acties komen vanzelf terug op je volgende overleg.
             </p>
             <div className="flex flex-wrap items-center gap-3">
               <Link

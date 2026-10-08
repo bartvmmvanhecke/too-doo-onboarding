@@ -48,10 +48,7 @@ export function rhythmLabel(recurrence: Recurrence, date: ISODate | null): strin
  * Eén regel zoals in de mockups:
  * "Elke maandag · 08:00–09:00 · volgende: ma 13 okt · 6 deelnemers"
  */
-export function scheduleLine(
-  m: MeetingSchedule,
-  opts: { next?: boolean; participants?: number } = {},
-): string {
+export function scheduleLine(m: MeetingSchedule, opts: { next?: boolean; participants?: number } = {}): string {
   const parts = [rhythmLabel(m.recurrence, m.date)];
   if (m.time !== null) parts.push(formatTimeRange(m.time, m.duration));
   if (opts.next !== false && m.date) {

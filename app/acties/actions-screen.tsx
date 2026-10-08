@@ -128,7 +128,11 @@ export function ActionsScreen() {
       </p>
 
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <Button variant="link" className="min-h-11 px-0 text-sm font-semibold text-ink-2 underline" onClick={() => finish(false)}>
+        <Button
+          variant="link"
+          className="min-h-11 px-0 text-sm font-semibold text-ink-2 underline"
+          onClick={() => finish(false)}
+        >
           Sla over, doe ik tijdens het overleg
         </Button>
         <Button onClick={() => finish(true)}>

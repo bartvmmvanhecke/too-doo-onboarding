@@ -4,8 +4,8 @@ import { useState, type DragEvent, type ReactNode } from "react";
 import { ArrowRight, ChevronDown, CircleCheck, MoreHorizontal, Pencil, Trash2 } from "lucide-react";
 import {
   card,
-  DurationButton,
   DurationEditor,
+  DurationPicker,
   Grip,
   icon,
   iconButton,
@@ -13,12 +13,13 @@ import {
   Kbd,
   menuItem,
   OwnerButton,
+  OwnersPicker,
   ProgressBar,
-  PurposeChips,
+  PurposePicker,
   reveal,
   STROKE,
 } from "@/components/meeting/bits";
-import { EntryCounters, EntryForm, EntryRow, ItemAddMenu } from "@/components/meeting/entries";
+import { EntryColumns, EntryForm, EntryRow, ItemEditButton } from "@/components/meeting/entries";
 import { useMeeting } from "@/components/meeting/meeting-context";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -120,7 +121,7 @@ export function AgendaItemRow({
         moves.dropItem(id, block.id, dropBefore(e) ? index : index + 1);
       }}
       className={cn(
-        "group relative flex min-h-11 items-center gap-1 rounded-[10px] pr-1 pl-1 hover:bg-row-hover focus-within:bg-row-hover",
+        "group relative flex min-h-11 flex-wrap items-center gap-x-1 rounded-[10px] pr-1 pl-1 hover:bg-row-hover focus-within:bg-row-hover",
         dropAt === "before" && "shadow-[inset_0_2px_0_var(--brand)]",
         dropAt === "after" && "shadow-[inset_0_-2px_0_var(--brand)]",
       )}
@@ -142,21 +143,21 @@ export function AgendaItemRow({
           status === "postponed" && "text-ink-3",
         )}
       />
-      {status !== "done" && <PurposeChips value={item.purposes} onChange={(purposes) => update({ purposes })} />}
+      {status !== "done" && <PurposePicker value={item.purposes} onChange={(purposes) => update({ purposes })} />}
       {status !== "done" && (
-        <OwnerButton id={`owner-${item.id}`} ownerId={item.ownerId} onPick={(ownerId) => update({ ownerId })} />
+        <OwnersPicker id={`owner-${item.id}`} value={item.ownerIds} onChange={(ownerIds) => update({ ownerIds })} />
       )}
       {status === "done" && actual !== undefined ? (
         <span className="px-1.5 text-[13px] whitespace-nowrap text-ink-3 tabular-nums">
           {Math.max(1, Math.round(actual / 60))} min
         </span>
       ) : (
-        <DurationButton value={item.duration} onChange={(duration) => update({ duration })} />
+        <DurationPicker value={item.duration} onChange={(duration) => update({ duration })} />
       )}
       {status === "postponed" && <span className="text-[13px] text-ink-3">naar volgende vergadering</span>}
       <span className="flex-1" />
-      <EntryCounters item={item} />
-      <ItemAddMenu item={item} onOpenDetails={() => onOpenDetails(item)} />
+      <EntryColumns item={item} />
+      <ItemEditButton item={item} onOpen={() => onOpenDetails(item)} />
     </li>
   );
 }
@@ -185,8 +186,8 @@ export function CurrentItemCard({ item }: { item: AgendaItem }) {
     >
       <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
         <h3 className="min-w-0 flex-1 text-base font-semibold">{item.text}</h3>
-        <PurposeChips value={item.purposes} onChange={(purposes) => update({ purposes })} />
-        <OwnerButton ownerId={item.ownerId} onPick={(ownerId) => update({ ownerId })} />
+        <PurposePicker value={item.purposes} onChange={(purposes) => update({ purposes })} />
+        <OwnersPicker value={item.ownerIds} onChange={(ownerIds) => update({ ownerIds })} />
         <span
           className={cn(
             "text-[13px] font-medium whitespace-nowrap tabular-nums",
@@ -208,7 +209,7 @@ export function CurrentItemCard({ item }: { item: AgendaItem }) {
       {adding && (
         <EntryForm
           kind={adding}
-          defaultOwnerId={item.ownerId}
+          defaultOwnerId={item.ownerIds[0] ?? null}
           onCancel={() => setAdding(null)}
           onSubmit={(entry) => addEntry(meeting.id, item.id, entry)}
         />
@@ -262,10 +263,8 @@ function BlockMenu({ block, onRename }: { block: AgendaBlock; onRename: () => vo
         {duration ? (
           <DurationEditor
             value={block.duration}
-            onChange={(d) => {
-              updateBlock(meeting.id, block.id, { duration: d });
-              setOpen(false);
-            }}
+            onChange={(d) => updateBlock(meeting.id, block.id, { duration: d })}
+            onPick={() => setOpen(false)}
           />
         ) : (
           <div className="flex flex-col">
@@ -578,10 +577,9 @@ export function BreakBlock({ block, index, moves }: { block: AgendaBlock; index:
         <PopoverContent align="center" className="app-theme w-60">
           <DurationEditor
             value={block.duration}
-            onChange={(duration) => {
-              updateBlock(meeting.id, block.id, { duration: duration ?? 5 });
-              setOpen(false);
-            }}
+            allowEmpty={false}
+            onChange={(duration) => updateBlock(meeting.id, block.id, { duration: duration ?? 5 })}
+            onPick={() => setOpen(false)}
           />
           <button
             type="button"

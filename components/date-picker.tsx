@@ -9,7 +9,7 @@ import { addDays, formatShortDate, parseDateInput, today } from "@/lib/date";
 import { cn } from "@/lib/utils";
 
 /** "vr 17 okt"; met jaartal als de datum verder dan een jaar weg ligt (anders leest parseDateInput het jaar fout). */
-function formatPicked(d: Date): string {
+export function formatPicked(d: Date): string {
   const short = formatShortDate(d);
   return d < addDays(today(), 365) ? short : `${short} ${d.getFullYear()}`;
 }

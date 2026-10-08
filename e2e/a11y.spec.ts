@@ -56,9 +56,19 @@ const CASES: { name: string; path: string; setup?: (page: import("@playwright/te
       const add = page.getByLabel("Agendapunt toevoegen aan Lopende zaken");
       await add.fill("Planning week 42");
       await add.press("Enter");
-      await page.getByRole("button", { name: "Toevoegen aan Planning week 42" }).click();
-      await page.getByRole("button", { name: "Doel", exact: true }).click();
-      await page.getByRole("button", { name: "Bespreken" }).click();
+      await page.getByRole("button", { name: "Doel toevoegen" }).first().click();
+      await page.getByRole("checkbox", { name: /Bespreken/ }).check();
+      await page.getByRole("button", { name: "Pas 1 doel toe" }).click();
+      await page.getByRole("button", { name: "Beslissing toevoegen bij Planning week 42" }).click();
+      await page.getByRole("textbox", { name: "Beslissing", exact: true }).fill("Planning ok");
+      await page.keyboard.press("Enter");
+      await new AxeBuilder({ page })
+        .withTags(["wcag2a", "wcag2aa"])
+        .include("[role=dialog]")
+        .analyze()
+        .then((r) => {
+          expect(r.violations.map((v) => v.id)).toEqual([]);
+        });
       await page.keyboard.press("Escape");
       await page.getByRole("button", { name: "Start vergadering" }).click();
       await page.getByRole("button", { name: "Volgend punt" }).click();

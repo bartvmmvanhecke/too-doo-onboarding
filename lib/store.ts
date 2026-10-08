@@ -17,6 +17,7 @@ import {
   type AgendaItem,
   type BlockKind,
   type Entry,
+  type EntryInput,
   type MeetingRun,
 } from "@/lib/agenda";
 import { formatShortDate, nextWeekday, toISO, WEEKDAY, type ISODate } from "@/lib/date";
@@ -154,7 +155,13 @@ interface Actions {
   updateItem: (meetingId: string, itemId: string, patch: Partial<Omit<AgendaItem, "id">>) => void;
   removeItem: (meetingId: string, itemId: string) => void;
   moveItem: (meetingId: string, itemId: string, toBlockId: string, toIndex: number) => void;
-  addEntry: (meetingId: string, itemId: string, entry: Omit<Entry, "id" | "actionId">) => void;
+  addEntry: (meetingId: string, itemId: string, entry: EntryInput) => string;
+  updateEntry: (
+    meetingId: string,
+    itemId: string,
+    entryId: string,
+    patch: Partial<Pick<Entry, "text" | "ownerId" | "date">>,
+  ) => void;
   removeEntry: (meetingId: string, itemId: string, entryId: string) => void;
   addBlock: (meetingId: string, kind: BlockKind) => string;
   updateBlock: (meetingId: string, blockId: string, patch: Partial<Omit<AgendaBlock, "id" | "items">>) => void;
@@ -423,9 +430,10 @@ export const useStore = create<Store>()(
               }),
             };
           }),
-        addEntry: (meetingId, itemId, entry) =>
+        addEntry: (meetingId, itemId, input) => {
+          const id = uid("e-");
           updateMeeting(meetingId, (m) => {
-            const id = uid("e-");
+            const entry = { ...input, authorId: USER_PERSON_ID, createdAt: Date.now() };
             if (entry.kind !== "action") {
               return mapItem(m, itemId, (i) => ({ ...i, entries: [...i.entries, { ...entry, id }] }));
             }
@@ -443,6 +451,33 @@ export const useStore = create<Store>()(
               entries: [...i.entries, { ...entry, id, actionId: action.id }],
             }));
             return { ...next, actions: [...next.actions, action] };
+          });
+          return id;
+        },
+        updateEntry: (meetingId, itemId, entryId, patch) =>
+          updateMeeting(meetingId, (m) => {
+            const entry = allItems(m.blocks)
+              .find((i) => i.id === itemId)
+              ?.entries.find((e) => e.id === entryId);
+            const next = mapItem(m, itemId, (i) => ({
+              ...i,
+              entries: i.entries.map((e) => (e.id === entryId ? { ...e, ...patch } : e)),
+            }));
+            if (!entry?.actionId) return next;
+            // De actie in "Openstaande acties" volgt mee.
+            return {
+              ...next,
+              actions: next.actions.map((a) =>
+                a.id === entry.actionId
+                  ? {
+                      ...a,
+                      what: patch.text ?? a.what,
+                      ownerId: patch.ownerId !== undefined ? patch.ownerId : a.ownerId,
+                      deadline: patch.date ?? a.deadline,
+                    }
+                  : a,
+              ),
+            };
           }),
         removeEntry: (meetingId, itemId, entryId) =>
           updateMeeting(meetingId, (m) => {
@@ -670,7 +705,7 @@ export const useStore = create<Store>()(
     },
     {
       name: STORAGE_KEY,
-      version: 3,
+      version: 4,
       // Oudere opgeslagen state mist velden (flows, variant B, agendablokken): begin opnieuw.
       migrate: () => initialData(),
       storage: createJSONStorage(() => (typeof window === "undefined" ? noopStorage : window.localStorage)),

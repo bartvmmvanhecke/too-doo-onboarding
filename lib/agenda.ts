@@ -2,16 +2,16 @@
  * Agenda van een vergadering: blokken met agendapunten, pauzes en het blok
  * "Openstaande acties". Ook de helpers voor tijden, tellers en deadlines.
  */
-import { addDays, parseDateInput, today, toISO, type ISODate } from "@/lib/date";
+import { addDays, formatShortDate, parseDateInput, today, toISO, type ISODate } from "@/lib/date";
 import type { Minutes } from "@/lib/time";
 import { uid } from "@/lib/utils";
 
 export type Purpose = "discuss" | "inform" | "decide";
 
-export const PURPOSES: { value: Purpose; label: string }[] = [
-  { value: "discuss", label: "Bespreken" },
-  { value: "inform", label: "Informeren" },
-  { value: "decide", label: "Beslissen" },
+export const PURPOSES: { value: Purpose; label: string; hint: string }[] = [
+  { value: "discuss", label: "Bespreken", hint: "Samen bespreken en afwegen" },
+  { value: "inform", label: "Informeren", hint: "Info delen, geen beslissing nodig" },
+  { value: "decide", label: "Beslissen", hint: "Er is een beslissing of actie nodig" },
 ];
 
 export const PURPOSE_CLASS: Record<Purpose, string> = {
@@ -22,11 +22,17 @@ export const PURPOSE_CLASS: Record<Purpose, string> = {
 
 export type EntryKind = "decision" | "action" | "note" | "document";
 
-export const ENTRY_KINDS: { kind: EntryKind; label: string; plural: string; tag: string }[] = [
-  { kind: "decision", label: "Beslissing", plural: "beslissingen", tag: "Beslissing" },
-  { kind: "action", label: "Actie", plural: "acties", tag: "Actie" },
-  { kind: "note", label: "Notitie", plural: "notities", tag: "Notitie" },
-  { kind: "document", label: "Document", plural: "documenten", tag: "Document" },
+export const ENTRY_KINDS: { kind: EntryKind; label: string; plural: string; tag: string; placeholder: string }[] = [
+  {
+    kind: "decision",
+    label: "Beslissing",
+    plural: "beslissingen",
+    tag: "Beslissing",
+    placeholder: "Voeg een beslissing toe…",
+  },
+  { kind: "action", label: "Actie", plural: "acties", tag: "Actie", placeholder: "Voeg een actie toe…" },
+  { kind: "note", label: "Notitie", plural: "notities", tag: "Notitie", placeholder: "Voeg een notitie toe…" },
+  { kind: "document", label: "Document", plural: "documenten", tag: "Document", placeholder: "" },
 ];
 
 /** Iets dat tijdens (of voor) een vergadering bij een agendapunt is vastgelegd. */
@@ -39,12 +45,21 @@ export interface Entry {
   date: string;
   /** Bij een actie: de actie in "Openstaande acties". */
   actionId?: string;
+  /** Wie het vastlegde en wanneer (ms). */
+  authorId?: string | null;
+  createdAt?: number;
+  /** Document: grootte in bytes. */
+  size?: number;
 }
+
+/** Wat je invult bij een nieuw item; id, actie, auteur en tijd vult de store aan. */
+export type EntryInput = Pick<Entry, "kind" | "text" | "ownerId" | "date" | "size">;
 
 export interface AgendaItem {
   id: string;
   text: string;
-  ownerId: string | null;
+  /** Wie het punt brengt; één of meer collega's. */
+  ownerIds: string[];
   duration: Minutes | null;
   purposes: Purpose[];
   entries: Entry[];
@@ -76,7 +91,7 @@ export interface MeetingRun {
 }
 
 export function newItem(text: string, extra: Partial<AgendaItem> = {}): AgendaItem {
-  return { id: uid("i-"), text, ownerId: null, duration: null, purposes: [], entries: [], ...extra };
+  return { id: uid("i-"), text, ownerIds: [], duration: null, purposes: [], entries: [], ...extra };
 }
 
 export function newBlock(kind: BlockKind, extra: Partial<AgendaBlock> = {}): AgendaBlock {
@@ -149,6 +164,24 @@ export function formatClock(seconds: number): string {
   const mm = String(m).padStart(2, "0");
   const ss = String(s % 60).padStart(2, "0");
   return h ? `${h}:${mm}:${ss}` : `${mm}:${ss}`;
+}
+
+/** "1,2 MB", "820 kB" */
+export function formatSize(bytes: number): string {
+  if (bytes >= 1_000_000) return `${(bytes / 1_000_000).toFixed(1).replace(".", ",")} MB`;
+  return `${Math.max(1, Math.round(bytes / 1000))} kB`;
+}
+
+/** "Vandaag 14:03", "gisteren 09:10" of "ma 12 okt 14:03" */
+export function formatStamp(ms: number): string {
+  const d = new Date(ms);
+  const time = `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+  const day = new Date(d);
+  day.setHours(0, 0, 0, 0);
+  const diff = Math.round((today().getTime() - day.getTime()) / 86_400_000);
+  if (diff === 0) return `Vandaag ${time}`;
+  if (diff === 1) return `Gisteren ${time}`;
+  return `${formatShortDate(d)} ${time}`;
 }
 
 export function plural(n: number, one: string, many: string): string {

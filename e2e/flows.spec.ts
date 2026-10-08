@@ -76,32 +76,63 @@ test.describe("Hoofdflow: Microsoft slaagt, reeksen gevonden", () => {
     await page.getByRole("textbox", { name: "Titel wijzigen" }).fill("Planning week 43");
     await page.keyboard.press("Enter");
     await expect(page.getByRole("button", { name: /^Planning week 43\./ })).toBeVisible();
+    // Eigenaars: zoeken, aanvinken, toewijzen.
     await page.getByRole("button", { name: "Eigenaar kiezen" }).first().click();
-    await page
-      .getByRole("dialog", { name: "Eigenaar kiezen" })
-      .getByRole("button", { name: /Sofie De Smet/ })
-      .click();
+    await page.getByLabel("Zoek een collega").fill("sofie");
+    await page.getByRole("checkbox", { name: /Sofie De Smet/ }).check();
+    await page.getByRole("button", { name: "Wijs 1 eigenaar toe" }).click();
+    await expect(
+      page
+        .getByRole("region", { name: "Lopende zaken" })
+        .getByRole("button", { name: "Eigenaar: Sofie De Smet. Wijzigen" }),
+    ).toBeVisible();
     await expect(page.getByText("1 agendapunt heeft nog geen eigenaar")).toBeVisible();
-    await page.getByRole("button", { name: "Toevoegen aan Planning week 43" }).click();
-    await page.getByRole("button", { name: "Duur", exact: true }).click();
-    await page.getByRole("button", { name: "45", exact: true }).click();
-    await expect(page.getByRole("button", { name: "Duur: 45 minuten. Wijzigen" })).toBeVisible();
-    // Tijdsindicator: neutraal, bij overschrijding één amber pill.
-    await expect(page.getByText("45 / 90 min")).toBeVisible();
-    await page.getByRole("button", { name: "Toevoegen aan Planning week 43" }).click();
-    await page.getByRole("button", { name: "Doel", exact: true }).click();
-    await page.getByRole("button", { name: "Beslissen" }).click();
-    await page.keyboard.press("Escape");
-    await expect(page.getByRole("button", { name: "Doel: Beslissen. Wijzigen" })).toBeVisible();
 
-    // Beslissing via het "+"-menu; de teller opent de lijst.
-    await page.getByRole("button", { name: "Toevoegen aan Budget Q4" }).click();
-    await page.getByRole("button", { name: "Beslissing", exact: true }).click();
-    await page.getByLabel("Beslissing", { exact: true }).fill("Budget goedgekeurd");
-    await page.keyboard.press("Enter");
-    await page.getByRole("button", { name: "1 beslissing bij Budget Q4" }).click();
-    await expect(page.getByRole("dialog").getByText("Budget goedgekeurd")).toBeVisible();
+    // Duur: snelkeuze en − / +.
+    await page.getByRole("button", { name: "Duur toevoegen" }).first().click();
+    await page.getByRole("button", { name: "20", exact: true }).click();
+    await page.getByRole("button", { name: "Duur: 20 minuten. Wijzigen" }).click();
+    await page.getByRole("button", { name: "5 minuten meer" }).click();
     await page.keyboard.press("Escape");
+    await expect(page.getByRole("button", { name: "Duur: 25 minuten. Wijzigen" })).toBeVisible();
+    // Tijdsindicator: neutraal, bij overschrijding één amber pill.
+    await expect(page.getByText("25 / 90 min")).toBeVisible();
+
+    // Doel: aanvinken met uitleg, toepassen met de knop.
+    await page.getByRole("button", { name: "Doel toevoegen" }).first().click();
+    await page.getByRole("checkbox", { name: /Bespreken/ }).check();
+    await page.getByRole("checkbox", { name: /Beslissen/ }).check();
+    await page.getByRole("button", { name: "Pas 2 doelen toe" }).click();
+    await expect(page.getByRole("button", { name: "Doel: Bespreken, Beslissen. Wijzigen" })).toBeVisible();
+
+    // Beslissingen inline: Enter bewaart, de vorige staan eronder; hover toont de inhoud.
+    await page.getByRole("button", { name: "Beslissing toevoegen bij Budget Q4" }).click();
+    const decision = page.getByRole("textbox", { name: "Beslissing", exact: true });
+    await decision.fill("Budget goedgekeurd");
+    await decision.press("Enter");
+    await decision.fill("Extra budget voor Q1");
+    await decision.press("Enter");
+    await expect(decision).toBeFocused();
+    const decisions = page.getByRole("dialog", { name: "beslissingen" });
+    await expect(decisions.getByText("Budget goedgekeurd")).toBeVisible();
+    await decisions.getByRole("button", { name: 'Beslissing "Extra budget voor Q1" verwijderen' }).click();
+    await page.keyboard.press("Escape");
+    await page.getByRole("button", { name: "1 beslissing bij Budget Q4" }).hover();
+    await expect(page.getByRole("tooltip")).toContainText("Budget goedgekeurd");
+
+    // Notitie en document
+    await page.getByRole("button", { name: "Notitie toevoegen bij Budget Q4" }).click();
+    await page.getByRole("textbox", { name: "Notitie", exact: true }).fill("Cijfers volgen vrijdag");
+    await page.keyboard.press("Enter");
+    await expect(page.getByRole("dialog", { name: "notities" }).getByText(/Vandaag \d\d:\d\d/)).toBeVisible();
+    await page.keyboard.press("Escape");
+    await page.getByRole("button", { name: "Document toevoegen bij Budget Q4" }).click();
+    await page
+      .getByLabel("Documenten toevoegen aan Budget Q4")
+      .setInputFiles({ name: "budget.pdf", mimeType: "application/pdf", buffer: Buffer.alloc(1200) });
+    await expect(page.getByRole("dialog", { name: "documenten" }).getByText("budget.pdf")).toBeVisible();
+    await page.keyboard.press("Escape");
+    await expect(page.getByRole("button", { name: "1 document bij Budget Q4" })).toBeVisible();
 
     // + Actie
     await page.getByRole("button", { name: "Actie", exact: true }).click();

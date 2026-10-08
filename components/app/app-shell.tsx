@@ -47,7 +47,7 @@ function Sidebar() {
       aria-label="Hoofdmenu"
       className="flex flex-col gap-1 bg-app-nav px-3.5 py-4 text-white lg:min-h-dvh lg:w-60 lg:shrink-0 lg:py-6"
     >
-      <Logo href="/app" tone="white" className="px-2.5 lg:pb-4" />
+      <Logo href="/app" tone="white" className="self-start px-2.5 lg:pb-4" />
       <div className="flex flex-wrap gap-1 lg:flex-col">
         {comingSoon("Dashboard")}
         <Link href="/app" aria-current="page" className={cn(item, "bg-white/15 font-extrabold text-white")}>
@@ -103,7 +103,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         <Hydrated fallback={<div className="bg-app-nav lg:min-h-dvh lg:w-60 lg:shrink-0" />}>
           <Sidebar />
         </Hydrated>
-        <main className="flex min-w-0 flex-1 flex-col gap-5 px-4 pt-7 pb-24 sm:px-9">{children}</main>
+        <main className="flex min-w-0 flex-1 flex-col gap-5 px-4 pt-7 pb-24 sm:px-9 lg:pt-14">{children}</main>
       </div>
       <Hydrated>
         <AddMeetingsDialogHost />

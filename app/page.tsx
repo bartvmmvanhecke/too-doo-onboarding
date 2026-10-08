@@ -43,7 +43,7 @@ const navLink = "inline-flex min-h-11 items-center text-ink no-underline hover:t
 
 export default function HeroPage() {
   return (
-    <div className="min-h-dvh bg-hero px-4 pt-6 pb-16 text-ink sm:px-6">
+    <div className="min-h-dvh bg-hero px-4 pt-14 pb-16 text-ink sm:px-6">
       <header className="mx-auto flex max-w-[1200px] flex-wrap items-center justify-between gap-4 rounded-[28px] bg-white py-3 pr-4 pl-7 shadow-[0_1px_2px_rgba(22,33,58,0.06),0_8px_24px_rgba(22,33,58,0.06)] sm:rounded-full">
         <span className="text-[28px] font-extrabold tracking-[-0.5px] text-logo">too-doo</span>
         <nav aria-label="Website" className="flex flex-wrap items-center gap-x-7 gap-y-1 text-[15px] font-semibold">
@@ -60,7 +60,7 @@ export default function HeroPage() {
             Inloggen
           </Link>
           <Link
-            href="/start"
+            href="/prototype"
             className="inline-flex min-h-11 items-center rounded-full bg-brand px-[22px] font-bold text-white no-underline hover:bg-brand-hover hover:text-white"
           >
             Probeer gratis
@@ -83,7 +83,7 @@ export default function HeroPage() {
             </p>
             <div className="flex flex-wrap items-center gap-3">
               <Link
-                href="/start"
+                href="/prototype"
                 className="inline-flex min-h-11 items-center gap-3 rounded-xl bg-ink px-[26px] py-4 text-[17px] font-bold text-white no-underline hover:bg-[#0b1426] hover:text-white"
               >
                 <MicrosoftMark />

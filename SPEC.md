@@ -135,3 +135,39 @@ Echte authenticatie, Microsoft Graph/Google API, e-mails versturen, backend of d
 - Elke route eindigt in `/app/overleg/:id` of `/app` (lege toestand); nergens een doodlopend scherm.
 - Gegevens die in 2b/3 ingevuld worden, verschijnen in scherm 4.
 - `npm run build` slaagt zonder fouten; lint en typecheck zijn schoon.
+
+---
+
+## 8. Beslissingen tijdens bouw
+
+Aanvullingen op deze specificatie, afgesproken tijdens het bouwen van het prototype.
+
+**Links zonder bestemming in de mockups**
+- "Inloggen" (hero en `/start`) → het bestaande overleg (`/app/overleg/:id`) als er een is, anders `/app`.
+- "Bekijk de rondleiding · 2 min" → `/voorbeeld`. "Hoe het werkt" en "Klantverhalen" scrollen naar de sectie op de pagina.
+- Prijzen, voorwaarden, privacy, de zijbalkitems Dashboard / Acties / Beslissingen / Notities en de taalkeuze Français / English tonen een melding "Niet beschikbaar in dit prototype".
+- "Vergaderingen" en "← Alle vergaderingen" → het overleg, of `/app` als er nog geen is.
+
+**In de app**
+- "Start overleg": enkel een melding "Overleg gestart"; het checklist-item "Maandag het overleg houden" wordt afgevinkt. Geen vergadermodus in het prototype.
+- "+ Actie": voegt in "Openstaande acties" een rij toe (Wat, Wie, Tegen), opslaan met Enter.
+- "Jan en Sofie uitnodigen": opent een bevestigingsvenster; pas na "Uitnodigen" volgt een (gesimuleerde) verzendmelding en wordt het item afgevinkt.
+- Modal "Andere overlegmomenten": "… overleggen toevoegen" bewaart ze, vinkt het checklist-item af en toont een melding. Geen apart lijstscherm.
+
+**Outlook-opties**
+- Outlook-opties verdwijnen enkel als de Microsoft-login geblokkeerd was: dan geen "Toch kiezen uit je Outlook-agenda" op 2b, geen "Haal uit Outlook" in `/app` en geen Outlook-sectie in de modal.
+- Is de agenda gewoon nog niet gekoppeld, dan tonen de modal en `/app` een knop "Koppel Outlook" die dezelfde gesimuleerde toestemming start als in `/overleg`.
+
+**Teksten die in de mockups ontbraken**
+- Rondleiding `/voorbeeld`, stap 2: "Lopende zaken" – "Agendapunten zonder vaste tijden of rollen. Beslissingen en acties noteer je er meteen bij."
+- Rondleiding `/voorbeeld`, stap 3: "Eén plek voor alle acties" – "Elke eigenaar ziet zijn acties en krijgt een herinnering. Jij ziet wat blijft hangen."
+- Succesmelding zonder acties: "Je productieoverleg staat klaar. Noteer je acties tijdens het overleg." Met 1 actie: "Je 1 openstaande actie komt maandag vanzelf aan bod." (naam van het overleg en weekdag volgen de invoer).
+
+**Invoer**
+- Duur "Anders…" toont een veld voor het aantal minuten (stappen van 5).
+- "Volgende keer" aanvaardt "ma 13 okt", "13 okt", "13/10" en "13-10"; ongeldige invoer zet de vorige waarde terug.
+- "Tegen?" bij acties is vrije tekst en wordt getoond zoals ingevuld.
+
+**Data**
+- Geen vaste demodatum: alle data worden relatief vanaf vandaag berekend. "Volgende keer" = de eerstvolgende juiste weekdag per reeks (bv. eerstvolgende maandag); voorbeelddeadlines liggen enkele dagen daarna. Getoond in het formaat uit de mockups ("ma 13 okt").
+- Deelnemers: Jan Peeters (JP), Sofie De Smet (SD), Pieter Vermeulen (PV), Lotte Maes (LM) en twee extra voor Productieoverleg. Losse afspraken: "Overleg productie" en "MT-vergadering".

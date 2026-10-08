@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<title>Variant B – landen in overzicht</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800&amp;display=swap">
+<style>
+body{margin:0;background:#F4F7FB}
+a{color:#0B5FD8}a:hover{color:#08449C}
+</style>
+</helmet>
+<div style="font-family: 'Nunito', system-ui, sans-serif; color: #16213A; background: #F4F7FB; min-height: 900px; display: flex; flex-wrap: wrap">
+  <nav aria-label="Hoofdmenu" style="flex: 1 1 220px; max-width: 240px; min-height: 900px; background: linear-gradient(180deg, #123A80 0%, #0C2A5E 100%); color: #FFFFFF; padding: 24px 14px; box-sizing: border-box; display: flex; flex-direction: column; gap: 4px">
+    <span style="font-size: 26px; font-weight: 800; padding: 0 10px 24px">too-doo</span>
+    <a href="#overzicht" style="color: #FFFFFF; text-decoration: none; font-size: 16px; font-weight: 800; padding: 11px 12px; border-radius: 10px; background: rgba(255,255,255,0.14)">Overzicht</a>
+    <a href="Product-Overleg.dc.html" style="color: #D5E2F7; text-decoration: none; font-size: 16px; font-weight: 600; padding: 11px 12px; border-radius: 10px">Vergaderingen</a>
+    <a href="#acties" style="color: #D5E2F7; text-decoration: none; font-size: 16px; font-weight: 600; padding: 11px 12px; border-radius: 10px">Acties</a>
+    <a href="#beslissingen" style="color: #D5E2F7; text-decoration: none; font-size: 16px; font-weight: 600; padding: 11px 12px; border-radius: 10px">Beslissingen</a>
+    <span style="margin-top: auto; font-size: 13px; color: #B7C8E6; padding: 12px; border-top: 1px solid rgba(255,255,255,0.14)">Proefperiode · nog 30 dagen</span>
+  </nav>
+
+  <main style="flex: 999 1 560px; min-width: 0; padding: 28px 36px 40px; box-sizing: border-box; display: flex; flex-direction: column; gap: 18px">
+    <div>
+      <span style="font-size: 15px; font-weight: 600; color: #3E4860">Goedemorgen Jan</span>
+      <h1 style="margin: 4px 0 0; font-size: 30px; font-weight: 800">Dit volgt too-doo nu voor je op</h1>
+    </div>
+
+    <div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px">
+      <div style="background: #FFFFFF; border: 1px solid #E3E8F1; border-radius: 14px; padding: 16px"><div style="font-size: 28px; font-weight: 800">3</div><div style="font-size: 14px; font-weight: 700; color: #3E4860">open acties</div></div>
+      <div style="background: #FFF4E5; border-radius: 14px; padding: 16px"><div style="font-size: 28px; font-weight: 800; color: #7A3F04">1</div><div style="font-size: 14px; font-weight: 700; color: #5C3104">zonder eigenaar</div></div>
+      <div style="background: #FFFFFF; border: 1px solid #E3E8F1; border-radius: 14px; padding: 16px"><div style="font-size: 28px; font-weight: 800">1</div><div style="font-size: 14px; font-weight: 700; color: #3E4860">beslissing nodig</div></div>
+      <div style="background: #FFFFFF; border: 1px solid #E3E8F1; border-radius: 14px; padding: 16px"><div style="font-size: 28px; font-weight: 800">2</div><div style="font-size: 14px; font-weight: 700; color: #3E4860">overleggen opgevolgd</div></div>
+    </div>
+
+    <div style="display: flex; flex-wrap: wrap; gap: 18px; align-items: flex-start">
+      <div style="flex: 999 1 460px; min-width: 0; display: flex; flex-direction: column; gap: 14px">
+        <section style="background: #FFFFFF; border: 1px solid #E3E8F1; border-radius: 14px; padding: 18px 20px; display: flex; flex-direction: column; gap: 4px">
+          <div style="display: flex; justify-content: space-between; align-items: center; padding-bottom: 8px"><span style="font-size: 17px; font-weight: 800">Vraagt je aandacht</span></div>
+          <div style="display: flex; align-items: center; gap: 12px; padding: 10px 0; border-top: 1px solid #EEF2F8">
+            <span style="flex: 1; font-size: 15px; font-weight: 700">Leverancier staal opnieuw bellen</span>
+            <span style="font-size: 13px; color: #3E4860">Productieoverleg</span>
+            <button type="button" style="font-family: inherit; font-size: 13px; font-weight: 800; color: #7A3F04; background: #FFF4E5; border: 1px dashed #E8A33D; border-radius: 999px; padding: 4px 12px; min-height: 32px; cursor: pointer">Wijs iemand aan</button>
+          </div>
+          <div style="display: flex; align-items: center; gap: 12px; padding: 10px 0; border-top: 1px solid #EEF2F8">
+            <span style="flex: 1; font-size: 15px; font-weight: 700">Planning week 42</span>
+            <span style="font-size: 13px; color: #3E4860">Productieoverleg</span>
+            <span style="font-size: 13px; font-weight: 800; color: #4B2A7A; background: #EFE7FA; padding: 4px 10px; border-radius: 6px">beslissen op ma 13 okt</span>
+          </div>
+        </section>
+
+        <section style="background: #FFFFFF; border: 1px solid #E3E8F1; border-radius: 14px; padding: 18px 20px; display: flex; flex-direction: column; gap: 4px">
+          <div style="display: flex; justify-content: space-between; align-items: center; padding-bottom: 8px"><span style="font-size: 17px; font-weight: 800">Wie doet wat</span><span style="font-size: 13px; color: #5B6478">per mail opgevolgd</span></div>
+          <div style="display: flex; align-items: center; gap: 12px; padding: 10px 0; border-top: 1px solid #EEF2F8">
+            <span style="width: 28px; height: 28px; border-radius: 50%; background: #F2C9A8; color: #6A3412; font-size: 11px; font-weight: 800; display: flex; align-items: center; justify-content: center">JP</span>
+            <span style="flex: 1; font-size: 15px; font-weight: 600">Nieuwe offerte plooibank opvragen</span>
+            <span style="font-size: 13px; font-weight: 700; color: #3E4860; background: #EEF2F8; padding: 4px 10px; border-radius: 6px">vr 17 okt</span>
+          </div>
+          <div style="display: flex; align-items: center; gap: 12px; padding: 10px 0; border-top: 1px solid #EEF2F8">
+            <span style="width: 28px; height: 28px; border-radius: 50%; background: #C9DDF6; color: #0F3B7A; font-size: 11px; font-weight: 800; display: flex; align-items: center; justify-content: center">SD</span>
+            <span style="flex: 1; font-size: 15px; font-weight: 600">Instructie heftruck aanpassen</span>
+            <span style="font-size: 13px; font-weight: 600; color: #1E6B45">mail verstuurd</span>
+          </div>
+        </section>
+
+        <section style="background: #FFFFFF; border: 1px solid #E3E8F1; border-radius: 14px; padding: 18px 20px; display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap">
+          <span style="display: flex; flex-direction: column"><span style="font-size: 13px; font-weight: 800; letter-spacing: 0.5px; text-transform: uppercase; color: #5B6478">Volgend overleg</span><span style="font-size: 17px; font-weight: 800">Productieoverleg · ma 13 okt, 08:00</span><span style="font-size: 14px; color: #3E4860">3 acties en 1 beslissing staan al klaar op de agenda</span></span>
+          <a href="Product-Overleg.dc.html" style="display: inline-flex; align-items: center; background: #0B5FD8; color: #FFFFFF; text-decoration: none; border-radius: 10px; padding: 0 18px; min-height: 44px; font-size: 15px; font-weight: 700">Bekijk de agenda</a>
+        </section>
+      </div>
+
+      <aside aria-label="Volgende stap" style="flex: 1 1 280px; min-width: 0; background: #FFFFFF; border: 2px solid #0B5FD8; border-radius: 14px; padding: 20px; display: flex; flex-direction: column; gap: 10px">
+        <span style="font-size: 13px; font-weight: 800; color: #0B5FD8">Wat er nu gebeurt</span>
+        <div style="display: flex; gap: 10px; align-items: flex-start; font-size: 14px; line-height: 1.45"><span style="width: 22px; height: 22px; border-radius: 50%; background: #E2F4EA; color: #134B30; font-size: 12px; font-weight: 800; display: flex; align-items: center; justify-content: center; flex-shrink: 0">1</span><span>Jan en Sofie hebben hun actie per mail gekregen.</span></div>
+        <div style="display: flex; gap: 10px; align-items: flex-start; font-size: 14px; line-height: 1.45"><span style="width: 22px; height: 22px; border-radius: 50%; background: #EEF2F8; color: #3E4860; font-size: 12px; font-weight: 800; display: flex; align-items: center; justify-content: center; flex-shrink: 0">2</span><span>Zondagavond krijg je een mail met wat open staat voor maandag.</span></div>
+        <div style="display: flex; gap: 10px; align-items: flex-start; font-size: 14px; line-height: 1.45"><span style="width: 22px; height: 22px; border-radius: 50%; background: #EEF2F8; color: #3E4860; font-size: 12px; font-weight: 800; display: flex; align-items: center; justify-content: center; flex-shrink: 0">3</span><span>Na het overleg gaat het verslag met acties naar alle deelnemers.</span></div>
+        <a href="Snel-toevoegen.dc.html" style="font-size: 14px; font-weight: 700; margin-top: 6px">Volg ook je andere overleggen op</a>
+      </aside>
+    </div>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+renderVals() {
+return {};
+}
+}
+</script>
+</body>
+</html>

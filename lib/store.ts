@@ -10,6 +10,7 @@ import {
   allItems,
   defaultBlocks,
   newBlock,
+  sampleBlocks,
   newItem,
   runSteps,
   todayISO,
@@ -249,6 +250,12 @@ function uniqueId(name: string, meetings: Meeting[], keep?: string): string {
   return id;
 }
 
+/** Wie de voorbeeldpunten brengt: de deelnemers (niet jijzelf), anders jij. */
+function demoBlocks(participants: string[]): AgendaBlock[] {
+  const others = participants.filter((p) => p !== USER_PERSON_ID);
+  return sampleBlocks(others.length ? others : [USER_PERSON_ID]);
+}
+
 function newMeeting(schedule: MeetingSchedule, id: string, extra: Partial<Meeting> = {}): Meeting {
   return {
     ...schedule,
@@ -356,6 +363,7 @@ export const useStore = create<Store>()(
           const id = uniqueId(draft.name, s.meetings, previous?.id);
           const meeting = newMeeting(draft, id, {
             participants: draft.participants,
+            blocks: demoBlocks(draft.participants),
             seriesId: draft.seriesId,
             draftId: draft.id,
             actions,
@@ -383,6 +391,7 @@ export const useStore = create<Store>()(
               newMeeting(item.schedule, id, {
                 seriesId: item.seriesId,
                 participants: item.participants ?? [],
+                blocks: demoBlocks(item.participants ?? []),
                 showWelcome: false,
               }),
             ];
@@ -590,7 +599,7 @@ export const useStore = create<Store>()(
               !m.seriesId ||
               ids.includes(m.seriesId) ||
               m.actions.length > 0 ||
-              allItems(m.blocks).length > 0,
+              allItems(m.blocks).some((i) => !i.sample),
           );
           for (const sid of ids) {
             if (meetings.some((m) => m.seriesId === sid)) continue;
@@ -602,6 +611,7 @@ export const useStore = create<Store>()(
               newMeeting(seriesSchedule(series), id, {
                 seriesId: sid,
                 participants: series.participants,
+                blocks: demoBlocks(series.participants),
                 origin: "b",
                 showWelcome: false,
               }),
@@ -619,6 +629,7 @@ export const useStore = create<Store>()(
           const id = uniqueId(draft.name, s.meetings);
           const meeting = newMeeting({ ...draft, name: draft.name.trim() }, id, {
             participants: draft.participants,
+            blocks: demoBlocks(draft.participants),
             origin: "b",
             showWelcome: false,
           });
@@ -705,7 +716,7 @@ export const useStore = create<Store>()(
     },
     {
       name: STORAGE_KEY,
-      version: 4,
+      version: 5,
       // Oudere opgeslagen state mist velden (flows, variant B, agendablokken): begin opnieuw.
       migrate: () => initialData(),
       storage: createJSONStorage(() => (typeof window === "undefined" ? noopStorage : window.localStorage)),

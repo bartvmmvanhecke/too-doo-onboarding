@@ -63,6 +63,8 @@ export interface AgendaItem {
   duration: Minutes | null;
   purposes: Purpose[];
   entries: Entry[];
+  /** Voorbeeldpunt uit de demo. */
+  sample?: boolean;
 }
 
 export type BlockKind = "actions" | "topics" | "break";
@@ -114,6 +116,63 @@ export function defaultBlocks(): AgendaBlock[] {
     newBlock("topics", { title: "Lopende zaken" }),
     newBlock("topics", { title: "Varia", subtitle: "Wat onverwacht ter sprake komt" }),
   ];
+}
+
+/**
+ * Voorbeeldagenda voor de demo: drie agendapunten in "Lopende zaken" met doel,
+ * eigenaar, duur en wat al vastgelegd is. `ownerIds`: wie de punten brengt.
+ */
+export function sampleBlocks(ownerIds: string[]): AgendaBlock[] {
+  const [a, b = a, c = b] = ownerIds;
+  const now = Date.now();
+  const entry = (kind: EntryKind, text: string, extra: Partial<Entry> = {}): Entry => ({
+    id: uid("e-"),
+    kind,
+    text,
+    ownerId: null,
+    date: "",
+    authorId: a,
+    createdAt: now - 3 * 86_400_000,
+    ...extra,
+  });
+  const inDays = (n: number) => formatShortDate(addDays(today(), n));
+  const blocks = defaultBlocks();
+  const topics = blocks.find((x) => x.kind === "topics")!;
+  topics.items = [
+    newItem("Planning volgende week", {
+      sample: true,
+      ownerIds: [a],
+      duration: 10,
+      purposes: ["discuss"],
+      entries: [
+        entry("decision", "Nachtploeg start maandag om 22:00", { ownerId: a, date: inDays(4) }),
+        entry("decision", "Onderhoud plooibank verschuift naar vrijdag", { ownerId: b, date: inDays(8) }),
+        entry("note", "Twee uitzendkrachten bevestigd voor de vroege ploeg"),
+        entry("document", "Planning-week.xlsx", { size: 48_000 }),
+      ],
+    }),
+    newItem("Opleiding nieuwe medewerkers", {
+      sample: true,
+      ownerIds: [b],
+      duration: 15,
+      purposes: ["discuss", "inform"],
+      entries: [
+        entry("note", "Opleiding heftruck gepland op donderdag", { authorId: b }),
+        entry("note", "Peter volgt de nieuwe collega's op", { authorId: b }),
+      ],
+    }),
+    newItem("Promotour nieuwe producten", {
+      sample: true,
+      ownerIds: [c],
+      duration: 10,
+      purposes: ["inform"],
+      entries: [
+        entry("decision", "We nemen deel aan de vakbeurs in maart", { ownerId: c, date: inDays(14) }),
+        entry("document", "Promotour-2027.pdf", { size: 2_400_000 }),
+      ],
+    }),
+  ];
+  return blocks;
 }
 
 export function allItems(blocks: AgendaBlock[]): AgendaItem[] {

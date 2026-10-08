@@ -129,7 +129,7 @@ export function AgendaItemRow({
         moves.dropItem(id, block.id, dropBefore(e) ? index : index + 1);
       }}
       className={cn(
-        "group relative flex min-h-14 flex-wrap items-center gap-x-1 rounded-[12px] border border-line-soft bg-white py-1 pr-1.5 pl-2",
+        "group relative flex min-h-14 flex-wrap items-center gap-x-1 rounded-[12px] border border-line-soft bg-white py-1 pr-1.5 pl-2 sm:flex-nowrap",
         dropAt === "before" && "shadow-[0_-3px_0_var(--brand)]",
         dropAt === "after" && "shadow-[0_3px_0_var(--brand)]",
       )}

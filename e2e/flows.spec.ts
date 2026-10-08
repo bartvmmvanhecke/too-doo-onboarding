@@ -70,7 +70,7 @@ test.describe("Hoofdflow: Microsoft slaagt, reeksen gevonden", () => {
     // Hint i.p.v. prep score: wat ontbreekt.
     await expect(page.getByText("2 agendapunten hebben nog geen eigenaar")).toBeVisible();
     await page.getByRole("button", { name: "Toon" }).click();
-    await expect(page.locator("[id^=owner-]").first()).toBeFocused();
+    await expect(page.getByRole("button", { name: "Eigenaar kiezen" }).first()).toBeFocused();
 
     // Inline bewerken: titel, eigenaar, duur en doel.
     await page.getByRole("button", { name: /^Planning week 42\./ }).click();
@@ -85,6 +85,8 @@ test.describe("Hoofdflow: Microsoft slaagt, reeksen gevonden", () => {
     await expect(
       page
         .getByRole("region", { name: "Lopende zaken" })
+        .getByRole("listitem")
+        .filter({ hasText: "Planning week 43" })
         .getByRole("button", { name: "Eigenaar: Sofie De Smet. Wijzigen" }),
     ).toBeVisible();
     await expect(page.getByText("1 agendapunt heeft nog geen eigenaar")).toBeVisible();
@@ -97,7 +99,7 @@ test.describe("Hoofdflow: Microsoft slaagt, reeksen gevonden", () => {
     await page.keyboard.press("Escape");
     await expect(page.getByRole("button", { name: "Duur: 25 minuten. Wijzigen" })).toBeVisible();
     // Tijdsindicator: neutraal, bij overschrijding één amber pill.
-    await expect(page.getByText("25 / 90 min")).toBeVisible();
+    await expect(page.getByText("60 / 90 min")).toBeVisible(); // 35 min voorbeeldpunten + 25
 
     // Doel: aanvinken met uitleg, toepassen met de knop.
     await page.getByRole("button", { name: "Doel toevoegen" }).first().click();
@@ -165,20 +167,23 @@ test.describe("Hoofdflow: Microsoft slaagt, reeksen gevonden", () => {
       page.getByRole("region", { name: "Openstaande acties" }).getByText("1 afgevinkt · 3 lopen verder"),
     ).toBeVisible();
     const current = page.locator("[aria-current=step]");
-    await expect(current.getByRole("heading", { name: "Planning week 43" })).toBeVisible();
+    // De voorbeeldpunten staan eerst op de agenda.
+    await expect(current.getByRole("heading", { name: "Planning volgende week" })).toBeVisible();
     await current.getByRole("button", { name: "+ Notitie" }).click();
     await current.getByLabel("Notitie", { exact: true }).fill("Planning ligt goed");
     await page.keyboard.press("Enter");
     await expect(current.getByText("Planning ligt goed")).toBeVisible();
     await current.getByRole("button", { name: "Afronden" }).click();
     await expect(page.getByRole("img", { name: "Afgerond" })).toBeVisible();
-    await expect(page.locator("[aria-current=step]").getByRole("heading", { name: "Budget Q4" })).toBeVisible();
+    await expect(
+      page.locator("[aria-current=step]").getByRole("heading", { name: "Opleiding nieuwe medewerkers" }),
+    ).toBeVisible();
     await page.getByRole("button", { name: "Naar volgende vergadering" }).click();
     await page.getByRole("button", { name: "Beëindigen" }).click();
     await expect(page.getByText("Bezig", { exact: true })).toHaveCount(0);
     // Afgerond verdwijnt, uitgesteld blijft; afgevinkte acties zijn af.
-    await expect(page.getByRole("button", { name: /^Planning week 43\./ })).toHaveCount(0);
-    await expect(page.getByRole("button", { name: /^Budget Q4\./ })).toBeVisible();
+    await expect(page.getByRole("button", { name: /^Planning volgende week\./ })).toHaveCount(0);
+    await expect(page.getByRole("button", { name: /^Opleiding nieuwe medewerkers\./ })).toBeVisible();
     await expect(page.getByRole("checkbox", { name: "Instructie heftruck bijwerken afvinken" })).toHaveCount(0);
     await expect(page.getByRole("progressbar", { name: /3 van 4/ })).toBeVisible();
 
@@ -313,11 +318,9 @@ test.describe("Terugvalpaden", () => {
     await expect(page).toHaveURL(/\/acties$/);
     await page.getByRole("button", { name: "Sla over, doe ik tijdens het overleg" }).click();
     await expect(page).toHaveURL(/\/app\/overleg\/veiligheidsoverleg-hal-2$/);
-    // Lege staat: invoerveld in focus, met uitleg; uitnodigen i.p.v. avatars.
-    await expect(page.getByLabel("Agendapunt toevoegen aan Lopende zaken")).toBeFocused();
-    await expect(
-      page.getByText("Eigenaar, duur en doel voeg je later toe — of nooit. Een titel volstaat om te starten."),
-    ).toBeVisible();
+    // De demo start met voorbeeld-agendapunten; uitnodigen i.p.v. avatars.
+    await expect(page.getByRole("button", { name: /^Planning volgende week\./ })).toBeVisible();
+    await expect(page.getByRole("button", { name: "2 beslissingen bij Planning volgende week" })).toBeVisible();
     await expect(page.getByRole("button", { name: "Collega's uitnodigen", exact: true })).toBeVisible();
     await expect(page.getByText(/^Nog niets open\./)).toBeVisible();
     await expect(page.getByRole("main").getByText(/^Om de 2 weken op maandag · 10:30–11:00/)).toBeVisible();
@@ -417,6 +420,11 @@ test.describe("Later en lege toestand", () => {
     await expect(page).toHaveURL(/\/app\/overleg\/teamoverleg$/);
     await expect(
       page.getByText(/Om de 2 weken op donderdag · 09:30–10:30 · volgende: do \d+ \w+/).filter({ visible: true }),
+    ).toBeVisible();
+    // Zelf aangemaakt: lege staat met het invoerveld in focus en uitleg.
+    await expect(page.getByLabel("Agendapunt toevoegen aan Lopende zaken")).toBeFocused();
+    await expect(
+      page.getByText("Eigenaar, duur en doel voeg je later toe — of nooit. Een titel volstaat om te starten."),
     ).toBeVisible();
     // /app met een vergadering toont de lijst
     await page.goto("/app");

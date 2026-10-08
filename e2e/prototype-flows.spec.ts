@@ -71,7 +71,7 @@ test.describe("Vier flows vanaf /prototype", () => {
     await shot("acties");
     await page.getByRole("button", { name: "Toon mijn overleg" }).click();
     await expect(page).toHaveURL(/\/app\/overleg\/teamoverleg$/);
-    await expect(page.getByText("Je teamoverleg staat klaar.", { exact: false })).toBeVisible();
+    await expect(page.getByRole("heading", { level: 1, name: "Teamoverleg" })).toBeVisible();
     await shot("app");
     errors.assertNone();
   });
@@ -137,14 +137,14 @@ test.describe("Vier flows vanaf /prototype", () => {
     await expect(page.getByRole("button", { name: /Wijs iemand aan/ })).toHaveCount(0);
     await expect(page.getByText("Jan, Sofie en Pieter hebben hun actie per mail gekregen.")).toBeVisible();
     const menu = page.getByRole("navigation", { name: "Hoofdmenu" });
-    await expect(menu.getByRole("link", { name: "Overzicht" })).toHaveAttribute("aria-current", "page");
+    await expect(menu.getByRole("link", { name: "Dashboard" })).toHaveAttribute("aria-current", "page");
     await page.getByRole("link", { name: "Bekijk de agenda" }).click();
     await expect(page).toHaveURL(/\/app\/overleg\/productieoverleg$/);
     // Next houdt vorige pagina's verborgen gemonteerd; tel enkel wat zichtbaar is.
     await expect(page.getByText("Planning week 42").filter({ visible: true })).toBeVisible();
-    await expect(page.getByText("beslissing", { exact: true }).filter({ visible: true })).toBeVisible();
+    await expect(page.getByText("Beslissen", { exact: true }).filter({ visible: true }).first()).toBeVisible();
     await shot("agenda");
-    await menu.getByRole("link", { name: "Overzicht" }).click();
+    await menu.getByRole("link", { name: "Dashboard" }).click();
     await expect(page).toHaveURL(/\/b\/overzicht$/);
     errors.assertNone();
   });
@@ -247,9 +247,8 @@ test.describe("Variant B in detail", () => {
     await expect(page).toHaveURL(/\/b\/acties$/);
     await page.goto("/b/overzicht");
     await expect(page.getByText("3", { exact: true }).first()).toBeVisible(); // 3 overleggen opgevolgd
-    await expect(
-      page.getByRole("navigation", { name: "Hoofdmenu" }).getByRole("link", { name: "Werfoverleg" }),
-    ).toBeVisible();
+    await page.goto("/app");
+    await expect(page.getByRole("main").getByRole("link", { name: /Werfoverleg/ })).toBeVisible();
   });
 
   test("/b/acties: extractie werkt op zelf geplakte tekst", async ({ page }) => {

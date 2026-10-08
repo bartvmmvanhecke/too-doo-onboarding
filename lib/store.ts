@@ -6,7 +6,20 @@
  */
 import { create } from "zustand";
 import { createJSONStorage, persist, type StateStorage } from "zustand/middleware";
-import { formatShortDate, nextWeekday, toISO, WEEKDAY } from "@/lib/date";
+import {
+  allItems,
+  defaultBlocks,
+  newBlock,
+  newItem,
+  runSteps,
+  todayISO,
+  type AgendaBlock,
+  type AgendaItem,
+  type BlockKind,
+  type Entry,
+  type MeetingRun,
+} from "@/lib/agenda";
+import { formatShortDate, nextWeekday, toISO, WEEKDAY, type ISODate } from "@/lib/date";
 import { SAMPLE_NOTES, type Proposal } from "@/lib/extract";
 import type { FlowId, FlowPreset } from "@/lib/flows";
 import { deriveMeetingType, slugify, type MeetingSchedule } from "@/lib/meeting";
@@ -57,21 +70,24 @@ export interface Action {
   done: boolean;
   /** Variant B: de eigenaar kreeg de actie per mail (gesimuleerd). */
   mailed?: boolean;
+  /** Vergadering (datum) waarin de actie genoteerd werd. */
+  createdAt?: ISODate;
 }
 
-export interface AgendaItem {
-  id: string;
-  text: string;
-  /** Vraagt een beslissing (variant B). */
-  decision?: boolean;
-}
+export type { AgendaBlock, AgendaItem, Entry, MeetingRun };
 
 export interface Meeting extends MeetingSchedule {
   id: string;
   type: string;
   participants: string[];
   actions: Action[];
-  agendaItems: AgendaItem[];
+  blocks: AgendaBlock[];
+  /** Details-popover; leeg = niet getoond. */
+  location?: string;
+  room?: string;
+  description?: string;
+  /** Gezet zolang de vergadering bezig is. */
+  run?: MeetingRun | null;
   seriesId?: string;
   draftId?: string;
   showWelcome: boolean;
@@ -134,7 +150,24 @@ interface Actions {
   addMeetings: (list: { schedule: MeetingSchedule; seriesId?: string; participants?: string[] }[]) => void;
   toggleAction: (meetingId: string, actionId: string) => void;
   addAction: (meetingId: string, action: Omit<Action, "id" | "done">) => void;
-  addAgendaItem: (meetingId: string, text: string) => void;
+  addAgendaItem: (meetingId: string, blockId: string, text: string) => string;
+  updateItem: (meetingId: string, itemId: string, patch: Partial<Omit<AgendaItem, "id">>) => void;
+  removeItem: (meetingId: string, itemId: string) => void;
+  moveItem: (meetingId: string, itemId: string, toBlockId: string, toIndex: number) => void;
+  addEntry: (meetingId: string, itemId: string, entry: Omit<Entry, "id" | "actionId">) => void;
+  removeEntry: (meetingId: string, itemId: string, entryId: string) => void;
+  addBlock: (meetingId: string, kind: BlockKind) => string;
+  updateBlock: (meetingId: string, blockId: string, patch: Partial<Omit<AgendaBlock, "id" | "items">>) => void;
+  removeBlock: (meetingId: string, blockId: string) => void;
+  moveBlock: (meetingId: string, blockId: string, toIndex: number) => void;
+  updateDetails: (
+    meetingId: string,
+    patch: Partial<Pick<Meeting, "location" | "room" | "description" | "type">>,
+  ) => void;
+  startRun: (meetingId: string) => void;
+  /** Rondt de huidige stap af (of stelt hem uit) en gaat naar de volgende. */
+  nextStep: (meetingId: string, how?: "done" | "postpone") => void;
+  endRun: (meetingId: string) => void;
   dismissWelcome: (meetingId: string) => void;
   markInvited: (meetingId: string) => void;
   markHeld: (meetingId: string) => void;
@@ -216,11 +249,20 @@ function newMeeting(schedule: MeetingSchedule, id: string, extra: Partial<Meetin
     type: deriveMeetingType(schedule.name),
     participants: [],
     actions: [],
-    agendaItems: [],
+    blocks: defaultBlocks(),
     showWelcome: true,
     invited: false,
     held: false,
     ...extra,
+  };
+}
+
+function mapItem(m: Meeting, itemId: string, fn: (i: AgendaItem) => AgendaItem): Meeting {
+  return {
+    ...m,
+    blocks: m.blocks.map((b) =>
+      b.items.some((i) => i.id === itemId) ? { ...b, items: b.items.map((i) => (i.id === itemId ? fn(i) : i)) } : b,
+    ),
   };
 }
 
@@ -293,7 +335,14 @@ export const useStore = create<Store>()(
               if (!a.what.trim()) continue;
               let ownerId = a.ownerId;
               if (!ownerId && a.ownerText.trim()) ownerId = get().addPerson(a.ownerText).id;
-              actions.push({ id: uid("a-"), what: a.what.trim(), ownerId, deadline: a.deadline.trim(), done: false });
+              actions.push({
+                id: uid("a-"),
+                what: a.what.trim(),
+                ownerId,
+                deadline: a.deadline.trim(),
+                done: false,
+                createdAt: todayISO(),
+              });
             }
           }
           const previous = s.meetings.find((m) => m.draftId === draft.id);
@@ -342,10 +391,144 @@ export const useStore = create<Store>()(
         addAction: (meetingId, action) =>
           updateMeeting(meetingId, (m) => ({
             ...m,
-            actions: [...m.actions, { ...action, id: uid("a-"), done: false }],
+            actions: [...m.actions, { ...action, id: uid("a-"), done: false, createdAt: todayISO() }],
           })),
-        addAgendaItem: (meetingId, text) =>
-          updateMeeting(meetingId, (m) => ({ ...m, agendaItems: [...m.agendaItems, { id: uid("i-"), text }] })),
+        addAgendaItem: (meetingId, blockId, text) => {
+          const item = newItem(text);
+          updateMeeting(meetingId, (m) => ({
+            ...m,
+            blocks: m.blocks.map((b) => (b.id === blockId ? { ...b, items: [...b.items, item] } : b)),
+          }));
+          return item.id;
+        },
+        updateItem: (meetingId, itemId, patch) =>
+          updateMeeting(meetingId, (m) => mapItem(m, itemId, (i) => ({ ...i, ...patch }))),
+        removeItem: (meetingId, itemId) =>
+          updateMeeting(meetingId, (m) => ({
+            ...m,
+            blocks: m.blocks.map((b) => ({ ...b, items: b.items.filter((i) => i.id !== itemId) })),
+          })),
+        moveItem: (meetingId, itemId, toBlockId, toIndex) =>
+          updateMeeting(meetingId, (m) => {
+            const item = allItems(m.blocks).find((i) => i.id === itemId);
+            if (!item) return m;
+            const without = m.blocks.map((b) => ({ ...b, items: b.items.filter((i) => i.id !== itemId) }));
+            return {
+              ...m,
+              blocks: without.map((b) => {
+                if (b.id !== toBlockId) return b;
+                const items = [...b.items];
+                items.splice(Math.max(0, Math.min(toIndex, items.length)), 0, item);
+                return { ...b, items };
+              }),
+            };
+          }),
+        addEntry: (meetingId, itemId, entry) =>
+          updateMeeting(meetingId, (m) => {
+            const id = uid("e-");
+            if (entry.kind !== "action") {
+              return mapItem(m, itemId, (i) => ({ ...i, entries: [...i.entries, { ...entry, id }] }));
+            }
+            // Een actie komt ook in "Openstaande acties", tot ze af is.
+            const action: Action = {
+              id: uid("a-"),
+              what: entry.text,
+              ownerId: entry.ownerId,
+              deadline: entry.date,
+              done: false,
+              createdAt: todayISO(),
+            };
+            const next = mapItem(m, itemId, (i) => ({
+              ...i,
+              entries: [...i.entries, { ...entry, id, actionId: action.id }],
+            }));
+            return { ...next, actions: [...next.actions, action] };
+          }),
+        removeEntry: (meetingId, itemId, entryId) =>
+          updateMeeting(meetingId, (m) => {
+            const entry = allItems(m.blocks)
+              .find((i) => i.id === itemId)
+              ?.entries.find((e) => e.id === entryId);
+            const next = mapItem(m, itemId, (i) => ({ ...i, entries: i.entries.filter((e) => e.id !== entryId) }));
+            return entry?.actionId ? { ...next, actions: next.actions.filter((a) => a.id !== entry.actionId) } : next;
+          }),
+        addBlock: (meetingId, kind) => {
+          const block = newBlock(kind);
+          updateMeeting(meetingId, (m) => ({
+            ...m,
+            // "Openstaande acties" staat altijd vooraan.
+            blocks: kind === "actions" ? [block, ...m.blocks] : [...m.blocks, block],
+          }));
+          return block.id;
+        },
+        updateBlock: (meetingId, blockId, patch) =>
+          updateMeeting(meetingId, (m) => ({
+            ...m,
+            blocks: m.blocks.map((b) => (b.id === blockId ? { ...b, ...patch } : b)),
+          })),
+        removeBlock: (meetingId, blockId) =>
+          updateMeeting(meetingId, (m) => ({ ...m, blocks: m.blocks.filter((b) => b.id !== blockId) })),
+        moveBlock: (meetingId, blockId, toIndex) =>
+          updateMeeting(meetingId, (m) => {
+            const block = m.blocks.find((b) => b.id === blockId);
+            if (!block) return m;
+            const blocks = m.blocks.filter((b) => b.id !== blockId);
+            blocks.splice(Math.max(0, Math.min(toIndex, blocks.length)), 0, block);
+            return { ...m, blocks };
+          }),
+        updateDetails: (meetingId, patch) => updateMeeting(meetingId, (m) => ({ ...m, ...patch })),
+
+        startRun: (meetingId) =>
+          updateMeeting(meetingId, (m) => {
+            const now = Date.now();
+            return {
+              ...m,
+              showWelcome: false,
+              run: {
+                startedAt: now,
+                stepStartedAt: now,
+                currentId: runSteps(m.blocks)[0] ?? null,
+                doneIds: [],
+                postponedIds: [],
+                actuals: {},
+              },
+            };
+          }),
+        nextStep: (meetingId, how = "done") =>
+          updateMeeting(meetingId, (m) => {
+            const run = m.run;
+            if (!run?.currentId) return m;
+            const now = Date.now();
+            const current = run.currentId;
+            const handled = new Set([...run.doneIds, ...run.postponedIds, current]);
+            const steps = runSteps(m.blocks);
+            const from = steps.indexOf(current);
+            const next = [...steps.slice(from + 1), ...steps.slice(0, from)].find((id) => !handled.has(id)) ?? null;
+            return {
+              ...m,
+              run: {
+                ...run,
+                stepStartedAt: now,
+                currentId: next,
+                doneIds: how === "done" ? [...run.doneIds, current] : run.doneIds,
+                postponedIds: how === "postpone" ? [...run.postponedIds, current] : run.postponedIds,
+                actuals: how === "done" ? { ...run.actuals, [current]: (now - run.stepStartedAt) / 1000 } : run.actuals,
+              },
+            };
+          }),
+        endRun: (meetingId) =>
+          updateMeeting(meetingId, (m) => ({
+            ...m,
+            held: true,
+            run: null,
+            // Afgevinkte acties zijn af; de rest komt vanzelf terug.
+            actions: m.actions.filter((a) => !a.done),
+            // Afgeronde agendapunten verdwijnen; wat uitgesteld werd, blijft staan.
+            blocks: m.blocks.map((b) => ({
+              ...b,
+              items: b.items.filter((i) => !m.run?.doneIds.includes(i.id)),
+            })),
+          })),
         dismissWelcome: (meetingId) => updateMeeting(meetingId, (m) => ({ ...m, showWelcome: false })),
         markInvited: (meetingId) => updateMeeting(meetingId, (m) => ({ ...m, invited: true })),
         markHeld: (meetingId) => updateMeeting(meetingId, (m) => ({ ...m, held: true })),
@@ -372,7 +555,7 @@ export const useStore = create<Store>()(
               !m.seriesId ||
               ids.includes(m.seriesId) ||
               m.actions.length > 0 ||
-              m.agendaItems.length > 0,
+              allItems(m.blocks).length > 0,
           );
           for (const sid of ids) {
             if (meetings.some((m) => m.seriesId === sid)) continue;
@@ -448,9 +631,10 @@ export const useStore = create<Store>()(
             deadline,
             done: false,
             mailed: !!ownerId && ownerId !== USER_PERSON_ID,
+            createdAt: todayISO(),
           });
           for (const p of (proposals ?? []).filter((x) => x.checked && x.text.trim())) {
-            if (p.kind === "agenda") items.push({ id: uid("i-"), text: p.text.trim(), decision: true });
+            if (p.kind === "agenda") items.push(newItem(p.text.trim(), { purposes: ["decide"] }));
             else actions.push(toAction(p.text.trim(), p.ownerId, p.date ? formatShortDate(p.date) : ""));
           }
           for (const r of typed.filter((x) => x.what.trim())) {
@@ -458,11 +642,15 @@ export const useStore = create<Store>()(
             if (!ownerId && r.ownerText.trim()) ownerId = get().addPerson(r.ownerText).id;
             actions.push(toAction(r.what.trim(), ownerId, r.deadline.trim()));
           }
-          updateMeeting(targetId, (m) => ({
-            ...m,
-            actions: [...m.actions, ...actions],
-            agendaItems: [...m.agendaItems, ...items],
-          }));
+          updateMeeting(targetId, (m) => {
+            // Agendapunten uit de notities komen in het eerste blok met agendapunten.
+            const target = m.blocks.find((b) => b.kind === "topics");
+            return {
+              ...m,
+              actions: [...m.actions, ...actions],
+              blocks: m.blocks.map((b) => (b === target ? { ...b, items: [...b.items, ...items] } : b)),
+            };
+          });
           set((st) => ({
             b: {
               ...st.b,
@@ -482,8 +670,8 @@ export const useStore = create<Store>()(
     },
     {
       name: STORAGE_KEY,
-      version: 2,
-      // Oude opgeslagen state (versie 1) mist de velden voor flows en variant B: begin opnieuw.
+      version: 3,
+      // Oudere opgeslagen state mist velden (flows, variant B, agendablokken): begin opnieuw.
       migrate: () => initialData(),
       storage: createJSONStorage(() => (typeof window === "undefined" ? noopStorage : window.localStorage)),
     },

@@ -9,6 +9,7 @@ import { OwnerPicker } from "@/components/b/owner-picker";
 import { StatTile } from "@/components/b/stat-tile";
 import { Tag } from "@/components/tag";
 import { Button } from "@/components/ui/button";
+import { allItems } from "@/lib/agenda";
 import { formatShortDate } from "@/lib/date";
 import { USER_PERSON_ID } from "@/lib/mock-data";
 import { ownerOptions } from "@/lib/owners";
@@ -52,10 +53,12 @@ export function OverviewScreen() {
   const unowned = all.filter((x) => !x.action.ownerId);
   const owned = all.filter((x) => x.action.ownerId);
   const decisions = meetings.flatMap((m) =>
-    m.agendaItems.filter((i) => i.decision).map((item) => ({ item, meeting: m })),
+    allItems(m.blocks)
+      .filter((i) => i.purposes.includes("decide"))
+      .map((item) => ({ item, meeting: m })),
   );
   const targetActions = target.actions.filter((a) => !a.done).length;
-  const targetDecisions = target.agendaItems.filter((i) => i.decision).length;
+  const targetDecisions = allItems(target.blocks).filter((i) => i.purposes.includes("decide")).length;
   const mailedNames = [
     ...new Set(
       owned.filter((x) => x.action.mailed).map((x) => findPerson(people, x.action.ownerId)?.name.split(" ")[0]),

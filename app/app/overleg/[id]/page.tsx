@@ -3,7 +3,7 @@ import { Hydrated } from "@/components/hydrated";
 import type { Metadata } from "next";
 import { MeetingScreen } from "./meeting-screen";
 
-export const metadata: Metadata = { title: "Overleg · too-doo" };
+export const metadata: Metadata = { title: "Vergadering · too-doo" };
 
 export default function Page() {
   return (

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowRight, FlaskConical, Play } from "lucide-react";
+import { ArrowLeft, ArrowRight, FlaskConical, Play } from "lucide-react";
 import { EDGE_CASES, FLOWS, type FlowId, type FlowPreset } from "@/lib/flows";
 import { useStore } from "@/lib/store";
 import { cn } from "@/lib/utils";
@@ -27,10 +27,22 @@ export function PrototypeScreen() {
     <div className="min-h-dvh bg-[#E9ECF1] px-4 py-8 text-[#1F2937] sm:px-8 sm:py-12">
       <main className="mx-auto flex max-w-[1100px] flex-col gap-8">
         <header className="flex flex-col gap-3">
-          <span className="inline-flex items-center gap-1.5 self-start rounded-md bg-[#374151] px-2.5 py-1 text-xs font-extrabold tracking-[0.6px] text-white uppercase">
-            <FlaskConical className="size-3.5" aria-hidden />
-            Prototype
-          </span>
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <span className="inline-flex items-center gap-1.5 rounded-md bg-[#374151] px-2.5 py-1 text-xs font-extrabold tracking-[0.6px] text-white uppercase">
+              <FlaskConical className="size-3.5" aria-hidden />
+              Prototype
+            </span>
+            <Link
+              href="/"
+              className={cn(
+                button,
+                "border border-[#D1D5DB] bg-white text-[#1F2937] hover:bg-[#F3F4F6] hover:text-[#1F2937]",
+              )}
+            >
+              <ArrowLeft className="size-4" aria-hidden />
+              Ga terug naar website
+            </Link>
+          </div>
           <h1 className="text-3xl font-extrabold">Kies een flow</h1>
           <p className="max-w-[720px] text-base text-[#4B5563]">
             Tussenscherm tussen website en proefperiode. &quot;Start flow&quot; wist de demo en zet de juiste uitkomsten

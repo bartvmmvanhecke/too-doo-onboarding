@@ -59,7 +59,7 @@ export function DemoBar() {
   };
 
   return (
-    <div className="fixed right-3 bottom-3 z-40 flex flex-col items-end gap-2 print:hidden">
+    <div className="fixed right-3 bottom-20 z-40 flex flex-col items-end gap-2 print:hidden">
       <section
         id={panelId}
         aria-label="Demo-instellingen"

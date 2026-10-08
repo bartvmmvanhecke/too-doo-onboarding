@@ -96,7 +96,7 @@ export function ExampleScreen() {
           </div>
         </nav>
 
-        <main className="flex min-w-0 flex-1 flex-col gap-5 px-4 pt-7 pb-24 sm:px-9">
+        <main className="flex min-w-0 flex-1 flex-col gap-5 px-4 pt-7 pb-36 sm:px-9">
           <div className="flex flex-wrap items-end justify-between gap-4">
             <div>
               <h1 className="mb-1 text-[32px] font-extrabold">Productieoverleg</h1>

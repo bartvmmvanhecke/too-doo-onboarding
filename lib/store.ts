@@ -7,7 +7,7 @@
 import { create } from "zustand";
 import { createJSONStorage, persist, type StateStorage } from "zustand/middleware";
 import { formatShortDate, nextWeekday, toISO, WEEKDAY } from "@/lib/date";
-import type { Proposal } from "@/lib/extract";
+import { SAMPLE_NOTES, type Proposal } from "@/lib/extract";
 import type { FlowId, FlowPreset } from "@/lib/flows";
 import { deriveMeetingType, slugify, type MeetingSchedule } from "@/lib/meeting";
 import {
@@ -172,7 +172,7 @@ const initialData = (): Data => ({
   b: {
     selection: null,
     targetMeetingId: null,
-    extraction: { tab: "plak", text: "", proposals: null, typed: emptyActionDrafts() },
+    extraction: { tab: "plak", text: SAMPLE_NOTES, proposals: null, typed: emptyActionDrafts() },
   },
 });
 
@@ -466,7 +466,7 @@ export const useStore = create<Store>()(
           set((st) => ({
             b: {
               ...st.b,
-              extraction: { ...st.b.extraction, text: "", proposals: null, typed: emptyActionDrafts() },
+              extraction: { ...st.b.extraction, text: SAMPLE_NOTES, proposals: null, typed: emptyActionDrafts() },
             },
           }));
         },

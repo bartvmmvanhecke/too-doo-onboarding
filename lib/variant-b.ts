@@ -1,5 +1,5 @@
 /** Afgeleide gegevens voor variant B (SPEC-FLOWS.md §4, /b/structuur). */
-import { SERIES, USER_PERSON_ID, type Series } from "@/lib/mock-data";
+import { SERIES, USER_PERSON_ID, type Person, type Series } from "@/lib/mock-data";
 
 const WEEKS_PER_MONTH = 52 / 12;
 
@@ -31,4 +31,46 @@ export function structureSummary(series: Series[] = SERIES): { count: number; co
   const colleagues = new Set(series.flatMap((s) => s.participants).filter((p) => p !== USER_PERSON_ID));
   const hours = series.reduce((sum, s) => sum + (perMonth(s) * s.duration) / 60, 0);
   return { count: series.length, colleagues: colleagues.size, hours: Math.round(hours) };
+}
+
+export interface MailSource {
+  what: string;
+  ownerId: string | null;
+  deadline: string;
+}
+
+/**
+ * Gegevens voor de voorbeeldmail: de eerste actie met een eigenaar die niet de gebruiker is,
+ * anders de voorbeelddata uit de mockup (Sofie, heftruck).
+ */
+export function mailData(
+  actions: MailSource[],
+  meeting: { name: string; date: string | null } | undefined,
+  people: Person[],
+  weekdayOf: (iso: string) => string,
+) {
+  const user = people.find((p) => p.id === USER_PERSON_ID);
+  const fromName = user?.name ?? "Jan Peeters";
+  const pick = actions.find((a) => a.ownerId && a.ownerId !== USER_PERSON_ID && a.what.trim());
+  const owner = pick ? people.find((p) => p.id === pick.ownerId) : undefined;
+  if (!pick || !owner) {
+    return {
+      fromName,
+      toFirstName: "Sofie",
+      toEmail: "sofie.desmet@metaalwerken.be",
+      meetingName: "Productieoverleg",
+      meetingWeekday: "maandag",
+      action: "Instructie heftruck aanpassen na incident",
+      deadline: "",
+    };
+  }
+  return {
+    fromName,
+    toFirstName: owner.name.split(" ")[0],
+    toEmail: owner.email ?? owner.name,
+    meetingName: meeting?.name ?? "Productieoverleg",
+    meetingWeekday: meeting?.date ? weekdayOf(meeting.date) : null,
+    action: pick.what.trim(),
+    deadline: pick.deadline,
+  };
 }

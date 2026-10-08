@@ -53,5 +53,8 @@ test.describe("lijst-knop naar de flowkeuze", () => {
     await page.goto("/prototype");
     await expect(page.getByRole("heading", { name: "Kies een flow" })).toBeVisible();
     await expect(page.getByRole("link", { name: /Terug naar flowkeuze/ })).toHaveCount(0);
+    await page.getByRole("link", { name: "Ga terug naar website" }).click();
+    await expect(page).toHaveURL(/\/$/);
+    await expect(page.getByRole("heading", { name: "Hou jij niet van vergaderen? Wij wel." })).toBeVisible();
   });
 });

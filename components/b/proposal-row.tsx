@@ -11,7 +11,23 @@ import type { Person } from "@/lib/mock-data";
 import { cn } from "@/lib/utils";
 
 const inline =
-  "min-h-11 w-full min-w-0 rounded-lg border border-transparent bg-transparent px-2 text-[15px] font-bold text-ink outline-none hover:border-line focus-visible:border-brand focus-visible:bg-white focus-visible:outline-none";
+  "field-sizing-content min-h-11 w-full min-w-0 resize-none rounded-lg border border-transparent bg-transparent px-2 py-2.5 text-[15px] leading-snug font-bold text-ink outline-none hover:border-line focus-visible:border-brand focus-visible:bg-white focus-visible:outline-none";
+
+/** Meegroeiend tekstveld op één logische regel: Enter voegt geen nieuwe regel toe. */
+function InlineText({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) {
+  return (
+    <textarea
+      aria-label={label}
+      rows={1}
+      value={value}
+      onChange={(e) => onChange(e.target.value.replace(/\n/g, " "))}
+      onKeyDown={(e) => {
+        if (e.key === "Enter") e.preventDefault();
+      }}
+      className={inline}
+    />
+  );
+}
 
 /** Datum als klein, typbaar label; leeg = "geen datum", ongeldig = vorige waarde. */
 function DateChip({
@@ -96,13 +112,7 @@ export function ProposalRow({
       />
       {isAction ? (
         <>
-          <input
-            type="text"
-            aria-label={`Tekst voorstel ${n}`}
-            value={proposal.text}
-            onChange={(e) => onChange({ text: e.target.value })}
-            className={inline}
-          />
+          <InlineText label={`Tekst voorstel ${n}`} value={proposal.text} onChange={(text) => onChange({ text })} />
           <span className="col-start-2 flex items-center gap-1 sm:col-start-auto">
             <OwnerPicker people={owners} label="Wie doet het?" onPick={(ownerId) => onChange({ ownerId })}>
               {owner ? (
@@ -132,13 +142,7 @@ export function ProposalRow({
       ) : (
         <>
           <span className="flex min-w-0 flex-col">
-            <input
-              type="text"
-              aria-label={`Tekst voorstel ${n}`}
-              value={proposal.text}
-              onChange={(e) => onChange({ text: e.target.value })}
-              className={inline}
-            />
+            <InlineText label={`Tekst voorstel ${n}`} value={proposal.text} onChange={(text) => onChange({ text })} />
             <span className="px-2 pb-1 text-[13px] text-ink-2">{agendaNote}</span>
           </span>
           <Tag tone="decision">agendapunt</Tag>

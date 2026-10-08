@@ -53,7 +53,7 @@ export function ExampleB() {
         </Button>
       </div>
 
-      <main className="mx-auto flex w-full max-w-[1280px] flex-1 flex-col gap-[18px] px-4 pt-7 pb-24 sm:px-10">
+      <main className="mx-auto flex w-full max-w-[1280px] flex-1 flex-col gap-[18px] px-4 pt-7 pb-36 sm:px-10">
         <div>
           <h1 className="text-[30px] font-extrabold">Herken je dit?</h1>
           <p className="mt-1.5 text-base text-ink-2">

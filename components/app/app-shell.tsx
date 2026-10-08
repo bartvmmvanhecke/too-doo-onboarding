@@ -122,7 +122,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         <Hydrated fallback={<div className="bg-app-nav lg:min-h-dvh lg:w-60 lg:shrink-0" />}>
           <Sidebar />
         </Hydrated>
-        <main className="flex min-w-0 flex-1 flex-col gap-5 px-4 pt-7 pb-24 sm:px-9 lg:pt-14">{children}</main>
+        <main className="flex min-w-0 flex-1 flex-col gap-5 px-4 pt-7 pb-36 sm:px-9 lg:pt-14">{children}</main>
       </div>
       <Hydrated>
         <AddMeetingsDialogHost />

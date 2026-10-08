@@ -1,0 +1,167 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+/*
+ * Too-doo kleurtokens (SPEC.md §5). Gebruik in Tailwind als bv. `bg-brand`,
+ * `text-ink-2`, `border-line`. De shadcn/ui-variabelen onderaan wijzen naar
+ * dezelfde waarden, zodat de ui-componenten automatisch meekleuren.
+ */
+:root {
+  --brand: #0b5fd8;
+  --brand-hover: #08449c;
+  --brand-tint: #dcebfc;
+  --brand-soft: #edf4fe;
+  --brand-selected: #f2f7ff;
+  --logo: #0e7fb8;
+
+  --ink: #16213a;
+  --ink-2: #3e4860;
+  --ink-3: #5b6478;
+
+  --line: #c9d3e3;
+  --line-soft: #e3e8f1;
+  --line-faint: #eef2f8;
+  --track: #dce3ee;
+  --checkbox: #a9b4c8;
+
+  --app: #f4f7fb;
+  --field-muted: #f7f9fc;
+  --surface-muted: #fbfcfe;
+
+  --success: #1e7a4c;
+  --success-ink: #134b30;
+  --success-bg: #e2f4ea;
+  --warning: #8a4a06;
+  --warning-ink: #5c3104;
+  --warning-bg: #fff4e5;
+  --warning-line: #f1c58a;
+  --danger: #a3271d;
+  --danger-bg: #fce6e3;
+
+  --nav-from: #123a80;
+  --nav-to: #0c2a5e;
+  --nav-ink: #d5e2f7;
+  --nav-muted: #b7c8e6;
+
+  --panel-from: #e3f2fd;
+  --panel-to: #b9e3fa;
+  --panel-ink: #0f3b7a;
+
+  /* shadcn/ui */
+  --radius: 0.625rem;
+  --background: #ffffff;
+  --foreground: var(--ink);
+  --card: #ffffff;
+  --card-foreground: var(--ink);
+  --popover: #ffffff;
+  --popover-foreground: var(--ink);
+  --primary: var(--brand);
+  --primary-foreground: #ffffff;
+  --secondary: var(--app);
+  --secondary-foreground: var(--ink);
+  --muted: var(--app);
+  --muted-foreground: var(--ink-3);
+  --accent: var(--brand-soft);
+  --accent-foreground: var(--brand-hover);
+  --destructive: var(--danger);
+  --border: var(--line);
+  --input: var(--line);
+  --ring: var(--brand);
+}
+
+@theme inline {
+  --font-sans: var(--font-nunito), system-ui, sans-serif;
+
+  --color-brand: var(--brand);
+  --color-brand-hover: var(--brand-hover);
+  --color-brand-tint: var(--brand-tint);
+  --color-brand-soft: var(--brand-soft);
+  --color-brand-selected: var(--brand-selected);
+  --color-logo: var(--logo);
+  --color-ink: var(--ink);
+  --color-ink-2: var(--ink-2);
+  --color-ink-3: var(--ink-3);
+  --color-line: var(--line);
+  --color-line-soft: var(--line-soft);
+  --color-line-faint: var(--line-faint);
+  --color-track: var(--track);
+  --color-checkbox: var(--checkbox);
+  --color-app: var(--app);
+  --color-field-muted: var(--field-muted);
+  --color-surface-muted: var(--surface-muted);
+  --color-success: var(--success);
+  --color-success-ink: var(--success-ink);
+  --color-success-bg: var(--success-bg);
+  --color-warning: var(--warning);
+  --color-warning-ink: var(--warning-ink);
+  --color-warning-bg: var(--warning-bg);
+  --color-warning-line: var(--warning-line);
+  --color-danger: var(--danger);
+  --color-danger-bg: var(--danger-bg);
+  --color-nav-from: var(--nav-from);
+  --color-nav-to: var(--nav-to);
+  --color-nav-ink: var(--nav-ink);
+  --color-nav-muted: var(--nav-muted);
+  --color-panel-from: var(--panel-from);
+  --color-panel-to: var(--panel-to);
+  --color-panel-ink: var(--panel-ink);
+
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --radius-panel: 24px;
+}
+
+@utility bg-onboarding-panel {
+  background: linear-gradient(170deg, var(--panel-from) 0%, var(--panel-to) 100%);
+}
+
+@utility bg-app-nav {
+  background: linear-gradient(180deg, var(--nav-from) 0%, var(--nav-to) 100%);
+}
+
+@utility bg-hero {
+  background: linear-gradient(180deg, #f6f9fd 0%, #eaf4fd 100%);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  html {
+    scroll-behavior: smooth;
+  }
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+  }
+  a {
+    @apply text-brand hover:text-brand-hover;
+  }
+  :focus-visible {
+    outline: 3px solid var(--brand);
+    outline-offset: 2px;
+  }
+  input::placeholder {
+    color: var(--ink-3);
+  }
+}

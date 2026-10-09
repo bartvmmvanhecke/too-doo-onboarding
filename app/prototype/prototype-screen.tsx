@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, ArrowRight, FlaskConical, Play } from "lucide-react";
 import { EDGE_CASES, FLOWS, type FlowId, type FlowPreset } from "@/lib/flows";
+import { SERIES, seriesSchedule } from "@/lib/mock-data";
 import { useStore } from "@/lib/store";
 import { cn } from "@/lib/utils";
 
@@ -17,10 +18,23 @@ const button =
 export function PrototypeScreen() {
   const router = useRouter();
   const startFlow = useStore((s) => s.startFlow);
+  const createMeeting = useStore((s) => s.createMeeting);
 
   const start = (flow: FlowId | null, preset: FlowPreset) => {
     startFlow(flow, preset);
     router.push(preset.start);
+  };
+
+  // Rechtstreeks naar het vergaderdetail: ingelogd, met één vaste vergadering, zonder rondleiding.
+  const openApp = () => {
+    startFlow(null, { demo: { login: "success", calendar: "series" }, signedIn: true, start: "/app" });
+    const series = SERIES[0];
+    const id = createMeeting(seriesSchedule(series), {
+      seriesId: series.id,
+      participants: series.participants,
+      showWelcome: false,
+    });
+    router.push(`/app/overleg/${id}`);
   };
 
   return (
@@ -32,16 +46,22 @@ export function PrototypeScreen() {
               <FlaskConical className="size-3.5" aria-hidden />
               Prototype
             </span>
-            <Link
-              href="/"
-              className={cn(
-                button,
-                "border border-[#D1D5DB] bg-white text-[#1F2937] hover:bg-[#F3F4F6] hover:text-[#1F2937]",
-              )}
-            >
-              <ArrowLeft className="size-4" aria-hidden />
-              Ga terug naar website
-            </Link>
+            <div className="flex flex-wrap gap-2">
+              <Link
+                href="/"
+                className={cn(
+                  button,
+                  "border border-[#D1D5DB] bg-white text-[#1F2937] hover:bg-[#F3F4F6] hover:text-[#1F2937]",
+                )}
+              >
+                <ArrowLeft className="size-4" aria-hidden />
+                Ga terug naar website
+              </Link>
+              <button type="button" onClick={openApp} className={cn(button, "bg-[#1F2937] text-white hover:bg-black")}>
+                Ga naar app
+                <ArrowRight className="size-4" aria-hidden />
+              </button>
+            </div>
           </div>
           <h1 className="text-3xl font-extrabold">Kies een flow</h1>
           <p className="max-w-[720px] text-base text-[#4B5563]">

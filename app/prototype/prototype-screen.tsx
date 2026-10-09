@@ -25,16 +25,17 @@ export function PrototypeScreen() {
     router.push(preset.start);
   };
 
-  // Rechtstreeks naar het vergaderdetail: ingelogd, met één vaste vergadering, zonder rondleiding.
+  // Eerste keer in de app: ingelogd, met één vaste vergadering, en meteen het vergaderdetail
+  // met de productrondleiding en de checklist (/voorbeeld).
   const openApp = () => {
-    startFlow(null, { demo: { login: "success", calendar: "series" }, signedIn: true, start: "/app" });
+    startFlow(null, { demo: { login: "success", calendar: "series" }, signedIn: true, start: "/voorbeeld" });
     const series = SERIES[0];
-    const id = createMeeting(seriesSchedule(series), {
+    createMeeting(seriesSchedule(series), {
       seriesId: series.id,
       participants: series.participants,
       showWelcome: false,
     });
-    router.push(`/app/overleg/${id}`);
+    router.push("/voorbeeld");
   };
 
   return (

@@ -41,6 +41,8 @@ const CASES: { name: string; path: string; setup?: (page: import("@playwright/te
       await page.getByRole("button", { name: "Volgende" }).click();
       await page.getByLabel("Actie 1", { exact: true }).fill("Offerte opvragen");
       await page.getByRole("button", { name: "Toon mijn overleg" }).click();
+      await page.waitForURL(/\/voorbeeld$/);
+      await page.goto("/app/overleg/productieoverleg");
       await page.getByRole("heading", { level: 1, name: "Productieoverleg" }).waitFor();
       await page.getByRole("button", { name: /Je andere vaste vergaderingen toevoegen/ }).click();
       await page.getByRole("dialog").waitFor();

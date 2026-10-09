@@ -341,7 +341,7 @@ test.describe("Variant B in detail", () => {
 });
 
 test.describe("stap 3 · alternatief", () => {
-  test("Toon alternatief wisselt naar de doelvraag en terug", async ({ page }) => {
+  test("Toon alternatief voor stap 3 wisselt naar de doelvraag en terug", async ({ page }) => {
     await page.goto("/prototype");
     await page.getByRole("button", { name: /Start flow 1:/ }).click();
     await page.getByRole("button", { name: "Doorgaan met Microsoft" }).click();
@@ -349,7 +349,7 @@ test.describe("stap 3 · alternatief", () => {
     await page.getByRole("link", { name: "Volgende" }).click();
     await expect(page).toHaveURL(/\/acties$/);
 
-    const toggle = page.getByRole("button", { name: "Toon alternatief" });
+    const toggle = page.getByRole("button", { name: "Toon alternatief voor stap 3" });
     await expect(toggle).toHaveAttribute("aria-pressed", "false");
     expect(await overlapsWithNav(page)).toEqual([]);
     await toggle.click();
@@ -371,9 +371,9 @@ test.describe("stap 3 · alternatief", () => {
     // Keuze blijft na herladen; terugwisselen toont de acties.
     await page.reload();
     await expect(page.getByRole("heading", { level: 1 })).toHaveText("Wat wil je bereiken in deze meeting?");
-    await page.getByRole("button", { name: "Toon alternatief" }).click();
+    await page.getByRole("button", { name: "Toon alternatief voor stap 3" }).click();
     await expect(page.getByRole("heading", { level: 1 })).toHaveText(/Wat moet er nog gebeuren/);
-    await page.getByRole("button", { name: "Toon alternatief" }).click();
+    await page.getByRole("button", { name: "Toon alternatief voor stap 3" }).click();
 
     await page.getByRole("button", { name: "Toon mijn overleg" }).click();
     await expect(page).toHaveURL(/\/app\/overleg\//);
@@ -381,6 +381,6 @@ test.describe("stap 3 · alternatief", () => {
 
   test("knop staat enkel op stap 3", async ({ page }) => {
     await page.goto("/overleg");
-    await expect(page.getByRole("button", { name: "Toon alternatief" })).toHaveCount(0);
+    await expect(page.getByRole("button", { name: "Toon alternatief voor stap 3" })).toHaveCount(0);
   });
 });

@@ -133,7 +133,7 @@ interface Data {
   flow: FlowId | null;
   /** Waar "Volgende" op /overleg/zelf naartoe gaat als je er vanuit variant B komt. */
   manualReturn: string | null;
-  /** Prototype: welke versie van stap 3 je ziet ("Toon alternatief" rechtsboven). */
+  /** Prototype: welke versie van stap 3 je ziet ("Toon alternatief voor stap 3" rechtsboven). */
   step3Variant: "acties" | "doel";
   b: BState;
 }

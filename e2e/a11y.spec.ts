@@ -19,7 +19,7 @@ const CASES: { name: string; path: string; setup?: (page: import("@playwright/te
     name: "overleg lijst",
     path: "/overleg",
     setup: async (page) => {
-      await page.getByRole("button", { name: "Toon mijn overleggen uit Outlook" }).click();
+      await page.getByRole("button", { name: "Connecteer Outlook en kies een meeting" }).click();
       await page.getByRole("group", { name: "Terugkerend in je Outlook-agenda" }).waitFor();
     },
   },

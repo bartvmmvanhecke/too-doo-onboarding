@@ -30,7 +30,7 @@ export function useSsoLogin() {
   return { start, pending };
 }
 
-/** "Toon mijn overleggen uit Outlook" / "Koppel Outlook": agendatoestemming. */
+/** "Connecteer Outlook en kies een meeting" / "Koppel Outlook": agendatoestemming. */
 export function useCalendarConsent() {
   const [pending, setPending] = useState(false);
 

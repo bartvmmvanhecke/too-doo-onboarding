@@ -35,7 +35,7 @@ test.describe("Vier flows vanaf /prototype", () => {
     await page.getByRole("button", { name: "Doorgaan met Microsoft" }).click();
     await expect(page).toHaveURL(/\/overleg$/);
     await shot("overleg");
-    await page.getByRole("button", { name: "Toon mijn overleggen uit Outlook" }).click();
+    await page.getByRole("button", { name: "Connecteer Outlook en kies een meeting" }).click();
     await expect(page.getByRole("group", { name: "Terugkerend in je Outlook-agenda" })).toBeVisible();
     await expect(page.getByText("Kwaliteitsoverleg", { exact: true })).toBeVisible();
     await shot("lijst");
@@ -61,7 +61,7 @@ test.describe("Vier flows vanaf /prototype", () => {
     await shot("account-b");
     await page.getByRole("button", { name: "Account aanmaken" }).click();
     await expect(page).toHaveURL(/\/overleg$/);
-    await page.getByRole("link", { name: "Liever niet koppelen? Vul het zelf in" }).click();
+    await page.getByRole("link", { name: "Maak handmatig een meeting" }).click();
     await expect(page).toHaveURL(/\/overleg\/zelf$/);
     await page.getByRole("button", { name: "Teamoverleg" }).click();
     await shot("zelf-invullen");
@@ -190,7 +190,7 @@ test.describe("Vier randgevallen vanaf /prototype", () => {
     const shot = shooter(page, "rand-it");
     await startFlow(page, /Agenda vraagt goedkeuring IT-beheerder/);
     await expect(page).toHaveURL(/\/overleg$/);
-    await page.getByRole("button", { name: "Toon mijn overleggen uit Outlook" }).click();
+    await page.getByRole("button", { name: "Connecteer Outlook en kies een meeting" }).click();
     await expect(page).toHaveURL(/\/overleg\/goedkeuring$/);
     await expect(page.getByText("Bedankt, Jan")).toBeVisible();
     await shot("goedkeuring");
@@ -200,7 +200,7 @@ test.describe("Vier randgevallen vanaf /prototype", () => {
     const shot = shooter(page, "rand-geen-reeksen");
     await startFlow(page, /Agenda gekoppeld, geen vaste overleggen/);
     await expect(page).toHaveURL(/\/overleg$/);
-    await page.getByRole("button", { name: "Toon mijn overleggen uit Outlook" }).click();
+    await page.getByRole("button", { name: "Connecteer Outlook en kies een meeting" }).click();
     await expect(page.getByText("Je agenda is gekoppeld, maar we vonden geen vaste overleggen")).toBeVisible();
     await shot("geen-reeksen");
   });

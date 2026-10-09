@@ -12,7 +12,7 @@ test.describe("Hoofdflow: Microsoft slaagt, reeksen gevonden", () => {
     await page.getByRole("button", { name: "Doorgaan met Microsoft" }).click();
     await expect(page).toHaveURL(/\/overleg$/);
 
-    await page.getByRole("button", { name: "Toon mijn overleggen uit Outlook" }).click();
+    await page.getByRole("button", { name: "Connecteer Outlook en kies een meeting" }).click();
     await expect(page.getByRole("group", { name: "Terugkerend in je Outlook-agenda" })).toBeVisible();
     // Rechterpaneel volgt de keuze.
     await page.getByText("Managementoverleg", { exact: true }).click();
@@ -220,7 +220,7 @@ test.describe("Hoofdflow: Microsoft slaagt, reeksen gevonden", () => {
 
   test("wie al toestemming gaf, ziet meteen de lijst", async ({ page }) => {
     await page.goto("/overleg");
-    await page.getByRole("button", { name: "Toon mijn overleggen uit Outlook" }).click();
+    await page.getByRole("button", { name: "Connecteer Outlook en kies een meeting" }).click();
     await expect(page.getByRole("group", { name: "Terugkerend in je Outlook-agenda" })).toBeVisible();
     await page.goto("/");
     await page.goto("/overleg");
@@ -333,7 +333,7 @@ test.describe("Terugvalpaden", () => {
     const errors = trackErrors(page);
     await page.goto("/overleg");
     await setDemo(page, { calendar: "Geen reeksen" });
-    await page.getByRole("button", { name: "Toon mijn overleggen uit Outlook" }).click();
+    await page.getByRole("button", { name: "Connecteer Outlook en kies een meeting" }).click();
     await expect(page.getByText("Je agenda is gekoppeld, maar we vonden geen vaste overleggen")).toBeVisible();
     await expect(page.getByRole("link", { name: /Vul je overleg zelf in/ })).toBeVisible();
     await page.getByRole("link", { name: /MT-vergadering/ }).click();
@@ -362,7 +362,7 @@ test.describe("Terugvalpaden", () => {
     const errors = trackErrors(page);
     await page.goto("/overleg");
     await setDemo(page, { calendar: "IT-goedkeuring nodig" });
-    await page.getByRole("button", { name: "Toon mijn overleggen uit Outlook" }).click();
+    await page.getByRole("button", { name: "Connecteer Outlook en kies een meeting" }).click();
     await expect(page).toHaveURL(/\/overleg\/goedkeuring$/);
     await expect(page.getByText("Bedankt, Jan")).toBeVisible();
     await page.getByRole("button", { name: "Stuur uitleg" }).click();
@@ -382,9 +382,9 @@ test.describe("Terugvalpaden", () => {
   test("geannuleerd → blijft in toestand 1 met rustige melding", async ({ page }) => {
     await page.goto("/overleg");
     await setDemo(page, { calendar: "Geannuleerd" });
-    await page.getByRole("button", { name: "Toon mijn overleggen uit Outlook" }).click();
+    await page.getByRole("button", { name: "Connecteer Outlook en kies een meeting" }).click();
     await expect(page.getByRole("status").filter({ hasText: "Geen probleem, vul het zelf in" })).toBeVisible();
-    await expect(page.getByRole("button", { name: "Toon mijn overleggen uit Outlook" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Connecteer Outlook en kies een meeting" })).toBeVisible();
     await page.getByRole("link", { name: "vul het zelf in", exact: true }).click();
     await expect(page).toHaveURL(/\/overleg\/zelf$/);
   });

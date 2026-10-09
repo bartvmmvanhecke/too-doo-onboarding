@@ -52,7 +52,7 @@ Referentie, niet bouwen: `Flow-Agenda.dc.html` (overzicht van alle routes), `Sta
 - Google en "Account aanmaken" → `/overleg`.
 
 ### 3.2 Eerste overleg (`/overleg`) – drie toestanden
-1. **Vóór toestemming**: kaart "Haal je vaste overleggen uit Outlook", knop "Toon mijn overleggen uit Outlook". Links: "Liever niet koppelen? Vul het zelf in" → `/overleg/zelf`; "Eerst rondkijken met voorbeelddata" → `/voorbeeld`; "Ik doe dit later" → `/app` (lege toestand).
+1. **Vóór toestemming**: kaart "Haal je vaste overleggen uit Outlook", knop "Connecteer Outlook en kies een meeting" met uitleg "Zo zetten we je meeting direct klaar met titel, tijdstip en deelnemers.". Links: "Maak handmatig een meeting" → `/overleg/zelf`; "Eerst rondkijken met voorbeelddata" → `/voorbeeld`; "Ik doe dit later" → `/app` (lege toestand).
 2. **Toestemming gesimuleerd** → uitkomsten:
    - reeksen gevonden → **lijst** (radio, één keuze) met terugkerende vergaderingen; "Staat er niet tussen? Vul het zelf in" → `/overleg/zelf`; "Volgende" → `/acties`.
    - geen reeksen → **melding** + knop "Vul je overleg zelf in" + losse afspraken komende 2 weken; kiezen van een afspraak opent `/overleg/zelf` met naam, uur, duur en deelnemers voorgevuld.

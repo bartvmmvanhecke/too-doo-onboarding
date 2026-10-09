@@ -10,7 +10,7 @@ De map `design/` is vervangen door de laatste versie van alle mockups (variant A
 Vergelijk de bestaande routes met de nieuwe mockups en pas aan waar nodig:
 
 - **`/overleg` (Stap2-Overleg-Outlook.dc.html)**: het aparte keuzescherm bestaat niet meer. Drie toestanden in hetzelfde scherm:
-  1. vóór toestemming: kaart "Haal je vaste overleggen uit Outlook" + knop; links "Liever niet koppelen? Vul het zelf in", "Eerst rondkijken met voorbeelddata", **"Ik doe dit later" → `/app`** (lege toestand).
+  1. vóór toestemming: kaart "Haal je vaste overleggen uit Outlook" + knop; links "Maak handmatig een meeting", "Eerst rondkijken met voorbeelddata", **"Ik doe dit later" → `/app`** (lege toestand).
   2. reeksen gevonden: lijst (zoals voorheen).
   3. geen reeksen: melding + "Vul je overleg zelf in" + losse afspraken komende 2 weken als vertrekpunt (zie `Stap2a-Geen-reeksen`).
 - **`/start` (Stap1-Account.dc.html)**: toestand B na "Doorgaan" met e-mail toont voornaam, achternaam en wachtwoord op hetzelfde scherm (zie mockup).
@@ -38,7 +38,7 @@ Nieuwe route **`/prototype`**: een tussenscherm tussen website en proefperiode, 
 | # | Flow | Demo-uitkomsten | Pad |
 |---|---|---|---|
 | 1 | **Outlook, overleg kiezen en aanvullen** | Microsoft: slaagt · Agenda: reeksen | `/start` → Microsoft → `/overleg` → toestemming → lijst → kies → `/acties` → `/app/overleg/:id` |
-| 2 | **E-mail en wachtwoord, overleg zelf samenstellen** | Agenda: niet gebruikt | `/start` → e-mail → toestand B → `/overleg` → "Liever niet koppelen? Vul het zelf in" → `/overleg/zelf` → `/acties` → `/app/overleg/:id` |
+| 2 | **E-mail en wachtwoord, overleg zelf samenstellen** | Agenda: niet gebruikt | `/start` → e-mail → toestand B → `/overleg` → "Maak handmatig een meeting" → `/overleg/zelf` → `/acties` → `/app/overleg/:id` |
 | 3 | **Outlook, overlegstructuur en acties uit notities (variant B)** | Microsoft: slaagt · Agenda: reeksen | `/start` → Microsoft → `/b/structuur` → `/b/acties` → `/b/overzicht` |
 | 4 | **Inloggen en niets doen** | Microsoft: slaagt | `/start` → Microsoft → `/overleg` → "Ik doe dit later" → `/app` (lege toestand) |
 

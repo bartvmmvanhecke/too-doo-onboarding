@@ -92,14 +92,14 @@ export function OverlegScreen() {
               <span className="flex flex-col gap-1">
                 <h2 className="text-lg font-extrabold">Haal je vaste overleggen uit Outlook</h2>
                 <span className="text-sm leading-normal text-ink-2">
-                  Uur, herhaling en deelnemers staan er meteen in. We lezen alleen je terugkerende afspraken, niets van
-                  je mails.
+                  Zo zetten we je meeting direct klaar met titel, tijdstip en deelnemers. We lezen alleen je
+                  terugkerende afspraken, niets van je mails.
                 </span>
               </span>
             </div>
             <Button variant="dark" size="lg" className="w-full" disabled={pending} onClick={onConnect}>
               {pending ? <Loader2 className="size-5 animate-spin" aria-hidden /> : <MicrosoftMark />}
-              {pending ? "Wachten op toestemming van Microsoft…" : "Toon mijn overleggen uit Outlook"}
+              {pending ? "Wachten op toestemming van Microsoft…" : "Connecteer Outlook en kies een meeting"}
             </Button>
             <p role="status" className="sr-only">
               {pending ? "Wachten op toestemming van Microsoft…" : ""}
@@ -108,17 +108,19 @@ export function OverlegScreen() {
               Microsoft vraagt je één keer om toestemming. Lukt dat niet, dan vul je het gewoon zelf in.
             </p>
           </div>
-          <Link href="/overleg/zelf" className="self-start text-[15px] font-bold" onClick={() => startManualDraft()}>
-            Liever niet koppelen? Vul het zelf in
-          </Link>
-          <div className="flex flex-wrap justify-between gap-3">
-            <Link href="/voorbeeld" className={secondaryLink}>
-              Eerst rondkijken met voorbeelddata
-            </Link>
-            <Link href="/app" className={secondaryLink}>
-              Ik doe dit later
-            </Link>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <Button asChild variant="outline" size="md">
+              <Link href="/app">Ik doe dit later</Link>
+            </Button>
+            <Button asChild variant="outline" size="md">
+              <Link href="/overleg/zelf" onClick={() => startManualDraft()}>
+                Maak handmatig een meeting
+              </Link>
+            </Button>
           </div>
+          <Link href="/voorbeeld" className={cn(secondaryLink, "self-start")}>
+            Eerst rondkijken met voorbeelddata
+          </Link>
         </div>
       )}
 

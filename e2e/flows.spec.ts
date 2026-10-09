@@ -39,6 +39,9 @@ test.describe("Hoofdflow: Microsoft slaagt, reeksen gevonden", () => {
     await expect(page.getByLabel("Actie 2", { exact: true })).toHaveValue("Instructie heftruck bijwerken");
 
     await page.getByRole("button", { name: "Toon mijn overleg" }).click();
+    // Eerste keer in de app: de productrondleiding; daarna het eigen overleg.
+    await expect(page).toHaveURL(/\/voorbeeld$/);
+    await page.goto("/app/overleg/managementoverleg");
     await expect(page).toHaveURL(/\/app\/overleg\/managementoverleg$/);
     // Geen succesbanner meer; de pagina zelf is het welkom.
     await expect(page.getByText("staat klaar")).toHaveCount(0);
@@ -312,6 +315,9 @@ test.describe("Terugvalpaden", () => {
     await page.getByRole("button", { name: "Volgende" }).click();
     await expect(page).toHaveURL(/\/acties$/);
     await page.getByRole("button", { name: "Sla over, doe ik tijdens het overleg" }).click();
+    // Eerste keer in de app: de productrondleiding; daarna het eigen overleg.
+    await expect(page).toHaveURL(/\/voorbeeld$/);
+    await page.goto("/app/overleg/veiligheidsoverleg-hal-2");
     await expect(page).toHaveURL(/\/app\/overleg\/veiligheidsoverleg-hal-2$/);
     // Lege staat: invoerveld in focus, met uitleg; uitnodigen i.p.v. avatars.
     await expect(page.getByLabel("Agendapunt toevoegen aan Lopende zaken")).toBeFocused();
@@ -352,6 +358,9 @@ test.describe("Terugvalpaden", () => {
     await expect(page.getByRole("option", { name: /Lotte Maes/ })).toBeVisible();
     await page.getByLabel("Actie 1", { exact: true }).fill("Budget 2026 voorbereiden");
     await page.getByRole("button", { name: "Toon mijn overleg" }).click();
+    // Eerste keer in de app: de productrondleiding; daarna het eigen overleg.
+    await expect(page).toHaveURL(/\/voorbeeld$/);
+    await page.goto("/app/overleg/mt-vergadering");
     await expect(page).toHaveURL(/\/app\/overleg\/mt-vergadering$/);
     await expect(page.getByRole("checkbox", { name: "Budget 2026 voorbereiden afvinken" })).toBeVisible();
     await expect(page.getByRole("button", { name: "4 deelnemers tonen" })).toBeVisible();
@@ -375,6 +384,9 @@ test.describe("Terugvalpaden", () => {
     await page.getByRole("button", { name: "Productieoverleg" }).click();
     await page.getByRole("button", { name: "Volgende" }).click();
     await page.getByRole("button", { name: "Toon mijn overleg" }).click();
+    // Eerste keer in de app: de productrondleiding; daarna het eigen overleg.
+    await expect(page).toHaveURL(/\/voorbeeld$/);
+    await page.goto("/app/overleg/productieoverleg");
     await expect(page).toHaveURL(/\/app\/overleg\/productieoverleg$/);
     errors.assertNone();
   });

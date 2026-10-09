@@ -50,7 +50,8 @@ export function ActionsScreen() {
 
   const finish = (withActions: boolean) => {
     const id = createMeeting(withActions);
-    if (id) router.push(`/app/overleg/${id}`);
+    // Eerste keer in de app: het vergaderdetail met de productrondleiding en checklist.
+    if (id) router.push("/voorbeeld");
   };
 
   return (

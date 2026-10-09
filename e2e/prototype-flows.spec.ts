@@ -44,6 +44,9 @@ test.describe("Vier flows vanaf /prototype", () => {
     await page.getByLabel("Actie 1", { exact: true }).fill("Offerte nieuwe plooibank opvragen");
     await shot("acties");
     await page.getByRole("button", { name: "Toon mijn overleg" }).click();
+    // Eerste keer in de app: de productrondleiding; daarna het eigen overleg.
+    await expect(page).toHaveURL(/\/voorbeeld$/);
+    await page.goto("/app/overleg/productieoverleg");
     await expect(page).toHaveURL(/\/app\/overleg\/productieoverleg$/);
     await expect(page.getByRole("checkbox", { name: "Offerte nieuwe plooibank opvragen afvinken" })).toBeVisible();
     await shot("app");
@@ -70,6 +73,9 @@ test.describe("Vier flows vanaf /prototype", () => {
     await page.getByLabel("Actie 1", { exact: true }).fill("Planning werf Gent afstemmen");
     await shot("acties");
     await page.getByRole("button", { name: "Toon mijn overleg" }).click();
+    // Eerste keer in de app: de productrondleiding; daarna het eigen overleg.
+    await expect(page).toHaveURL(/\/voorbeeld$/);
+    await page.goto("/app/overleg/teamoverleg");
     await expect(page).toHaveURL(/\/app\/overleg\/teamoverleg$/);
     await expect(page.getByRole("heading", { level: 1, name: "Teamoverleg" })).toBeVisible();
     await shot("app");

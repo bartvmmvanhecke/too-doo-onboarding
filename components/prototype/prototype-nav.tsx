@@ -14,7 +14,7 @@ const navButton =
 /**
  * Prototype-element (SPEC-FLOWS.md §3): vaste knop rechtsboven terug naar /prototype.
  * Layouts houden rechtsboven ruimte vrij (zie PROTO_NAV_SPACE), zodat hij niets overlapt.
- * Op stap 3 (/acties) staat er links naast een "Toon alternatief"-knop om tussen beide versies te wisselen.
+ * Op stap 3 (/acties) staat er links naast een "Toon alternatief voor stap 3"-knop om tussen beide versies te wisselen.
  */
 export function PrototypeNav() {
   const pathname = usePathname();
@@ -26,7 +26,10 @@ export function PrototypeNav() {
 
   return (
     <TooltipProvider>
-      <div data-prototype-nav className="fixed top-2 right-2 z-40 flex items-center gap-2 print:hidden">
+      <div
+        data-prototype-nav
+        className="fixed top-2 right-2 z-40 flex items-center gap-2 max-sm:flex-col-reverse max-sm:items-end print:hidden"
+      >
         {pathname === "/acties" && hydrated && (
           <button
             type="button"
@@ -35,7 +38,7 @@ export function PrototypeNav() {
             className={cn(navButton, "cursor-pointer aria-pressed:bg-brand aria-pressed:hover:bg-brand-hover")}
           >
             <Shuffle className="size-4" aria-hidden />
-            Toon alternatief
+            Toon alternatief voor stap 3
           </button>
         )}
         <Tooltip>

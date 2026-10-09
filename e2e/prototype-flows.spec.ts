@@ -339,3 +339,48 @@ test.describe("Variant B in detail", () => {
     await expect(page.getByRole("heading", { name: "Na een maand too-doo bij Bouwbedrijf Claes" })).toBeVisible();
   });
 });
+
+test.describe("stap 3 · alternatief", () => {
+  test("Toon alternatief wisselt naar de doelvraag en terug", async ({ page }) => {
+    await page.goto("/prototype");
+    await page.getByRole("button", { name: /Start flow 1:/ }).click();
+    await page.getByRole("button", { name: "Doorgaan met Microsoft" }).click();
+    await page.getByRole("button", { name: "Connecteer Outlook en kies een meeting" }).click();
+    await page.getByRole("link", { name: "Volgende" }).click();
+    await expect(page).toHaveURL(/\/acties$/);
+
+    const toggle = page.getByRole("button", { name: "Toon alternatief" });
+    await expect(toggle).toHaveAttribute("aria-pressed", "false");
+    expect(await overlapsWithNav(page)).toEqual([]);
+    await toggle.click();
+    await expect(toggle).toHaveAttribute("aria-pressed", "true");
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText("Wat wil je bereiken in deze meeting?");
+    expect(await overlapsWithNav(page)).toEqual([]);
+
+    // Optie A: meerdere doelen, "Iets anders" toont een tekstveld.
+    const goals = page.getByRole("group", { name: "Wat wil je beter doen?" });
+    await goals.getByText("Beslissingen opvolgen").click();
+    await expect(goals.getByRole("checkbox", { name: "Beslissingen opvolgen" })).toBeChecked();
+    await goals.getByText("Iets anders").click();
+    await page.getByLabel("Wat wil je nog bereiken?").fill("Mijn strategie helpen uitvoeren");
+
+    // Optie B: één focus, zichtbaar in het paneel.
+    await page.getByRole("group", { name: "Kies één focus" }).getByText("Beslissen").click();
+    await expect(page.getByRole("complementary").getByText(/Focus: Beslissen/)).toBeVisible();
+
+    // Keuze blijft na herladen; terugwisselen toont de acties.
+    await page.reload();
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText("Wat wil je bereiken in deze meeting?");
+    await page.getByRole("button", { name: "Toon alternatief" }).click();
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText(/Wat moet er nog gebeuren/);
+    await page.getByRole("button", { name: "Toon alternatief" }).click();
+
+    await page.getByRole("button", { name: "Toon mijn overleg" }).click();
+    await expect(page).toHaveURL(/\/app\/overleg\//);
+  });
+
+  test("knop staat enkel op stap 3", async ({ page }) => {
+    await page.goto("/overleg");
+    await expect(page.getByRole("button", { name: "Toon alternatief" })).toHaveCount(0);
+  });
+});

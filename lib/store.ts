@@ -133,6 +133,8 @@ interface Data {
   flow: FlowId | null;
   /** Waar "Volgende" op /overleg/zelf naartoe gaat als je er vanuit variant B komt. */
   manualReturn: string | null;
+  /** Prototype: welke versie van stap 3 je ziet ("Toon alternatief" rechtsboven). */
+  step3Variant: "acties" | "doel";
   b: BState;
 }
 
@@ -182,6 +184,7 @@ interface Actions {
   markHeld: (meetingId: string) => void;
   startFlow: (flow: FlowId | null, preset: FlowPreset) => void;
   setManualReturn: (route: string | null) => void;
+  setStep3Variant: (variant: Data["step3Variant"]) => void;
   setBSelection: (ids: string[]) => void;
   followSeries: (ids: string[], preferredId: string) => void;
   addManualMeetingToB: () => string | null;
@@ -214,6 +217,7 @@ const initialData = (): Data => ({
   moreMeetingsAdded: false,
   flow: null,
   manualReturn: null,
+  step3Variant: "acties",
   b: {
     selection: null,
     targetMeetingId: null,
@@ -583,6 +587,7 @@ export const useStore = create<Store>()(
           });
         },
         setManualReturn: (manualReturn) => set({ manualReturn }),
+        setStep3Variant: (step3Variant) => set({ step3Variant }),
 
         setBSelection: (selection) => set((s) => ({ b: { ...s.b, selection } })),
 

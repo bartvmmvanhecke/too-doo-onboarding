@@ -13,7 +13,8 @@ Mockups: `design/variant-a-lazy/` (C0 t/m C6). Zoals eerder: lees de HTML en inl
 | `C0-Flow.dc.html` | Overzicht van de flow, regels voor het accountmoment, meetpunten (referentie, niet bouwen) |
 | `C1-Meteen-in-app.dc.html` | Landen in de app, assistent biedt 3 ingangen: agenda, notities (upload of plakken), vertellen |
 | `C1b-Agenda-gekoppeld.dc.html` | Na koppelen met Outlook: vaste overleggen kiezen |
-| `C2-Agent-begrijpt.dc.html` | Eén zin → overleg en agenda verschijnen live |
+| `C2-Agent-begrijpt.dc.html` | Eén zin → overleg en agenda verschijnen live; '+'-menu in het chatveld open |
+| `C2b-Plakken-herkend.dc.html` | Lange tekst geplakt in de chat → assistent herkent notities |
 | `C3-Agent-acties.dc.html` | Notities plakken → acties op de agenda, ontbrekende eigenaar wordt een vraag |
 | `C4-Overleg-klaar.dc.html` | Overleg klaar, voorstel om acties te mailen |
 | `C5-Bewaren.dc.html` | Account als "bewaren" (modal over de app) |
@@ -101,6 +102,20 @@ Onder de blokken een tekstlink **Eerst een voorbeeld bekijken** → bestaande `/
 Vrije tekst in het invoerveld onderaan ("Of typ meteen") wordt behandeld als "Vertel het me".
 
 **Elke vraag van de assistent verschijnt precies één keer.** Een keuze maken of tekst sturen voegt één antwoord toe; dubbel renderen (bv. door React Strict Mode of een effect dat twee keer loopt) mag niet voorkomen.
+
+### Ingangen blijven bereikbaar, ook na stap 1 (C1, C2, C2b, C3) · update 12 okt
+De drie startopties worden **niet** permanent opnieuw als chips getoond. Ze blijven bereikbaar op vier manieren:
+
+1. **"+"-knop links in het chatveld** (op elk scherm met de assistent, ook na bewaren). `aria-label="Toevoegen: notities, bestand of agenda"`, opent een menu (shadcn DropdownMenu) met:
+   - Notities plakken → opent een tekstvak in de chat;
+   - Bestand kiezen (Word, PDF, foto) → bestandskiezer, zelfde verwerking als de dropzone;
+   - Agenda koppelen (Outlook, Google) → zelfde pad als "Uit mijn agenda" (C1b).
+2. **De assistent herkent de intentie, op elk moment:**
+   - **Plakken:** een geplakte tekst van ≥ 3 regels of ≥ 200 tekens die niet als antwoord op een vraag om notities komt → bericht "Dit lijken notities van een vorig overleg. Zal ik er de openstaande acties en agendapunten uit halen?" met **Ja, verwerk** (extractie, stap 2) en **Nee, gewoon bericht** (verwerk als gewone zin) (C2b).
+   - **Typen:** zinnen als "koppel mijn agenda", "haal uit outlook/google", "ik heb notities", "notities uploaden" voeren die actie meteen uit (zelfde als het menu). Vrije tekst moet altijd werken.
+   - **Slepen:** een bestand slepen werkt op **het hele assistentpaneel** (overlay "Laat los om je notities te verwerken") én op het blok "Openstaande acties" in het hoofdvlak.
+3. **Contextueel in het overleg:** zolang wanneer of deelnemers leeg zijn, staan in de datumregel subtiele links **"Uit agenda halen"** (vult dag, uur en herhaling) en **"Deelnemers uit agenda"** (C1). Beide starten het agendapad; na koppelen kiest de gebruiker de reeks en worden alleen die velden ingevuld. De links verdwijnen zodra het veld gevuld is.
+4. **Eén proactieve herinnering:** zodra naam, wanneer en deelnemers ingevuld zijn en er nog geen openstaande acties zijn, zegt de assistent **één keer**: "Heb je notities van de vorige keer? Plak ze hier, dan staan de openstaande acties meteen klaar." (C3). Nooit herhalen, ook niet na herladen (bewaar `notesReminderShown` in de gast-state). Wordt het genegeerd, dan blijft de "+"-knop de weg.
 
 ### Zin begrijpen (C2)
 Parser op de zin van de gebruiker (Nederlands, hoofdletterongevoelig):

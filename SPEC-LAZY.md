@@ -77,7 +77,7 @@ Alles regelgebaseerd en deterministisch, in één module (`lib/assistant/`), zod
 Typ-indicator (3 puntjes, 600–900 ms) voor elk antwoord. Velden die net ingevuld werden, krijgen 2 s een blauwe markering (C2).
 
 ### Stap 1 · Waarmee wil je starten? (C1, C1b) · update 12 okt
-Welkomstbericht ("Welkom. In twee minuten staat je eerste overleg klaar, met de acties die nog openstaan. Geen account nodig.") + vraag "Waarmee wil je starten?" met **drie gelijkwaardige blokken** in het assistentpaneel, precies zoals C1:
+Eén bericht (geen apart welkomstbericht): "Je eerste overleg staat in twee minuten klaar. **Waarmee wil je starten?**" met **drie gelijkwaardige blokken** in het assistentpaneel, precies zoals C1:
 
 1. **Uit mijn agenda** – "Ik toon je vaste overleggen, jij kiest er één. Alleen lezen." Twee knoppen: **Outlook** en **Google**.
    - Gesimuleerd met de bestaande demo-uitkomsten voor agendatoestemming (reeksen gevonden / geen reeksen / IT-goedkeuring nodig / geannuleerd) en Microsoft-login (slaagt / bedrijf blokkeert).

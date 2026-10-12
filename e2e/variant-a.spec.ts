@@ -480,6 +480,8 @@ test.describe("Variant A · Lazy Registration", () => {
     await page.goto("/");
     await page.getByRole("main").getByRole("link", { name: "Probeer Too-doo gratis" }).click();
     await expect(assistant(page).getByText("Waarmee wil je starten?")).toHaveCount(1);
+    // Eén openingsbericht: welkom en startvraag samen.
+    await expect(log(page)).toHaveText("Je eerste overleg staat in twee minuten klaar. Waarmee wil je starten?");
     // De drie blokken staan er (keuzes zichtbaar).
     await expect(assistant(page).getByRole("region", { name: "Uit je agenda" })).toBeVisible();
     await expect(assistant(page).getByRole("region", { name: "Notities van een vorig overleg" })).toBeVisible();

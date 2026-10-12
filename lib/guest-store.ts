@@ -27,12 +27,9 @@ import { uid } from "@/lib/utils";
 export const GUEST_STORAGE_KEY = "toodoo-guest";
 export const GUEST_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 
+/** Stap 1: één openingsbericht, welkom en startvraag samen (SPEC-LAZY.md §4). */
 export const WELCOME_MESSAGES: Omit<Message, "id">[] = [
-  {
-    from: "assistant",
-    text: "Welkom. In twee minuten staat je eerste overleg klaar, met de acties die nog openstaan. Geen account nodig.",
-  },
-  { from: "assistant", text: "**Waarmee wil je starten?**" },
+  { from: "assistant", text: "Je eerste overleg staat in twee minuten klaar. **Waarmee wil je starten?**" },
 ];
 
 /** Typ-indicator voor elk antwoord (600–900 ms). */

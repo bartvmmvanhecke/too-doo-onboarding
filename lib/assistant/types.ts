@@ -104,6 +104,8 @@ export type AssistantInput =
   | { type: "chip"; value: string }
   | { type: "confirm-meeting" }
   | { type: "adjust" }
+  /** De gebruiker paste velden zelf aan in het hoofdvlak. */
+  | { type: "edited" }
   | { type: "no-actions" }
   | { type: "place-actions" }
   | { type: "dismiss-proposal" }

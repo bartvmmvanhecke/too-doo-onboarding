@@ -16,27 +16,12 @@ import type {
   GuestTopic,
   Message,
 } from "@/lib/assistant/types";
-import { AVATAR_COLORS } from "@/lib/mock-data";
-import { createPerson } from "@/lib/people";
+import { emptyMeeting } from "@/lib/assistant/engine";
+import { guestPerson } from "@/lib/assistant/people";
 import { uid } from "@/lib/utils";
 
 export const GUEST_STORAGE_KEY = "toodoo-guest";
 export const GUEST_TTL_MS = 7 * 24 * 60 * 60 * 1000;
-
-export function emptyMeeting(): GuestMeeting {
-  return {
-    name: null,
-    recurrence: null,
-    weekday: null,
-    time: null,
-    duration: 60,
-    durationProposed: true,
-    participants: [],
-    participantsSkipped: false,
-    topics: [],
-    proposed: true,
-  };
-}
 
 export const WELCOME_MESSAGES: Omit<Message, "id">[] = [
   {
@@ -86,12 +71,6 @@ export function initialGuest(): GuestData {
     others: [],
     conversation: withIds(WELCOME_MESSAGES),
   };
-}
-
-/** Nieuwe deelnemer met enkel de naam zoals de gebruiker hem zei. */
-export function guestPerson(name: string, index: number): GuestPerson {
-  const p = createPerson(name, index);
-  return { id: p.id, name: p.name, initials: p.initials, color: AVATAR_COLORS[index % AVATAR_COLORS.length] };
 }
 
 /** Ouder dan 7 dagen: leeg starten. */

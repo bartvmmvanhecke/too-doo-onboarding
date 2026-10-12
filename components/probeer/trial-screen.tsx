@@ -207,8 +207,15 @@ export function TrialScreen({ onSave }: { onSave: (intent: SaveIntent, trigger: 
 
   // De inhoud is klaar (titel en agenda uit de zin, acties uit de notities, of de reekslijst uit de agenda):
   // dan pas de overgang. Totaal ± 700 ms; bij reduced motion een crossfade van 200 ms.
+  // Bij "Vertel het me" is elke verwerkte zin genoeg, ook zonder herkende naam: de titel wordt dan
+  // "Je eerste overleg" en de assistent vraagt in de app wat ontbreekt.
+  const sentenceDone = startPath === "tell" && !["entry", "sentence", "provider", "paste"].includes(pending.kind);
   const contentReady =
-    pending.kind === "pick-meeting" || actions.length > 0 || !!meeting.name || meeting.topics.length > 0;
+    sentenceDone ||
+    pending.kind === "pick-meeting" ||
+    actions.length > 0 ||
+    !!meeting.name ||
+    meeting.topics.length > 0;
   const readyToDock = !transitionPlayed && !anim && !busy && contentReady;
   useEffect(() => {
     // Na "Herstart demo" staat de gast weer op het welkomstscherm.

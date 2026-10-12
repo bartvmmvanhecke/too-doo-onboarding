@@ -652,6 +652,19 @@ test.describe("Variant A · welkom en overgang", () => {
     errors.assertNone();
   });
 
+  test("vertellen zonder herkende naam: na verzenden meteen de overgang, de naam wordt in de app gevraagd", async ({
+    page,
+  }) => {
+    await page.goto("/probeer");
+    await start(page, "Vertel het me");
+    await expectAssistant(page, SENTENCE_QUESTION);
+    await say(page, "wekelijks overleg met Tina");
+    await expectDocked(page);
+    await expect(page.getByRole("main").getByRole("heading", { level: 1, name: "Je eerste overleg" })).toBeVisible();
+    await expect(page.getByRole("main").getByRole("button", { name: /^Deelnemers: Tina/ })).toBeVisible();
+    await expectAssistant(page, "Hoe heet dit overleg? Bijvoorbeeld Productieoverleg.");
+  });
+
   test("vrije tekst werkt ook zonder eerst te kiezen", async ({ page }) => {
     await page.goto("/probeer");
     await say(page, SHORT);

@@ -6,7 +6,13 @@ import { AssistantPanel, Chips } from "@/components/probeer/assistant-panel";
 import { AppUiProvider } from "@/components/app/app-ui";
 import { StatusBanner } from "@/components/probeer/trial-banner";
 import { TrialMeeting } from "@/components/probeer/trial-meeting";
-import { EntryBlocks, PickMeeting } from "@/components/probeer/entry-blocks";
+import {
+  EntryChoices,
+  NotesDropzone,
+  PickMeeting,
+  ProviderChoice,
+  START_LABEL,
+} from "@/components/probeer/entry-blocks";
 import { connectAccount } from "@/components/probeer/save-guest";
 import { TrialSidebar } from "@/components/probeer/trial-sidebar";
 import { Button } from "@/components/ui/button";
@@ -16,9 +22,11 @@ import {
   mailOwners,
   participantsText,
   whenText,
+  type CalendarField,
   type CalendarProvider,
   type CalendarResult,
   type Message,
+  type StartChoice,
 } from "@/lib/assistant";
 import { appointmentOptions, seriesOptions } from "@/lib/assistant/calendar";
 import { formatShortDate } from "@/lib/date";
@@ -150,6 +158,8 @@ export function TrialScreen({ onSave }: { onSave: (intent: SaveIntent, trigger: 
   const [reading, setReading] = useState<string | null>(null);
   const [flashSeen, setFlashSeen] = useState(0);
   const [open, setOpen] = useState(true);
+  const [focusRequest, setFocusRequest] = useState(0);
+  const focusInput = () => setFocusRequest((n) => n + 1);
 
   useEffect(openTrial, []);
 
@@ -182,8 +192,7 @@ export function TrialScreen({ onSave }: { onSave: (intent: SaveIntent, trigger: 
   /** "Uit mijn agenda": demo-uitkomsten voor login en agendatoestemming; koppelen = inloggen. */
   const connectCalendar = async (provider: CalendarProvider) => {
     if (busy) return;
-    track("assistant_entry_chosen", { ingang: "agenda", provider });
-    useGuestStore.getState().addMessages([{ from: "user", text: `Uit mijn agenda · ${PROVIDER_LABEL[provider]}` }]);
+    useGuestStore.getState().addMessages([{ from: "user", text: PROVIDER_LABEL[provider] }]);
     setConnecting(provider);
     const login = await sso.start(provider === "outlook" ? "microsoft" : "google");
     track("sso_result", { provider, resultaat: login });
@@ -245,28 +254,52 @@ export function TrialScreen({ onSave }: { onSave: (intent: SaveIntent, trigger: 
     </div>
   );
 
-  const tell = (label = "Vertel het me") => {
-    track("assistant_entry_chosen", { ingang: "meeting" });
-    send({ type: "entry", entry: "meeting" }, label);
+  /** Een startkeuze (C1), het "+"-menu of "Vertel het me": de details komen als volgend bericht. */
+  const choose = (choice: StartChoice, label: string, bron: string) => {
+    if (busy) return;
+    // Die vraag staat al open: niet opnieuw vragen, enkel naar het chatveld.
+    if ((choice === "notes" && pending.kind === "notes") || (choice === "calendar" && pending.kind === "provider"))
+      return focusInput();
+    track("assistant_entry_chosen", { ingang: choice, bron });
+    send({ type: "entry", entry: choice }, label);
+    if (choice !== "calendar") focusInput();
+  };
+  const tell = () => choose("meeting", "Vertel het me", "agenda");
+  const fromCalendar = (field: CalendarField) => {
+    if (busy) return;
+    track("assistant_entry_chosen", { ingang: "calendar", bron: field === "when" ? "datumregel" : "deelnemers" });
+    send({ type: "calendar-field", field }, field === "when" ? "Uit agenda halen" : "Deelnemers uit agenda");
   };
 
   let controls: ReactNode = null;
   switch (pending.kind) {
     case "entry":
       controls = (
-        <EntryBlocks
-          busy={busy}
-          connecting={connecting}
-          reading={reading}
-          onCalendar={connectCalendar}
-          onFile={readFile}
-          onPaste={() => {
-            track("assistant_entry_chosen", { ingang: "notes", bron: "plakken" });
-            send({ type: "entry", entry: "notes" }, "Ik plak de tekst");
-          }}
-          onTell={() => tell()}
+        <EntryChoices
+          choices={pending.choices}
+          disabled={busy}
+          onChoose={(c) => choose(c, START_LABEL[c], "start")}
           onExample={() => track("assistant_entry_chosen", { ingang: "example" })}
         />
+      );
+      break;
+    case "provider":
+      controls = <ProviderChoice busy={busy} connecting={connecting} onCalendar={connectCalendar} />;
+      break;
+    case "paste":
+      controls = (
+        <div className="flex flex-wrap gap-2">
+          <Button size="md" onClick={() => send({ type: "paste", process: true }, "Ja, verwerk")}>
+            Ja, verwerk
+          </Button>
+          <Button
+            variant="outline"
+            size="md"
+            onClick={() => send({ type: "paste", process: false }, "Nee, gewoon bericht")}
+          >
+            Nee, gewoon bericht
+          </Button>
+        </div>
       );
       break;
     case "pick-meeting":
@@ -321,7 +354,8 @@ export function TrialScreen({ onSave }: { onSave: (intent: SaveIntent, trigger: 
       );
       break;
     case "notes":
-      controls = (
+      // Na "Ik heb notities" is er nog geen overleg: dan enkel de dropzone in het bericht.
+      controls = meeting.name && (
         <Button
           variant="outline"
           size="md"
@@ -392,13 +426,15 @@ export function TrialScreen({ onSave }: { onSave: (intent: SaveIntent, trigger: 
   }
 
   const placeholder =
-    pending.kind === "entry" || pending.kind === "sentence" || pending.kind === "pick-meeting"
-      ? "Bijv. ons wekelijks productieoverleg: orders, problemen en planning"
-      : pending.kind === "confirm-meeting"
-        ? "Bijv. het duurt anderhalf uur"
-        : step === 2
-          ? "Bijv. Karim belt, tegen woensdag"
-          : "Vraag of zeg iets";
+    pending.kind === "notes"
+      ? "Plak je notities hier"
+      : pending.kind === "entry" || pending.kind === "sentence" || pending.kind === "pick-meeting"
+        ? "Bijv. ons wekelijks productieoverleg: orders, problemen en planning"
+        : pending.kind === "confirm-meeting"
+          ? "Bijv. het duurt anderhalf uur"
+          : step === 2
+            ? "Bijv. Karim belt, tegen woensdag"
+            : "Vraag of zeg iets";
 
   const progress = step === "done" ? undefined : `${step} van 3`;
   const meetingNames = [...others.map((o) => o.meeting.name ?? "Overleg"), ...(meeting.name ? [meeting.name] : [])];
@@ -426,6 +462,7 @@ export function TrialScreen({ onSave }: { onSave: (intent: SaveIntent, trigger: 
               onNotesFile={readFile}
               onEdited={onEdited}
               onStart={onStart}
+              onFromCalendar={fromCalendar}
             />
           </AppUiProvider>
         </div>
@@ -438,8 +475,15 @@ export function TrialScreen({ onSave }: { onSave: (intent: SaveIntent, trigger: 
         open={open}
         onOpenChange={setOpen}
         controls={controls}
+        onFileDrop={busy ? null : readFile}
         renderCard={(card: NonNullable<Message["card"]>, isLast) =>
-          !isLast ? null : card === "summary" ? <SummaryCard /> : <MailCard />
+          !isLast ? null : card === "summary" ? (
+            <SummaryCard />
+          ) : card === "mail" ? (
+            <MailCard />
+          ) : pending.kind === "notes" ? (
+            <NotesDropzone busy={busy} reading={reading} onFile={readFile} />
+          ) : null
         }
         input={{
           label: pending.kind === "entry" ? "Of typ meteen" : "Bericht aan de assistent",
@@ -449,6 +493,12 @@ export function TrialScreen({ onSave }: { onSave: (intent: SaveIntent, trigger: 
           onMic: listen,
           listening,
           disabled: busy,
+          focusRequest,
+          plus: {
+            onPasteNotes: () => choose("notes", "Notities plakken", "menu"),
+            onFile: readFile,
+            onCalendar: () => choose("calendar", "Agenda koppelen", "menu"),
+          },
         }}
       />
     </div>

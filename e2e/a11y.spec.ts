@@ -80,6 +80,16 @@ const CASES: { name: string; path: string; setup?: (page: import("@playwright/te
   { name: "prototype", path: "/prototype" },
   { name: "variant A: proefomgeving", path: "/probeer" },
   {
+    name: "variant A: notities gekozen, +-menu open",
+    path: "/probeer",
+    setup: async (page) => {
+      await page.getByRole("button", { name: "Ik heb notities van de vorige keer" }).click();
+      await page.getByRole("button", { name: "Kies bestand" }).waitFor();
+      await page.getByRole("button", { name: "Toevoegen: notities, bestand of agenda" }).click();
+      await page.getByRole("menu", { name: "Toevoegen" }).waitFor();
+    },
+  },
+  {
     name: "variant A: voorstel van het overleg",
     path: "/probeer",
     setup: async (page) => {

@@ -38,6 +38,8 @@ export interface TrialView {
   onFileDrop: ((file: File) => void) | null;
   /** De ene inline regel "+ Agendapunt". */
   onAddAgendaItem: (text: string) => void;
+  /** "Uit agenda halen" / "Deelnemers uit agenda" in de datumregel, zolang dat veld leeg is (C1). */
+  onFromCalendar: ((field: "when" | "participants") => void) | null;
 }
 
 export interface MeetingCtx {

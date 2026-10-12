@@ -8,9 +8,12 @@ import { useAppUi } from "@/components/app/app-ui";
 import { AssistantPanel } from "@/components/probeer/assistant-panel";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { parseMeetingSentence } from "@/lib/assistant/parse";
+import { todayISO } from "@/lib/agenda";
+import { looksLikeNotes, parseIntent, parseMeetingSentence } from "@/lib/assistant/parse";
 import type { Message } from "@/lib/assistant/types";
-import { nextWeekday, toISO } from "@/lib/date";
+import { formatShortDate, nextWeekday, toISO } from "@/lib/date";
+import { extractProposals } from "@/lib/extract";
+import { readNotesFile } from "@/lib/notes-file";
 import { USER_PERSON_ID, type Person } from "@/lib/mock-data";
 import { companyFromEmail, firstName, isEmail } from "@/lib/people";
 import { simulateSend } from "@/lib/simulate";
@@ -118,6 +121,11 @@ function AfterSavePanel({ meeting }: { meeting: Meeting }) {
   const { setAddMeetingsOpen } = useAppUi();
   const [open, setOpen] = useState(true);
   const [added, setAdded] = useState<{ text: string; from: Message["from"] }[]>([]);
+  /** Na "Notities plakken": de volgende tekst zijn notities. */
+  const [notesMode, setNotesMode] = useState(false);
+  /** Een lange geplakte tekst die op notities lijkt (C2b) wacht op Ja of Nee. */
+  const [pasted, setPasted] = useState<string | null>(null);
+  const [reading, setReading] = useState(false);
 
   const forThis = lazy?.meetingId === meeting.id ? lazy : null;
   const owners = mailPeople(meeting, people);
@@ -141,10 +149,79 @@ function AfterSavePanel({ meeting }: { meeting: Meeting }) {
   added.forEach((a, i) => messages.push({ id: `added-${i}`, from: a.from, text: a.text }));
   if (stage === "done" && forThis) messages.push(msg("Prima. Ik ben hier als je iets nodig hebt."));
 
+  const say = (...lines: { text: string; from: Message["from"] }[]) => setAdded((a) => [...a, ...lines]);
+
+  /** Notities (geplakt of uit een bestand): de acties komen bij de openstaande acties van dit overleg. */
+  const addFromNotes = (text: string) => {
+    setNotesMode(false);
+    const found = extractProposals(text, people).filter((p) => p.kind === "action");
+    const { addAction } = useStore.getState();
+    for (const p of found)
+      addAction(meeting.id, {
+        what: p.text,
+        ownerId: p.ownerId,
+        deadline: p.date ? formatShortDate(p.date) : "",
+        createdAt: todayISO(),
+      });
+    say({
+      from: "assistant",
+      text: found.length
+        ? `Ik vond **${found.length === 1 ? "1 actie" : `${found.length} acties`}**. Ze staan bij de openstaande acties.`
+        : "Ik vond geen acties in je tekst. Typ ze gewoon, één per regel.",
+    });
+  };
+
+  const readFile = async (file: File) => {
+    if (reading) return;
+    say({ from: "user", text: `Bestand: ${file.name}` });
+    setReading(true);
+    const result = await readNotesFile(file);
+    setReading(false);
+    say({ from: "assistant", text: `Ik las **${result.name}**.` });
+    addFromNotes(result.text);
+  };
+
+  const askNotes = (label: string) => {
+    setNotesMode(true);
+    say(
+      { from: "user", text: label },
+      { from: "assistant", text: "Plak je notities hieronder in het chatveld. Ik haal de acties en eigenaars eruit." },
+    );
+  };
+
+  const connectCalendar = (label: string) => {
+    say({ from: "user", text: label });
+    if (blocked) say({ from: "assistant", text: "Je agenda koppelen lukt niet bij je bedrijf. Zeg ze me gewoon." });
+    else setAddMeetingsOpen(true);
+  };
+
+  /** Vrije tekst: eerst de intentie (agenda, notities, geplakte notities), anders een overleg. */
+  const onSend = (text: string) => {
+    setPasted(null);
+    if (notesMode) {
+      say({ from: "user", text });
+      return addFromNotes(text);
+    }
+    const intent = parseIntent(text);
+    if (intent === "calendar") return connectCalendar(text);
+    if (intent === "notes") return askNotes(text);
+    if (looksLikeNotes(text)) {
+      setPasted(text);
+      return say(
+        { from: "user", text },
+        {
+          from: "assistant",
+          text: "Dit lijken notities van een vorig overleg. Zal ik er de openstaande acties en agendapunten uit halen?",
+        },
+      );
+    }
+    addFromSentence(text);
+  };
+
   /** "Ik zeg ze zelf": dezelfde parser als in de proefomgeving; enkel wat gezegd werd. */
-  const addFromSentence = (text: string) => {
+  const addFromSentence = (text: string, echo = true) => {
     const p = parseMeetingSentence(text);
-    const answer: { text: string; from: Message["from"] }[] = [{ text, from: "user" }];
+    const answer: { text: string; from: Message["from"] }[] = echo ? [{ text, from: "user" }] : [];
     if (!p.name) {
       answer.push({ text: "Hoe heet dat overleg? Bijvoorbeeld: teamoverleg elke dinsdag om 9u.", from: "assistant" });
     } else {
@@ -171,7 +248,33 @@ function AfterSavePanel({ meeting }: { meeting: Meeting }) {
   };
 
   let controls: ReactNode = null;
-  if (forThis && stage === "emails") controls = <EmailsForm meeting={meeting} owners={owners} />;
+  if (pasted)
+    controls = (
+      <div className="flex flex-wrap gap-2">
+        <Button
+          size="md"
+          onClick={() => {
+            setPasted(null);
+            say({ from: "user", text: "Ja, verwerk" });
+            addFromNotes(pasted);
+          }}
+        >
+          Ja, verwerk
+        </Button>
+        <Button
+          variant="outline"
+          size="md"
+          onClick={() => {
+            setPasted(null);
+            say({ from: "user", text: "Nee, gewoon bericht" });
+            addFromSentence(pasted, false);
+          }}
+        >
+          Nee, gewoon bericht
+        </Button>
+      </div>
+    );
+  else if (forThis && stage === "emails") controls = <EmailsForm meeting={meeting} owners={owners} />;
   else if (forThis && stage === "more")
     controls = (
       <div className="flex flex-wrap gap-2">
@@ -197,10 +300,21 @@ function AfterSavePanel({ meeting }: { meeting: Meeting }) {
       open={open}
       onOpenChange={setOpen}
       controls={controls}
+      onFileDrop={reading ? null : readFile}
       input={{
         label: "Bericht aan de assistent",
-        placeholder: stage === "self" ? "Bijv. teamoverleg elke dinsdag om 9u met Els" : "Vraag of zeg iets",
-        onSend: addFromSentence,
+        placeholder: notesMode
+          ? "Plak je notities hier"
+          : stage === "self"
+            ? "Bijv. teamoverleg elke dinsdag om 9u met Els"
+            : "Vraag of zeg iets",
+        onSend,
+        disabled: reading,
+        plus: {
+          onPasteNotes: () => askNotes("Notities plakken"),
+          onFile: readFile,
+          onCalendar: () => connectCalendar("Agenda koppelen"),
+        },
       }}
     />
   );

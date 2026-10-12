@@ -80,6 +80,7 @@ export function TrialMeeting({
   onNotesFile,
   onEdited,
   onStart,
+  onFromCalendar,
 }: {
   flash: Set<string>;
   editRequest: number;
@@ -88,6 +89,7 @@ export function TrialMeeting({
   /** Titel, datumregel of deelnemers zelf aangepast: de assistent gaat verder met wat ontbreekt. */
   onEdited: () => void;
   onStart: () => void;
+  onFromCalendar: (field: "when" | "participants") => void;
 }) {
   const meeting = useGuestStore((s) => s.meeting);
   const actions = useGuestStore((s) => s.actions);
@@ -141,6 +143,7 @@ export function TrialMeeting({
     ),
     onFileDrop: busy || ready ? null : onNotesFile,
     onAddAgendaItem: (text) => useGuestStore.getState().addTopic(text),
+    onFromCalendar: busy ? null : onFromCalendar,
   };
 
   return (

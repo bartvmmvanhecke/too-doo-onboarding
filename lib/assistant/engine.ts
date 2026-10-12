@@ -10,6 +10,8 @@ import {
   type AssistantInput,
   type AssistantReply,
   type AssistantState,
+  type CalendarField,
+  type CalendarOption,
   type CalendarProvider,
   type CalendarResult,
   type GuestAction,
@@ -17,13 +19,16 @@ import {
   type GuestMeeting,
   type Message,
   type Pending,
+  type StartChoice,
 } from "@/lib/assistant/types";
 import {
   foundFields,
+  looksLikeNotes,
   nameFromHeading,
   parseMeetingSentence,
   parseMeetingUpdate,
   parseNameReply,
+  parseIntent,
   parseNames,
   parseRecurrence,
   parseTimeIn,
@@ -51,8 +56,14 @@ export const QUESTIONS = {
   recurrence: "Hoe vaak komt het samen?",
   participants: "Wie zit er meestal bij? Voornamen volstaan.",
   summary: "Begrepen. Links staat een voorstel van agenda, met een plek voor openstaande acties bovenaan. Klopt dit?",
-  notes:
-    "**Wat werd er vorige keer afgesproken dat nog niet af is?** Plak je notities of een mail, spreek het in, of typ het gewoon.",
+  /** De ene proactieve herinnering (C3), zodra naam, wanneer en deelnemers ingevuld zijn. */
+  notesReminder: "**Heb je notities van de vorige keer?** Plak ze hier, dan staan de openstaande acties meteen klaar.",
+  notes: "**Staat er nog iets open van de vorige keer?** Plak je notities, spreek het in, of typ het gewoon.",
+  /** Na "Ik heb notities van de vorige keer" (C1c), met de dropzone eronder. */
+  notesEntry: "Top. Sleep ze hierheen of plak de tekst. Ik haal de acties en eigenaars eruit.",
+  notesLater: "Sleep je notities hierheen of plak de tekst. Ik haal de acties en eigenaars eruit.",
+  provider: "Outlook of Google?",
+  paste: "Dit lijken notities van een vorig overleg. Zal ik er de openstaande acties en agendapunten uit halen?",
 } as const;
 
 export const RECURRENCE_CHIPS: { value: Recurrence; label: string }[] = [
@@ -76,6 +87,19 @@ const done = (d: Draft): AssistantReply => d;
 
 function setPending(d: Draft, pending: Pending) {
   d.state = { ...d.state, pending };
+}
+
+const samePending = (a: Pending, b: Pending) => JSON.stringify(a) === JSON.stringify(b);
+
+/**
+ * Elke vraag van de assistent gaat hierlangs, zodat ze precies één keer verschijnt (SPEC-LAZY.md §4):
+ * staat dezelfde vraag al open, dan wordt ze niet opnieuw gesteld en blijft de vorige gewoon staan.
+ */
+function ask(d: Draft, pending: Pending, text: string, card?: Message["card"]): boolean {
+  if (samePending(d.state.pending, pending)) return false;
+  setPending(d, pending);
+  d.messages.push(say(text, card));
+  return true;
 }
 
 function patchMeeting(d: Draft, patch: Partial<GuestMeeting>) {
@@ -110,29 +134,28 @@ function applyParsed(d: Draft, p: ParsedMeeting, opts: { topics: boolean }) {
 /** De eerstvolgende vraag over het overleg, of het voorstel (stap 1) / het klaarzetten (na de acties). */
 function askNext(d: Draft, lead?: string) {
   const m = d.state.meeting;
-  // De open vraag wordt nooit opnieuw gesteld: staat ze al open, dan verandert er niets.
-  const ask = (pending: Pending, question: string) => {
-    if (d.state.pending.kind === pending.kind) return;
-    setPending(d, pending);
-    d.messages.push(say(lead ? `${lead} ${question}` : question));
-  };
-  if (!m.name) return ask({ kind: "name" }, QUESTIONS.name);
-  if (!m.weekday) return ask({ kind: "day" }, QUESTIONS.day);
-  if (m.time === null) return ask({ kind: "time" }, QUESTIONS.time);
-  if (!m.recurrence) return ask({ kind: "recurrence" }, QUESTIONS.recurrence);
+  const question = (pending: Pending, text: string) => void ask(d, pending, lead ? `${lead} ${text}` : text);
+  if (!m.name) return question({ kind: "name" }, QUESTIONS.name);
+  if (!m.weekday) return question({ kind: "day" }, QUESTIONS.day);
+  if (m.time === null) return question({ kind: "time" }, QUESTIONS.time);
+  if (!m.recurrence) return question({ kind: "recurrence" }, QUESTIONS.recurrence);
   if (m.participants.length === 0 && !m.participantsSkipped)
-    return ask({ kind: "participants" }, QUESTIONS.participants);
+    return question({ kind: "participants" }, QUESTIONS.participants);
   // Via notities kwamen de acties eerst: dan staat het overleg meteen klaar.
   if (d.state.step === 2) return ready(d);
-  if (d.state.pending.kind === "confirm-meeting") return;
-  setPending(d, { kind: "confirm-meeting" });
-  d.messages.push(say(QUESTIONS.summary, "summary"));
+  ask(d, { kind: "confirm-meeting" }, QUESTIONS.summary, "summary");
 }
 
+/**
+ * Stap 2 · openstaande acties. De herinnering "Heb je notities van de vorige keer?" (C3) komt één keer,
+ * zodra naam, wanneer en deelnemers ingevuld zijn en er nog geen acties zijn; daarna nooit meer.
+ */
 function askNotes(d: Draft) {
-  d.state = { ...d.state, step: 2 };
-  setPending(d, { kind: "notes" });
-  d.messages.push(say(QUESTIONS.notes));
+  const m = d.state.meeting;
+  const remind =
+    !d.state.notesReminderShown && !!m.name && !!m.weekday && m.participants.length > 0 && !d.state.actions.length;
+  d.state = { ...d.state, step: 2, notesReminderShown: d.state.notesReminderShown || remind };
+  ask(d, { kind: "notes" }, remind ? QUESTIONS.notesReminder : QUESTIONS.notes);
 }
 
 /** "Wie gaat leverancier staal opnieuw bellen?" */
@@ -148,13 +171,7 @@ const hasOwner = (a: GuestAction) => !!a.ownerId;
 
 function nextOwnerQuestion(d: Draft, afterAnswer: boolean) {
   const open = d.state.actions.find((a) => a.confirmed && !a.ownerId && !a.ownerLater);
-  if (open) {
-    const p = d.state.pending;
-    if (p.kind === "owner" && p.actionId === open.id) return;
-    setPending(d, { kind: "owner", actionId: open.id });
-    d.messages.push(say(ownerQuestion(open.text)));
-    return;
-  }
+  if (open) return void ask(d, { kind: "owner", actionId: open.id }, ownerQuestion(open.text));
   setPending(d, { kind: "place-actions" });
   if (afterAnswer) d.messages.push(say("Dat was alles. Zet ze op de agenda wanneer je wilt."));
 }
@@ -276,6 +293,11 @@ function placeActions(d: Draft) {
     actions: d.state.actions.filter((a) => a.confirmed && a.text.trim()),
     decisions: d.state.decisions.filter((x) => x.confirmed && x.text.trim()),
   };
+  // Notities nadat het overleg al klaarstond: de acties komen erbij, het overleg blijft klaar.
+  if (d.state.step === 3 || d.state.step === "done") {
+    setPending(d, { kind: "idle" });
+    return void d.messages.push(say("Ze staan bovenaan bij de openstaande acties."));
+  }
   askNext(d);
 }
 
@@ -324,8 +346,31 @@ function ready(d: Draft) {
   }
 }
 
-function onText(d: Draft, text: string, ref: Date): void {
+/** Notities verwerken (geplakt of uit een bestand): stap 2, met de bestaande extractie. */
+function processNotes(d: Draft, text: string, ref: Date) {
+  if (d.state.step === 1) d.state = { ...d.state, step: 2, entry: d.state.entry ?? "notes" };
+  extract(d, text, ref);
+}
+
+/**
+ * Vrije tekst. Eerst de intentie (SPEC-LAZY.md §4, Ingangen blijven bereikbaar): een opdracht als
+ * "koppel mijn agenda" voert die actie uit; een lange geplakte tekst die niet het antwoord is op de vraag
+ * om notities, lijkt op notities (C2b). `plain`: "Nee, gewoon bericht", dus zonder die herkenning.
+ */
+function onText(d: Draft, text: string, ref: Date, plain = false): void {
   const pending = d.state.pending;
+  if (pending.kind === "paste") {
+    // Iets anders getypt: de geplakte tekst blijft liggen, verder met wat openstond.
+    setPending(d, pending.resume);
+    return onText(d, text, ref, plain);
+  }
+  if (!plain) {
+    const intent = parseIntent(text);
+    if (intent) return onEntry(d, intent);
+    const asksNotes = pending.kind === "notes" || pending.kind === "place-actions";
+    if (!asksNotes && looksLikeNotes(text))
+      return void ask(d, { kind: "paste", text, resume: pending }, QUESTIONS.paste);
+  }
   switch (pending.kind) {
     case "entry":
     case "sentence": {
@@ -388,9 +433,14 @@ function onText(d: Draft, text: string, ref: Date): void {
     }
     case "notes":
     case "place-actions":
-      return extract(d, text, ref);
+      return processNotes(d, text, ref);
     case "owner":
       return answerOwner(d, pending.actionId, text, ref);
+    case "provider":
+    case "pick-meeting":
+      // Toch liever vertellen: de zin wordt het overleg.
+      setPending(d, pending.resume);
+      return onText(d, text, ref, true);
     case "proposal":
     case "idle":
       d.messages.push(
@@ -430,44 +480,105 @@ function onChip(d: Draft, value: string, ref: Date) {
 const PROVIDER_LABEL = { outlook: "Outlook", google: "Google" } as const;
 const CALM = "Geen probleem: vertel het me of gebruik notities.";
 
-/** "Uit mijn agenda": vaste overleggen kiezen (C1b), of een rustige melding; de andere ingangen blijven. */
-function onCalendar(d: Draft, provider: CalendarProvider, result: CalendarResult) {
-  switch (result.kind) {
-    case "series":
-      d.state = { ...d.state, entry: "calendar" };
-      setPending(d, { kind: "pick-meeting", provider, options: result.options });
-      d.messages.push(
-        say(
-          `Ik vond **${plural(result.options.length, "vast overleg", "vaste overleggen")}**. Welk wil je eerst opvolgen?`,
-        ),
-      );
+/** Wat openstond vóór het agendapad; daar gaat de assistent daarna mee verder. */
+function resumeOf(p: Pending): Pending {
+  return p.kind === "provider" || p.kind === "pick-meeting" || p.kind === "paste" ? p.resume : p;
+}
+
+/** Een startkeuze (C1), het "+"-menu, of een zin als "ik heb notities". De details komen pas nu. */
+function onEntry(d: Draft, entry: StartChoice) {
+  const p = d.state.pending;
+  const atStart = p.kind === "entry";
+  switch (entry) {
+    case "calendar":
+      // Staat de vraag al open, dan enkel een korte wegwijzer, geen tweede keer dezelfde vraag.
+      if (!ask(d, { kind: "provider", fields: null, resume: resumeOf(p) }, QUESTIONS.provider))
+        d.messages.push(say("Kies hieronder Outlook of Google."));
       return;
-    case "none":
-      d.state = { ...d.state, entry: "calendar" };
-      setPending(d, { kind: "pick-meeting", provider, options: result.options });
-      d.messages.push(
-        say(
-          result.options.length
-            ? "Ik vond geen vaste overleggen in je agenda. Wel deze losse afspraken in de komende 2 weken; kies er een, of vertel het me."
-            : "Ik vond geen vaste overleggen in je agenda. Vertel het me gewoon.",
-        ),
-      );
+    case "notes":
+      if (atStart) d.state = { ...d.state, entry: "notes" };
+      if (d.state.step === 1) d.state = { ...d.state, step: 2 };
+      if (!ask(d, { kind: "notes" }, atStart ? QUESTIONS.notesEntry : QUESTIONS.notesLater, "dropzone"))
+        d.messages.push(say("Plak ze hieronder in het chatveld, of sleep een bestand hierheen."));
       return;
-    case "admin":
-      return void d.messages.push(say(`Je bedrijf moet dit eerst goedkeuren. ${CALM}`));
-    case "cancelled":
-      return void d.messages.push(say(`Het koppelen is geannuleerd. ${CALM}`));
-    case "blocked":
-      return void d.messages.push(say(`Inloggen met Microsoft lukt niet bij je bedrijf. ${CALM}`));
+    case "meeting":
+      d.state = { ...d.state, entry: "meeting" };
+      return void ask(d, { kind: "sentence" }, QUESTIONS.sentence);
   }
 }
 
-/** "Dit overleg opvolgen": het hoofdvlak krijgt het overleg uit de agenda als voorstel, daarna de acties. */
+/** "Uit agenda halen" / "Deelnemers uit agenda": het agendapad, maar enkel voor dat veld. */
+function onCalendarField(d: Draft, field: CalendarField) {
+  const p = d.state.pending;
+  // De vraag "Outlook of Google?" staat al open: ze komt niet nog eens, enkel het veld komt erbij.
+  if (p.kind === "provider") {
+    if (p.fields) setPending(d, { ...p, fields: [...new Set([...p.fields, field])] });
+    return void d.messages.push(say("Kies hieronder Outlook of Google."));
+  }
+  ask(d, { kind: "provider", fields: [field], resume: resumeOf(p) }, QUESTIONS.provider);
+}
+
+/** Na koppelen: vaste overleggen kiezen (C1b), of een rustige melding en de andere keuzes opnieuw. */
+function onCalendar(d: Draft, provider: CalendarProvider, result: CalendarResult) {
+  const p = d.state.pending;
+  const fields = p.kind === "provider" ? p.fields : null;
+  const resume = resumeOf(p);
+  const pick = (text: string, options: CalendarOption[]) => {
+    if (!fields) d.state = { ...d.state, entry: d.state.entry ?? "calendar" };
+    setPending(d, { kind: "pick-meeting", provider, options, fields, resume });
+    d.messages.push(say(text));
+  };
+  switch (result.kind) {
+    case "series":
+      return pick(
+        `Ik vond **${plural(result.options.length, "vast overleg", "vaste overleggen")}**. Welk wil je ${fields ? "gebruiken" : "eerst opvolgen"}?`,
+        result.options,
+      );
+    case "none":
+      return pick(
+        result.options.length
+          ? "Ik vond geen vaste overleggen in je agenda. Wel deze losse afspraken in de komende 2 weken; kies er een, of vertel het me."
+          : "Ik vond geen vaste overleggen in je agenda. Vertel het me gewoon.",
+        result.options,
+      );
+  }
+  // Mislukt: rustige melding. Bij de start komen de twee andere keuzes terug als tekstregels.
+  setPending(d, resume.kind === "entry" ? { kind: "entry", choices: ["notes", "meeting"] } : resume);
+  const reason =
+    result.kind === "admin"
+      ? "Je bedrijf moet dit eerst goedkeuren."
+      : result.kind === "cancelled"
+        ? "Het koppelen is geannuleerd."
+        : "Inloggen met Microsoft lukt niet bij je bedrijf.";
+  d.messages.push(say(`${reason} ${CALM}`));
+}
+
+/**
+ * "Dit overleg opvolgen": het overleg uit de agenda komt als voorstel in het hoofdvlak, daarna de acties.
+ * Via de links in de datumregel worden enkel die velden ingevuld en gaat de assistent verder waar hij was.
+ */
 function pickMeeting(d: Draft, id: string) {
   const p = d.state.pending;
   if (p.kind !== "pick-meeting") return;
   const o = p.options.find((x) => x.id === id);
   if (!o) return;
+  const from = PROVIDER_LABEL[p.provider];
+  if (p.fields) {
+    const when = p.fields.includes("when");
+    const people = p.fields.includes("participants");
+    patchMeeting(d, {
+      ...(when
+        ? { recurrence: o.recurrence, weekday: o.weekday, time: o.time, duration: o.duration, durationProposed: false }
+        : {}),
+      ...(people ? { participants: [...d.state.meeting.participants, ...newPeople(d, o)] } : {}),
+    });
+    d.flash = [...(when ? ["when"] : []), ...(people ? ["participants"] : [])];
+    const what = when && people ? "dag, uur en deelnemers" : when ? "dag en uur" : "de deelnemers";
+    d.messages.push(say(`Ik nam ${what} over uit je ${lowerFirst(o.name)} in ${from}.`));
+    setPending(d, p.resume);
+    if (d.state.step === 1) askNext(d);
+    return;
+  }
   patchMeeting(d, {
     name: o.name,
     recurrence: o.recurrence,
@@ -482,16 +593,24 @@ function pickMeeting(d: Draft, id: string) {
   });
   d.flash = ["name", "when", "participants", "topics"];
   d.events.push(["meeting_parsed", { bron: "agenda", velden: ["name", "weekday", "time", "participants"] }]);
-  d.messages.push(say(`Links staat je ${lowerFirst(o.name)} uit ${PROVIDER_LABEL[p.provider]}, als voorstel.`));
-  askNotes(d);
+  d.messages.push(say(`Links staat je ${lowerFirst(o.name)} uit ${from}, als voorstel.`));
+  if (d.state.step === 1) return askNotes(d);
+  // Al acties (via notities of na stap 1): verder waar de assistent was.
+  setPending(d, p.resume);
+  if (d.state.step === 2 && p.resume.kind !== "owner" && p.resume.kind !== "place-actions") askNext(d);
+}
+
+/** Deelnemers uit de agenda die nog niet in het overleg staan. */
+function newPeople(d: Draft, o: { participants: GuestMeeting["participants"] }) {
+  const have = new Set(d.state.meeting.participants.map((x) => x.id));
+  return o.participants.filter((x) => !have.has(x.id));
 }
 
 /** Notities uit een bestand: toon welk bestand, daarna de bestaande extractie. */
 function onNotesFile(d: Draft, file: { name: string; text: string; sample: boolean; image: boolean }, ref: Date) {
-  if (d.state.step === 3 || d.state.step === "done") {
-    return void d.messages.push(say("Je overleg staat al klaar. Voeg acties toe met ‘+ Actie’."));
-  }
-  if (d.state.step === 1) d.state = { ...d.state, entry: "notes", step: 2 };
+  // Een bestand beantwoordt ook een open vraag "Outlook of Google?" of "Dit lijken notities…".
+  setPending(d, resumeOf(d.state.pending));
+  if (d.state.step === 1) d.state = { ...d.state, entry: d.state.entry ?? "notes", step: 2 };
   const note = !file.sample
     ? ""
     : file.image
@@ -531,15 +650,19 @@ export function respond(state: AssistantState, input: AssistantInput, ref: Date 
       onNotesFile(d, input, ref);
       break;
     case "entry":
-      if (input.entry === "notes") {
-        d.state = { ...d.state, entry: "notes" };
-        askNotes(d);
-      } else {
-        d.state = { ...d.state, entry: "meeting" };
-        setPending(d, { kind: "sentence" });
-        d.messages.push(say(QUESTIONS.sentence));
-      }
+      onEntry(d, input.entry);
       break;
+    case "calendar-field":
+      onCalendarField(d, input.field);
+      break;
+    case "paste": {
+      const p = d.state.pending;
+      if (p.kind !== "paste") break;
+      setPending(d, p.resume);
+      if (input.process) processNotes(d, p.text, ref);
+      else onText(d, p.text, ref, true);
+      break;
+    }
     case "text":
       if (input.text.trim()) onText(d, input.text.trim(), ref);
       break;

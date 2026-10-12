@@ -245,3 +245,28 @@ export function parseMeetingUpdate(text: string): ParsedMeeting {
   const named = KNOWN_NAMES.some(([re]) => re.test(text.toLowerCase()));
   return { ...p, name: named ? p.name : null };
 }
+
+/** Kort genoeg om een opdracht te zijn, en geen zin over een overleg. */
+const COMMAND_MAX = 80;
+
+/**
+ * "koppel mijn agenda", "haal uit outlook", "ik heb notities", "notities uploaden": de assistent voert die
+ * actie meteen uit, zoals het "+"-menu (SPEC-LAZY.md §4, Ingangen blijven bereikbaar).
+ */
+export function parseIntent(text: string): "calendar" | "notes" | null {
+  const t = text.trim().toLowerCase();
+  if (t.length > COMMAND_MAX) return null;
+  if (
+    /\bkoppel\w*\b.*\b(agenda|outlook|google)\b|\b(agenda|outlook|google)\b.*\bkoppelen\b/.test(t) ||
+    /\b(haal|halen)\b.*\buit\s+(mijn\s+|de\s+|je\s+)?(agenda|outlook|google)\b/.test(t)
+  )
+    return "calendar";
+  if (/\b(ik\s+)?heb\s+(\w+\s+)?notities\b|\bnotities\s+(uploaden|opladen|plakken|toevoegen|verwerken)\b/.test(t))
+    return "notes";
+  return null;
+}
+
+/** Een geplakte tekst van minstens 3 regels of 200 tekens: dit lijken notities (C2b). */
+export function looksLikeNotes(text: string): boolean {
+  return text.trim().length >= 200 || text.split(/\r?\n/).filter((l) => l.trim()).length >= 3;
+}

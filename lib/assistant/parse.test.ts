@@ -17,6 +17,7 @@ function start(): AssistantState {
     actions: [],
     decisions: [],
     others: [],
+    notesReminderShown: false,
   };
 }
 

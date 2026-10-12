@@ -2,7 +2,7 @@
 
 import { useRef, useState, type DragEvent } from "react";
 import Link from "next/link";
-import { CalendarDays, ChevronRight, FileText, FileUp, Loader2, MessageCircle } from "lucide-react";
+import { CalendarDays, ChevronRight, FileText, FileUp, Loader2, MessageCircle, Mic } from "lucide-react";
 import { GoogleMark, MicrosoftMark } from "@/components/brand";
 import { Button } from "@/components/ui/button";
 import type { CalendarOption, CalendarProvider, StartChoice } from "@/lib/assistant/types";
@@ -156,7 +156,9 @@ export function ProviderChoice({
           Google
         </Button>
       </div>
-      <span className="text-[13px] text-ink-3">Ik toon je vaste overleggen, jij kiest er één. Alleen lezen.</span>
+      <span className="text-[13px] text-ink-3">
+        We lezen alleen je vaste vergaderingen. Je logt meteen in, zodat je werk bewaard blijft.
+      </span>
       {connecting && (
         <span role="status" className="text-[13px] text-ink-3">
           Verbinden met {connecting === "outlook" ? "Outlook" : "Google"}…
@@ -166,15 +168,21 @@ export function ProviderChoice({
   );
 }
 
-/** Na "Ik heb notities van de vorige keer" (C1c): dropzone met "Kies bestand", en de tip om te plakken. */
+/**
+ * Na "Gebruik notities van een vorig overleg" (Stap 0): dropzone met "Kies bestand", de knop Inspreken en
+ * de tip om te plakken.
+ */
 export function NotesDropzone({
   busy,
   reading,
   onFile,
+  onListen,
 }: {
   busy: boolean;
+  /** "verslag.pdf wordt gelezen…" of "Opname wordt uitgeschreven…". */
   reading: string | null;
   onFile: (file: File) => void;
+  onListen?: () => void;
 }) {
   const { over, handlers } = useFileDrop(onFile, !busy);
   return (
@@ -191,19 +199,27 @@ export function NotesDropzone({
         <span className="text-sm text-ink-2">
           Sleep een bestand hierheen
           <br />
-          <span className="text-[13px] text-ink-3">Word, PDF, e-mail of foto</span>
+          <span className="text-[13px] text-ink-3">Word, PDF, e-mail, foto of geluidsopname</span>
         </span>
-        <FilePicker onFile={onFile} disabled={busy}>
-          {reading ? <Loader2 className="size-4 animate-spin" aria-hidden /> : null}
-          Kies bestand
-        </FilePicker>
+        <span className="flex flex-wrap justify-center gap-2">
+          <FilePicker onFile={onFile} disabled={busy}>
+            {reading ? <Loader2 className="size-4 animate-spin" aria-hidden /> : null}
+            Kies bestand
+          </FilePicker>
+          {onListen && (
+            <Button variant="outline" size="sm" disabled={busy} onClick={onListen}>
+              <Mic className="size-4" aria-hidden />
+              Inspreken
+            </Button>
+          )}
+        </span>
       </div>
       {reading && (
         <span role="status" className="text-[13px] text-ink-3">
-          {reading} wordt gelezen…
+          {reading}
         </span>
       )}
-      <span className="text-[13px] text-ink-2">Of plak de tekst hieronder in het chatveld.</span>
+      <span className="text-[13px] text-ink-2">Of plak de tekst in het chatveld.</span>
     </div>
   );
 }

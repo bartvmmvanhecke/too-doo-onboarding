@@ -5,7 +5,7 @@
  */
 import { SAMPLE_NOTES } from "@/lib/extract";
 
-export type NotesFileKind = "text" | "email" | "docx" | "pdf" | "image" | "other";
+export type NotesFileKind = "text" | "email" | "docx" | "pdf" | "image" | "audio" | "other";
 
 export interface NotesFileResult {
   name: string;
@@ -16,7 +16,7 @@ export interface NotesFileResult {
 }
 
 /** Wat de bestandskiezer aanbiedt. */
-export const NOTES_ACCEPT = ".txt,.md,.eml,.docx,.pdf,image/*,text/plain,message/rfc822";
+export const NOTES_ACCEPT = ".txt,.md,.eml,.docx,.pdf,image/*,audio/*,text/plain,message/rfc822";
 
 export function notesFileKind(name: string, type = ""): NotesFileKind {
   const ext = name.toLowerCase().split(".").pop() ?? "";
@@ -25,6 +25,8 @@ export function notesFileKind(name: string, type = ""): NotesFileKind {
   if (ext === "docx") return "docx";
   if (ext === "pdf" || type === "application/pdf") return "pdf";
   if (type.startsWith("image/") || ["png", "jpg", "jpeg", "heic", "gif", "webp"].includes(ext)) return "image";
+  // Geluidsopname: uitschrijven valt buiten het prototype, de vaste voorbeeldtekst (SPEC-LAZY.md §4, Stap 0).
+  if (type.startsWith("audio/") || ["mp3", "m4a", "wav", "ogg", "webm", "aac"].includes(ext)) return "audio";
   return "other";
 }
 

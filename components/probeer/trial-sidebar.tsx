@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { motion } from "framer-motion";
 import { Menu } from "lucide-react";
 import { Logo } from "@/components/brand";
 import { Button } from "@/components/ui/button";
@@ -44,6 +45,9 @@ function NavItems({ meetingNames }: { meetingNames: string[] }) {
   );
 }
 
+/** Laag 2 (150–550 ms): het blauwe paneel krimpt tot de zijbalk, het logo landt. */
+const PANEL = { duration: 0.4, ease: [0.65, 0, 0.35, 1] as const };
+
 function SaveBox({ canSave, onSave, account }: { canSave: boolean; onSave: () => void; account: GuestAccount | null }) {
   return (
     <div className="flex flex-col gap-1.5 border-t border-white/15 px-3 py-3.5">
@@ -71,26 +75,44 @@ function SaveBox({ canSave, onSave, account }: { canSave: boolean; onSave: () =>
   );
 }
 
-/** Zijbalk van de proefomgeving (zoals de app); op smalle schermen een menuknop. */
+/** Gedeelde elementen van de overgang welkom → app (SPEC-LAZY.md §4, Stap 0). */
+export const SHARED = { panel: "trial-nav", logo: "trial-logo", title: "trial-title" } as const;
+
+/**
+ * Zijbalk van de proefomgeving (zoals de app); op smalle schermen een menuknop.
+ * `shared`: het blauwe paneel en het logo van het welkomstscherm landen hier (layoutId).
+ */
 export function TrialSidebar({
   meetingNames,
   canSave,
   onSave,
   account,
+  shared,
 }: {
   meetingNames: string[];
   canSave: boolean;
   onSave: () => void;
   account: GuestAccount | null;
+  shared?: boolean;
 }) {
   return (
     <>
       <nav
         aria-label="Hoofdmenu"
-        className="sticky top-0 hidden h-dvh w-[220px] shrink-0 flex-col gap-1 bg-app-nav px-3.5 py-6 text-white lg:flex"
+        className="sticky top-0 isolate hidden h-dvh w-[220px] shrink-0 flex-col gap-1 px-3.5 py-6 text-white lg:flex"
       >
-        <Logo href="/" tone="white" className="self-start px-2.5 pb-5" />
-        <NavItems meetingNames={meetingNames} />
+        <motion.div
+          aria-hidden
+          layoutId={shared ? SHARED.panel : undefined}
+          transition={PANEL}
+          className="absolute inset-0 -z-10 bg-app-nav"
+        />
+        <motion.div layoutId={shared ? SHARED.logo : undefined} transition={PANEL} className="self-start">
+          <Logo href="/" tone="white" className="px-2.5 pb-5" />
+        </motion.div>
+        <div className="dock-nav flex flex-col gap-1">
+          <NavItems meetingNames={meetingNames} />
+        </div>
         <div className="mt-auto">
           <SaveBox canSave={canSave} onSave={onSave} account={account} />
         </div>

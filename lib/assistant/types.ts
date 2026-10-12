@@ -87,7 +87,7 @@ export interface GuestDecision {
 
 export type GuestStep = 1 | 2 | 3 | "done";
 
-export type EntryChoice = "meeting" | "notes" | "calendar" | "example";
+export type EntryChoice = "meeting" | "notes" | "calendar" | "example" | "empty";
 
 /** De drie startkeuzes (C1), als eenvoudige tekstregels. */
 export type StartChoice = "calendar" | "notes" | "meeting";
@@ -100,6 +100,8 @@ export type Pending =
   /** De startkeuzes; na een mislukte agendakoppeling enkel de twee andere. */
   | { kind: "entry"; choices?: StartChoice[] }
   | { kind: "sentence" }
+  /** Na de zin (C1): "Wanneer gaat het door en wie zit erbij?" in één vraag. */
+  | { kind: "when-who" }
   | { kind: "name" }
   | { kind: "day" }
   | { kind: "time" }
@@ -156,10 +158,12 @@ export type AssistantInput =
   /** Een startkeuze, het "+"-menu of een zin als "koppel mijn agenda". */
   | { type: "entry"; entry: StartChoice }
   /** "Uit agenda halen" / "Deelnemers uit agenda" in de datumregel. */
-  | { type: "calendar-field"; field: CalendarField }
+  | { type: "calendar-field"; fields: CalendarField[] }
+  /** "Start met een lege meeting" (C1d). */
+  | { type: "start-empty" }
   | { type: "calendar"; provider: CalendarProvider; result: CalendarResult }
   | { type: "pick-meeting"; id: string }
-  | { type: "notes-file"; name: string; text: string; sample: boolean; image: boolean }
+  | { type: "notes-file"; name: string; text: string; sample: boolean; image: boolean; audio?: boolean }
   | { type: "text"; text: string }
   | { type: "chip"; value: string }
   | { type: "confirm-meeting" }

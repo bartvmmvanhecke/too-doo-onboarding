@@ -40,6 +40,12 @@ export interface TrialView {
   onAddAgendaItem: (text: string) => void;
   /** "Uit agenda halen" / "Deelnemers uit agenda" in de datumregel, zolang dat veld leeg is (C1). */
   onFromCalendar: ((field: "when" | "participants") => void) | null;
+  /** Overgang van welkom naar app (Stap 0): de titel is een gedeeld element met de agendakaart. */
+  titleLayoutId?: string;
+  /** Afsluiter van de overgang: één keer "✓ Klaar" naast de titel. */
+  done?: boolean;
+  /** Afsluiter op het notitiepad: de teller van de openstaande acties loopt op. */
+  countUp?: boolean;
 }
 
 export interface MeetingCtx {

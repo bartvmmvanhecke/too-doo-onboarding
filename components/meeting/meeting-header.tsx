@@ -2,7 +2,8 @@
 
 import { useState, type ReactNode } from "react";
 import Link from "next/link";
-import { CalendarDays, ChevronLeft, CircleDashed, Clock, Play, Plus, UserPlus } from "lucide-react";
+import { motion } from "framer-motion";
+import { CalendarDays, Check, ChevronLeft, CircleDashed, Clock, Play, Plus, UserPlus } from "lucide-react";
 import { Avatar } from "@/components/avatar";
 import { icon, InlineText, ProgressBar, STROKE } from "@/components/meeting/bits";
 import { useMeeting, useMeetingOps, type TrialView } from "@/components/meeting/meeting-context";
@@ -296,22 +297,36 @@ function TrialHeader({ trial, participants }: { trial: TrialView; participants: 
               </span>
             )}
           </span>
-          <h1
-            className={cn(
-              "-ml-1 flex min-w-0 text-[30px] leading-tight font-bold transition-shadow",
-              trial.empty && muted,
-              trial.flash.has("name") && flashed,
+          <motion.div layoutId={trial.titleLayoutId} className="flex min-w-0 flex-wrap items-center gap-3">
+            <h1
+              className={cn(
+                "-ml-1 flex min-w-0 text-[30px] leading-tight font-bold transition-shadow",
+                trial.empty && muted,
+                trial.flash.has("name") && flashed,
+              )}
+            >
+              <InlineText
+                value={meeting.name}
+                label="Naam van het overleg aanpassen"
+                editing={renaming || undefined}
+                onEditingChange={setRenaming}
+                onSave={trial.onRename}
+                inputClassName="text-[26px] font-bold"
+              />
+            </h1>
+            {trial.done && (
+              <motion.span
+                role="status"
+                initial={{ scale: 0.6, opacity: 0 }}
+                animate={{ scale: [0.6, 1.12, 1], opacity: 1 }}
+                transition={{ duration: 0.3, ease: [0.65, 0, 0.35, 1] }}
+                className="inline-flex items-center gap-1 rounded-full bg-success-bg px-2.5 py-1 text-sm font-extrabold text-success-ink"
+              >
+                <Check className="size-4" strokeWidth={3} aria-hidden />
+                Klaar
+              </motion.span>
             )}
-          >
-            <InlineText
-              value={meeting.name}
-              label="Naam van het overleg aanpassen"
-              editing={renaming || undefined}
-              onEditingChange={setRenaming}
-              onSave={trial.onRename}
-              inputClassName="text-[26px] font-bold"
-            />
-          </h1>
+          </motion.div>
           <div className="-ml-2 flex flex-wrap items-center gap-x-1 text-[13px] text-ink-3">
             <Popover>
               <PopoverTrigger asChild>

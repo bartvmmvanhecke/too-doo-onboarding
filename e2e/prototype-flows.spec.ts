@@ -30,7 +30,7 @@ test.describe("Vier flows vanaf /prototype", () => {
     await shot("prototype");
     await page.getByRole("button", { name: /Start flow 1:/ }).click();
     await expect(page).toHaveURL(/\/start$/);
-    await expect(page.getByRole("link", { name: "Terug naar flowkeuze (flow 1)" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Flowkeuze (actief: variant B · Flow 1)" })).toBeVisible();
     await shot("account");
     await page.getByRole("button", { name: "Doorgaan met Microsoft" }).click();
     await expect(page).toHaveURL(/\/overleg$/);
@@ -175,7 +175,8 @@ test.describe("Vier flows vanaf /prototype", () => {
     await page.getByLabel("Naam", { exact: true }).fill("Teamoverleg");
     await page.getByRole("button", { name: "Maak overleg aan" }).click();
     await expect(page).toHaveURL(/teamoverleg$/);
-    await page.getByRole("link", { name: /Terug naar flowkeuze/ }).click();
+    await page.getByRole("button", { name: /^Flowkeuze/ }).click();
+    await page.getByRole("menuitemradio", { name: /Variant B - Classic Onboarding/ }).click();
     await page.getByRole("button", { name: /Start flow 4:/ }).click();
     await page.goto("/app");
     await expect(page.getByRole("heading", { name: "Zet je eerste vaste overleg klaar" })).toBeVisible();

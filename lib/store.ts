@@ -117,6 +117,8 @@ export interface BState {
 
 export type CalendarState = "idle" | "series" | "none";
 
+export type OnboardingVariant = "A" | "B";
+
 interface Data {
   demo: { login: LoginOutcome; calendar: CalendarOutcome };
   user: User | null;
@@ -135,6 +137,8 @@ interface Data {
   manualReturn: string | null;
   /** Prototype: welke versie van stap 3 je ziet ("Toon alternatief voor stap 3" rechtsboven). */
   step3Variant: "acties" | "doel";
+  /** Prototype: actieve onboardingvariant in de flowkeuze (A · Lazy Registration, B · Classic Onboarding). */
+  variant: OnboardingVariant;
   b: BState;
 }
 
@@ -185,6 +189,7 @@ interface Actions {
   startFlow: (flow: FlowId | null, preset: FlowPreset) => void;
   setManualReturn: (route: string | null) => void;
   setStep3Variant: (variant: Data["step3Variant"]) => void;
+  setVariant: (variant: OnboardingVariant) => void;
   setBSelection: (ids: string[]) => void;
   followSeries: (ids: string[], preferredId: string) => void;
   addManualMeetingToB: () => string | null;
@@ -218,6 +223,7 @@ const initialData = (): Data => ({
   flow: null,
   manualReturn: null,
   step3Variant: "acties",
+  variant: "A",
   b: {
     selection: null,
     targetMeetingId: null,
@@ -582,12 +588,14 @@ export const useStore = create<Store>()(
           set({
             ...base,
             flow,
+            variant: "B",
             demo: { ...base.demo, ...preset.demo },
             user: preset.signedIn ? { ...MOCK_USER, method: "microsoft" } : null,
           });
         },
         setManualReturn: (manualReturn) => set({ manualReturn }),
         setStep3Variant: (step3Variant) => set({ step3Variant }),
+        setVariant: (variant) => set({ variant }),
 
         setBSelection: (selection) => set((s) => ({ b: { ...s.b, selection } })),
 

@@ -1,6 +1,7 @@
 "use client";
 
-import { FileText, X } from "lucide-react";
+import Link from "next/link";
+import { ArrowLeft, FileText, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 /** Statusbanner boven de voorbeeldagenda (Figma: "We prepared an example agenda…"). */
@@ -9,8 +10,11 @@ export function ExampleBanner({
   onShowMe,
   onStartBlank,
   onDismiss,
+  back,
 }: {
   meetingName: string;
+  /** Variant A: terug naar de proefomgeving (/probeer). */
+  back?: { label: string; href: string };
   onShowMe: () => void;
   onStartBlank: () => void;
   onDismiss: () => void;
@@ -35,7 +39,15 @@ export function ExampleBanner({
           Beslissingen en acties noteer je tijdens de vergadering.
         </p>
       </div>
-      <div className="flex items-center gap-1">
+      <div className={back ? "flex flex-wrap items-center gap-1" : "flex items-center gap-1"}>
+        {back && (
+          <Button asChild size="sm" className="rounded-full font-semibold">
+            <Link href={back.href}>
+              <ArrowLeft className="size-4" strokeWidth={1.8} aria-hidden />
+              {back.label}
+            </Link>
+          </Button>
+        )}
         <Button variant="outline" size="sm" className="rounded-full font-semibold text-brand" onClick={onShowMe}>
           Toon me hoe · 1 min
         </Button>

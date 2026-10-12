@@ -22,6 +22,9 @@ export const SAMPLE_NOTES = `Productie 6/10
 - staal leverancier blijft te laat leveren -> opnieuw bellen
 - planning wk 42 volgende keer beslissen`;
 
+/** "Inspreken" luistert gesimuleerd zo lang, en geeft dan het vaste transcript (SPEC.md §8). */
+export const LISTEN_DELAY = 2000;
+
 /** Vast transcript na "Inspreken" (SPEC.md §8). */
 export const SAMPLE_TRANSCRIPT =
   "Jan vraagt een nieuwe offerte voor de plooibank, liefst voor vrijdag. Sofie past de instructie van de heftruck aan na het incident. De leverancier van staal moet opnieuw gebeld worden. Over de planning van week 42 moeten we volgende keer beslissen.";

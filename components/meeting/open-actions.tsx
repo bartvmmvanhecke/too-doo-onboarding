@@ -49,6 +49,17 @@ function ActionRow({ action }: { action: Action }) {
           </span>
         )}
       </label>
+      {/* Variant A na bewaren (SPEC-LAZY.md §7): werd de actie gemaild? */}
+      {meeting.origin === "a" && action.mailed && (
+        <span className="shrink-0 rounded-md bg-success-bg px-2 py-0.5 text-xs font-semibold whitespace-nowrap text-success-ink">
+          mail verstuurd
+        </span>
+      )}
+      {meeting.origin === "a" && action.mailMissing && (
+        <span className="shrink-0 rounded-md bg-warning-bg px-2 py-0.5 text-xs font-semibold whitespace-nowrap text-warning">
+          e-mailadres ontbreekt
+        </span>
+      )}
       <OwnerButton ownerId={action.ownerId} onPick={(id) => assignOwner(meeting.id, action.id, id)} />
       <DeadlineChip deadline={action.deadline} />
     </li>

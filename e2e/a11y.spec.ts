@@ -78,6 +78,35 @@ const CASES: { name: string; path: string; setup?: (page: import("@playwright/te
     },
   },
   { name: "prototype", path: "/prototype" },
+  { name: "variant A: proefomgeving", path: "/probeer" },
+  {
+    name: "variant A: voorstel van het overleg",
+    path: "/probeer",
+    setup: async (page) => {
+      await page
+        .getByRole("textbox", { name: "Of vertel het meteen" })
+        .fill(
+          "Ons productieoverleg, elke maandag om 8u met Jan, Sofie, Pieter en Karim: lopende orders, problemen en planning.",
+        );
+      await page.keyboard.press("Enter");
+      await page.getByRole("button", { name: "Klopt" }).waitFor();
+    },
+  },
+  {
+    name: "variant A: acties en bewaar-modal",
+    path: "/probeer",
+    setup: async (page) => {
+      await page
+        .getByRole("textbox", { name: "Of vertel het meteen" })
+        .fill("Ons productieoverleg, elke maandag om 8u met Jan, Sofie, Pieter en Karim");
+      await page.keyboard.press("Enter");
+      await page.getByRole("button", { name: "Klopt" }).click();
+      await page.getByRole("button", { name: "Inspreken" }).click();
+      await page.getByRole("button", { name: "Zet ze op de agenda" }).click();
+      await page.getByRole("button", { name: "Alleen bewaren" }).click();
+      await page.getByRole("dialog").waitFor();
+    },
+  },
   { name: "website B", path: "/b" },
   { name: "voorbeeld B", path: "/b/voorbeeld" },
   { name: "reis", path: "/b/reis" },

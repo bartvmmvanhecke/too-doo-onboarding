@@ -10,6 +10,7 @@ const ROUTES = [
   "/voorbeeld",
   "/app",
   "/prototype",
+  "/probeer",
   "/b",
   "/b/voorbeeld",
   "/b/reis",

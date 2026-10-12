@@ -3,6 +3,7 @@
 import { useEffect, useId, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { FlaskConical, RotateCcw, X } from "lucide-react";
+import { GUEST_STORAGE_KEY } from "@/lib/guest-store";
 import { useStore, STORAGE_KEY, type CalendarOutcome, type LoginOutcome } from "@/lib/store";
 import { useHydrated } from "@/lib/use-hydrated";
 import { cn } from "@/lib/utils";
@@ -51,6 +52,8 @@ export function DemoBar() {
   const resetDemo = () => {
     try {
       window.localStorage.removeItem(STORAGE_KEY);
+      // Ook de proefomgeving van Variant A.
+      window.localStorage.removeItem(GUEST_STORAGE_KEY);
       window.location.assign(new URL("/", window.location.origin));
     } catch {
       reset();

@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { MeetingDetail } from "@/components/meeting/meeting-detail";
+import { SavedBanner } from "@/components/probeer/after-save";
 import { useStore } from "@/lib/store";
 
 /** Detailpagina van een vergadering: agenda, openstaande acties en de lopende vergadering. */
@@ -16,5 +17,10 @@ export function MeetingScreen() {
   }, [meeting, router]);
 
   if (!meeting) return null;
-  return <MeetingDetail meeting={meeting} />;
+  return (
+    <>
+      <SavedBanner meeting={meeting} />
+      <MeetingDetail meeting={meeting} />
+    </>
+  );
 }

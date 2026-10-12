@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { Coffee, LayoutList, ListChecks, Plus } from "lucide-react";
 import { useAppUi } from "@/components/app/app-ui";
-import { Checklist } from "@/components/app/checklist";
+import { Checklist, type ChecklistItem } from "@/components/app/checklist";
 import { InviteDialog } from "@/components/app/invite-dialog";
 import { BreakBlock, TopicsBlock, type AgendaMoves } from "@/components/meeting/agenda";
 import { icon, menuItem, STROKE } from "@/components/meeting/bits";
@@ -145,7 +145,14 @@ function tourSteps(meeting: Meeting): TourStep[] {
  * Met `example` (op /voorbeeld) komen er een statusbanner, een rondleiding en de
  * zwevende checklist "Aan de slag" bij.
  */
-export function MeetingDetail({ meeting, example }: { meeting: Meeting; example?: { seed: AgendaBlock[] } }) {
+export function MeetingDetail({
+  meeting,
+  example,
+}: {
+  meeting: Meeting;
+  /** `back`: terugknop naar de proefomgeving van Variant A, in de voorbeeldbalk en de checklist. */
+  example?: { seed: AgendaBlock[]; back?: { label: string; href: string } };
+}) {
   const moreAdded = useStore((s) => s.moreMeetingsAdded);
   const extraPeople = useStore((s) => s.extraPeople);
   const people = usePeople();
@@ -214,7 +221,7 @@ export function MeetingDetail({ meeting, example }: { meeting: Meeting; example?
     ? `${joinNl(invitees.map((p) => p.name.split(" ")[0]))} uitnodigen`
     : "Je collega's uitnodigen";
 
-  const checklist = [
+  const checklist: ChecklistItem[] = [
     { id: "eerste", label: "Je eerste vergadering klaarzetten", done: true },
     {
       id: "andere",
@@ -231,6 +238,33 @@ export function MeetingDetail({ meeting, example }: { meeting: Meeting; example?
       done: meeting.held,
     },
   ];
+  // Variant A na bewaren (SPEC-LAZY.md §7): eerste overleg met acties, acties gemaild, andere overleggen, houden.
+  const lazy = useStore((s) => (s.lazy?.meetingId === meeting.id ? s.lazy : null));
+  if (meeting.origin === "a") {
+    checklist.splice(
+      0,
+      checklist.length,
+      { id: "eerste", label: "Eerste overleg met acties", done: true },
+      {
+        id: "gemaild",
+        label: "Acties naar eigenaars gemaild",
+        done: meeting.actions.some((a) => a.mailed),
+        highlight: lazy?.intent === "send" && !meeting.actions.some((a) => a.mailed),
+      },
+      {
+        id: "andere",
+        label: "Andere vaste overleggen toevoegen",
+        done: moreAdded,
+        meta: "1 min",
+        onSelect: () => setAddMeetingsOpen(true),
+      },
+      {
+        id: "houden",
+        label: meeting.date ? `${upperFirst(weekdayLong(meeting.date))} het overleg houden` : "Het overleg houden",
+        done: meeting.held,
+      },
+    );
+  }
   const showChecklist = !example && !run && checklist.some((c) => !c.done);
   const detailsItem: AgendaItem | null = items.find((i) => i.id === detailsId) ?? null;
 
@@ -289,6 +323,7 @@ export function MeetingDetail({ meeting, example }: { meeting: Meeting; example?
             onShowMe={() => setTouring(true)}
             onStartBlank={startBlank}
             onDismiss={() => setBannerOpen(false)}
+            back={example.back}
           />
         )}
 
@@ -335,7 +370,7 @@ export function MeetingDetail({ meeting, example }: { meeting: Meeting; example?
             <div aria-hidden className="h-56" />
             <GettingStarted
               items={gettingStarted}
-              nextUp={{ label: "Zet je eigen vergadering klaar", href: "/overleg" }}
+              nextUp={example.back ?? { label: "Zet je eigen vergadering klaar", href: "/overleg" }}
               onClose={() => setChecklistOpen(false)}
             />
           </>

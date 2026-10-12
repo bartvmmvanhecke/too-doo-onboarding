@@ -33,7 +33,7 @@ import {
   type Appointment,
   type Person,
 } from "@/lib/mock-data";
-import { createPerson, initialsFrom } from "@/lib/people";
+import { createPerson, initialsFrom, isEmail } from "@/lib/people";
 import { uid } from "@/lib/utils";
 
 export type LoginOutcome = "success" | "blocked";
@@ -71,6 +71,8 @@ export interface Action {
   done: boolean;
   /** Variant B: de eigenaar kreeg de actie per mail (gesimuleerd). */
   mailed?: boolean;
+  /** Variant A: mail niet verstuurd omdat het e-mailadres ontbreekt. */
+  mailMissing?: boolean;
   /** Vergadering (datum) waarin de actie genoteerd werd. */
   createdAt?: ISODate;
 }
@@ -94,8 +96,8 @@ export interface Meeting extends MeetingSchedule {
   showWelcome: boolean;
   invited: boolean;
   held: boolean;
-  /** Aangemaakt via variant B (/b/structuur). */
-  origin?: "b";
+  /** Aangemaakt via flow 3 (/b/structuur), of bewaard uit de proefomgeving van Variant A (/probeer). */
+  origin?: "b" | "a";
   /** Voorbeeldvergadering op /voorbeeld: wordt nooit bewaard. */
   example?: boolean;
 }
@@ -119,6 +121,18 @@ export type CalendarState = "idle" | "series" | "none";
 
 export type OnboardingVariant = "A" | "B";
 
+/** Waarom het bewaar-modal van Variant A openging (SPEC-LAZY.md §5). */
+export type SaveIntent = "send" | "save" | "invite" | "start" | "login";
+
+/** Variant A na bewaren (SPEC-LAZY.md §7): het assistentpaneel in de app. */
+export interface LazyWelcome {
+  meetingId: string;
+  intent: SaveIntent;
+  stage: "emails" | "more" | "self" | "done";
+  /** Verstuurde mails, voor het bericht "Verstuurd naar …". */
+  sentTo: string[];
+}
+
 interface Data {
   demo: { login: LoginOutcome; calendar: CalendarOutcome };
   user: User | null;
@@ -139,6 +153,7 @@ interface Data {
   step3Variant: "acties" | "doel";
   /** Prototype: actieve onboardingvariant in de flowkeuze (A · Lazy Registration, B · Classic Onboarding). */
   variant: OnboardingVariant;
+  lazy: LazyWelcome | null;
   b: BState;
 }
 
@@ -190,6 +205,11 @@ interface Actions {
   setManualReturn: (route: string | null) => void;
   setStep3Variant: (variant: Data["step3Variant"]) => void;
   setVariant: (variant: OnboardingVariant) => void;
+  /** Variant A: zet de bewaarde proefomgeving om in vergaderingen. Geeft de id's terug. */
+  importGuest: (user: User, people: Person[], meetings: Omit<Meeting, "id">[], intent: SaveIntent) => string[];
+  updateLazy: (patch: Partial<LazyWelcome>) => void;
+  /** Variant A: e-mailadressen bewaren en de mails "versturen". */
+  sendOwnerMails: (meetingId: string, emails: Record<string, string>) => string[];
   setBSelection: (ids: string[]) => void;
   followSeries: (ids: string[], preferredId: string) => void;
   addManualMeetingToB: () => string | null;
@@ -224,6 +244,7 @@ const initialData = (): Data => ({
   manualReturn: null,
   step3Variant: "acties",
   variant: "A",
+  lazy: null,
   b: {
     selection: null,
     targetMeetingId: null,
@@ -596,6 +617,47 @@ export const useStore = create<Store>()(
         setManualReturn: (manualReturn) => set({ manualReturn }),
         setStep3Variant: (step3Variant) => set({ step3Variant }),
         setVariant: (variant) => set({ variant }),
+
+        importGuest: (user, people, list, intent) => {
+          const s = get();
+          let meetings = s.meetings;
+          const ids: string[] = [];
+          for (const m of list) {
+            const id = uniqueId(m.name, meetings);
+            ids.push(id);
+            meetings = [...meetings, { ...m, id }];
+          }
+          set({
+            user,
+            variant: "A",
+            extraPeople: [...s.extraPeople, ...people],
+            meetings,
+            lazy: ids[0]
+              ? { meetingId: ids[0], intent, stage: intent === "send" ? "emails" : "more", sentTo: [] }
+              : null,
+          });
+          return ids;
+        },
+        updateLazy: (patch) => set((s) => ({ lazy: s.lazy ? { ...s.lazy, ...patch } : null })),
+        sendOwnerMails: (meetingId, emails) => {
+          const sent = new Set(Object.keys(emails).filter((id) => isEmail(emails[id] ?? "")));
+          set((s) => ({
+            extraPeople: s.extraPeople.map((p) => (sent.has(p.id) ? { ...p, email: emails[p.id].trim() } : p)),
+            meetings: s.meetings.map((m) =>
+              m.id !== meetingId
+                ? m
+                : {
+                    ...m,
+                    actions: m.actions.map((a) =>
+                      !a.ownerId || a.ownerId === USER_PERSON_ID
+                        ? a
+                        : { ...a, mailed: sent.has(a.ownerId), mailMissing: !sent.has(a.ownerId) },
+                    ),
+                  },
+            ),
+          }));
+          return [...sent];
+        },
 
         setBSelection: (selection) => set((s) => ({ b: { ...s.b, selection } })),
 

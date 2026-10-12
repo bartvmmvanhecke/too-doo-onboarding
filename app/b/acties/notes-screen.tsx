@@ -13,7 +13,7 @@ import { Tag } from "@/components/tag";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { formatShortDate, weekdayLong } from "@/lib/date";
-import { extractProposals, SAMPLE_TRANSCRIPT } from "@/lib/extract";
+import { extractProposals, LISTEN_DELAY, SAMPLE_TRANSCRIPT } from "@/lib/extract";
 import { ownerOptions } from "@/lib/owners";
 import { initialsFrom } from "@/lib/people";
 import { AVATAR_COLORS } from "@/lib/mock-data";
@@ -22,7 +22,6 @@ import { cn, inSentence, joinNl } from "@/lib/utils";
 import { mailData } from "@/lib/variant-b";
 
 const EXTRACT_DELAY = 1000;
-const LISTEN_DELAY = 2000;
 
 const TABS: { id: ExtractionTab; label: string; icon: typeof ClipboardList }[] = [
   { id: "plak", label: "Plak notities", icon: ClipboardList },

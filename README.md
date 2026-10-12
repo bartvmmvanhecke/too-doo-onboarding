@@ -2,10 +2,14 @@
 
 Werkend prototype van de nieuwe onboarding van too-doo, van de website-hero tot het eerste overleg met acties.
 Functionele specificatie: [`SPEC.md`](SPEC.md) (inclusief §8, de beslissingen tijdens de bouw) en de aanvulling
-[`SPEC-FLOWS.md`](SPEC-FLOWS.md) (flowkeuze en variant B). Mockups: [`design/`](design/).
+[`SPEC-FLOWS.md`](SPEC-FLOWS.md) (flowkeuze en flow 3), en [`SPEC-LAZY.md`](SPEC-LAZY.md) (Variant A · Lazy
+Registration). Mockups: [`design/`](design/) en [`design/variant-a-lazy/`](design/variant-a-lazy/).
 
-Start bij **`/prototype`**: kies een van de vier flows of randgevallen. De knop rechtsboven op elk scherm brengt je
-terug naar de flowkeuze.
+Twee onboardingvarianten naast elkaar. Kies ze met de **flowkeuze-knop** rechtsboven op elk scherm:
+
+- **Variant A · Lazy Registration**: de website `/` → "Probeer Too-doo gratis" → **`/probeer`**. Meteen in de app,
+  zonder account; een gesimuleerde assistent zet het eerste overleg klaar. Het account komt pas bij bewaren.
+- **Variant B · Classic Onboarding**: **`/prototype`**, de vier flows en randgevallen (account eerst).
 
 Dit is een **prototype met nepdata**: geen echte login, Microsoft Graph, e-mail of backend. Externe stappen worden
 gesimuleerd. De uitkomst kies je in de **demo-balk** (knop "Demo" rechtsonder).
@@ -23,6 +27,7 @@ npm run dev            # http://localhost:3000
 | `npm run lint`      | ESLint (Next.js-config)                                                |
 | `npm run typecheck` | `tsc --noEmit`                                                         |
 | `npm run format`    | Prettier                                                               |
+| `npm test`          | unit tests (Vitest), o.a. de parser van de assistent                   |
 | `npm run test:e2e`  | Playwright: alle routes × demo-uitkomsten, links, mobiel en axe (WCAG) |
 
 `test:e2e` start zelf `next start` op poort 3200; draai dus eerst `npm run build`. De flowtests bewaren per stap een
@@ -42,6 +47,7 @@ schermafdruk in `screenshots/` (niet in git).
 | `/acties`              | 3 · Openstaande acties                                                   |
 | `/app/overleg/:id`     | 4 · Het overleg, met checklist en de modal "Andere overlegmomenten" (5)  |
 | `/app`                 | 4b · Lege toestand (toont het eerste overleg zodra er een bestaat)       |
+| `/probeer`             | Variant A · proefomgeving zonder account (C1–C5)                         |
 
 ## Structuur
 
@@ -53,7 +59,8 @@ components/
                          Field, BenefitList, ItEmailForm
   app/                   AppShell (zijbalk), Checklist, AddMeetingsDialog, InviteDialog
   b/                     variant B: WeekGrid, ProposalRow, OwnerPicker, MailPreview, StatTile
-  prototype/             PrototypeNav, de lijst-knop (alleen prototype)
+  probeer/               Variant A: TrialScreen, DraftMeeting, AssistantPanel, SaveDialog, AfterSaveAssistant
+  prototype/             PrototypeNav, de flowkeuze-knop met menu (alleen prototype)
   demo/                  DemoBar (alleen prototype)
   ui/                    shadcn/ui-basis (button, input, label, dialog, sonner)
 lib/
@@ -65,6 +72,10 @@ lib/
   flows.ts               de vier flows en randgevallen voor /prototype
   extract.ts             gesimuleerde extractie van acties uit notities (geen AI)
   variant-b.ts           aanbevolen start, standaardselectie, samenvatting, mailgegevens
+  assistant/             Variant A: gesimuleerde assistent (parser, antwoorden), met unit tests
+  guest-store.ts         Variant A: gast-state "toodoo-guest", 7 dagen geldig
+  guest-transfer.ts      Variant A: gast-state → vergaderingen in de app-store bij bewaren
+  track.ts               meetpunten (nu naar de console, later PostHog)
 e2e/                     Playwright-tests
 ```
 

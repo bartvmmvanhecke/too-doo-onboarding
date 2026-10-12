@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useState, type KeyboardEvent } from "react";
-import { usePathname } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import { FlaskConical, List, RotateCcw, Shuffle, type LucideIcon } from "lucide-react";
 import { openDemoSettings } from "@/components/demo/demo-bar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -47,6 +47,11 @@ const MENU_ITEMS: MenuItem[] = [
  */
 export function PrototypeNav() {
   const pathname = usePathname();
+  const params = useSearchParams();
+  const detail = /^\/app\/overleg\/[^/]+$/.test(pathname);
+  const meeting = useStore((s) => s.meetings.find((m) => m.id === pathname.split("/").at(-1)));
+  const showVariant = detail && !meeting?.run;
+  const variantB = params.get("variant") === "b";
   const hydrated = useHydrated();
   const step3Variant = useStore((s) => s.step3Variant);
   const setStep3Variant = useStore((s) => s.setStep3Variant);
@@ -85,6 +90,7 @@ export function PrototypeNav() {
             Toon alternatief voor stap 3
           </button>
         )}
+        {showVariant && variantB && <span className="rounded-lg bg-white px-2 py-1 text-xs text-ink-3">Variant B</span>}
         <Popover open={open} onOpenChange={setOpen}>
           <Tooltip>
             <TooltipTrigger asChild>
@@ -110,6 +116,17 @@ export function PrototypeNav() {
             }}
           >
             <div role="menu" aria-label="Prototype-menu" onKeyDown={onMenuKey} className="flex flex-col gap-0.5">
+              {showVariant && <div className="border-b border-line pb-2 mb-2">
+                <p className="px-2 text-xs text-ink-3">Meeting detail: variant A / B</p>
+                <div className="flex" role="group" aria-label="Meeting detail: variant A / B">
+                  {(["a", "b"] as const).map((variant) => <button key={variant} type="button" aria-pressed={variantB === (variant === "b")} className="min-h-11 flex-1 rounded-lg text-sm font-semibold hover:bg-app aria-pressed:bg-brand-soft aria-pressed:text-brand" onClick={() => {
+                    const url = new URL(window.location.href);
+                    url.searchParams.set("variant", variant);
+                    window.history.pushState(null, "", url);
+                    setOpen(false);
+                  }}>Variant {variant.toUpperCase()}</button>)}
+                </div>
+              </div>}
               {MENU_ITEMS.map((item, i) => {
                 const Icon = item.icon;
                 return (

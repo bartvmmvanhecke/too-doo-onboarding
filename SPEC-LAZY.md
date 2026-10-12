@@ -122,7 +122,7 @@ Typ-indicator (3 puntjes, 600–900 ms) voor elk antwoord. Velden die net ingevu
   1. **0–220 ms** – actie- en beslissingskaart van de illustratie schuiven terug naar het agendapunt en vervagen; slogans vervagen.
   2. **150–550 ms** – het blauwe paneel krimpt naar links tot de zijbalk (220 px); het logo krimpt van ± 40 px naar het zijbalklogo en landt op de plek ervan (shared element); de menu-items verschijnen gespreid (40 ms na elkaar, kort van links).
   3. **300–700 ms** – de agendakaart van de illustratie vliegt naar het hoofdvlak en wordt de titel van de eigen vergadering (shared element, blauwe markering); statuslabel, datumregel en agendablokken komen er gespreid onder (60 ms na elkaar, 10 px van onder).
-  4. **Afsluiter** – één keer een groen "✓ Klaar" naast de titel (schaal 0.6 → 1.12 → 1, ± 300 ms), daarna verdwijnt het; de assistent stelt zijn eerste vraag (bv. "Je productieoverleg staat klaar. Wanneer gaat het door en wie zit erbij?"). Bij het notitiepad loopt in plaats daarvan de teller "N openstaande acties" op.
+  4. **Afsluiter** – één keer een groen "✓ Klaar" naast de titel (schaal 0.6 → 1.12 → 1, ± 300 ms), daarna verdwijnt het; de assistent stelt zijn eerste vraag (vertelpad: "Je productieoverleg staat klaar. Ik stelde drie agendapunten voor. Klopt dit ongeveer?", zie Stap 1). Bij het notitiepad loopt in plaats daarvan de teller "N openstaande acties" op.
   - Bouw met **Framer Motion** (`motion` + `layoutId` voor logo, agendakaart→titel en het blauwe paneel→zijbalk; `AnimatePresence` voor de kaarten). Welkomst- en app-layout renderen in **dezelfde route** (`/probeer`), zodat de shared elements kunnen overgaan.
   - `prefers-reduced-motion`: geen beweging, crossfade van 200 ms.
   - Speelt **één keer** per gast (`transitionPlayed` in de gast-state); bij herladen meteen de app.
@@ -141,7 +141,12 @@ Dit is hetzelfde scherm als "nieuwe vergadering" voor bestaande gebruikers.
 
 ### Stap 1 · Eerste scherm in de app (C1, C1b) · update 12 okt
 **Geen startmenu meer in de assistent.** Het eerste scherm gaat verder met het gekozen pad en de assistent stelt **één gerichte vraag**:
-- Na **Ik vertel het (C1):** titel en voorgestelde agenda staan al ingevuld (blauwe markering). Assistent: "Je [naam] staat klaar, met een voorstel van agenda. **Wanneer gaat het door en wie zit erbij?**" met knop **Haal het uit mijn agenda** en hulptekst "Of typ het, bv. 'elke maandag om 8u met Jan, Sofie en Karim'." In de datumregel staan de links "Uit agenda halen" en "Deelnemers uit agenda". Ontbreekt dag/uur of deelnemers na het antwoord, dan vraagt de assistent alleen wat ontbreekt.
+- Na **Vertel het me (C1) · update 12 okt:** de gebruiker krijgt **één vraag** ("Waarover gaat je volgende overleg?"). Op het eerste antwoord volgt **meteen** de overgang; er komt vóór de overgang geen enkele vervolgvraag (geen naam, geen dag, geen deelnemers). Titel, agenda en wat er verder uit de zin te halen valt (dag, uur, deelnemers) staan ingevuld met blauwe markering. **De naam wordt nooit gevraagd:** afgeleid uit de zin, aanpasbaar in de titel. Daarna precies twee berichten, na elkaar:
+  1. "Je [naam] staat klaar. Ik stelde [N] agendapunten voor. **Klopt dit ongeveer?**" met knoppen **Klopt** en **Iets aanpassen** (zet de agenda in het hoofdvlak in bewerkmodus, focus op het eerste agendapunt; daarna gaat de assistent toch door naar bericht 2). N is het echte aantal voorgestelde punten. Een vrij antwoord telt als bevestiging.
+     - **Te vaag antwoord** (geen onderwerpen herkend, bv. "een meeting met mijn team"): de overgang speelt **toch meteen**, met een voorlopig concept: naam uit de zin of anders een generieke naam ("Teamoverleg", "Overleg") en de standaardagenda (Openstaande acties, Lopende zaken, Varia). Bericht 1 wordt dan de enige verduidelijkende vraag: "Je teamoverleg staat klaar als concept. **Waar willen jullie in die meeting vooral vooruitgang op boeken?**" Het antwoord wordt omgezet in agendapunten (zelfde regels als "Zin begrijpen"), die met blauwe markering in het hoofdvlak verschijnen; daarna meteen bericht 2. Link "Laat zo" slaat over. Nooit meer dan deze ene verduidelijkende vraag, en de gebruiker wacht nooit in de chat op een concept.
+  2. "**Heb je open punten of notities van de vorige keer?** Dan maak ik er acties van." met **Kies bestand**, **Inspreken**, hulptekst "Of plak of typ ze hieronder." en link **Ik heb niets openstaan**. Dit vervangt de eenmalige proactieve herinnering op dit pad (`notesReminderShown = true`).
+  - **Wanneer en wie worden niet gevraagd** in de onboarding. Ze blijven leeg met de links "Uit agenda halen" en "Deelnemers uit agenda" in de datumregel, en worden pas gevraagd op het moment dat ze nodig zijn (bv. bij "Start overleg" of acties mailen).
+  - Nooit beweren dat iets "links staat" voordat het effectief zichtbaar is.
 - Na **agenda (C1b):** radiolijst met vaste vergaderingen (de vergadering die de gebruiker organiseert met de meeste deelnemers bovenaan, label "jij organiseert"), knop "Deze vergadering opvolgen", tekst "Staat ze er niet tussen? Vertel het me." Titel, datumregel, avatars en een agendapunt uit de uitnodiging worden als voorstel ingevuld. Daarna stap 2.
 - Na **notities:** meteen stap 2 (C3).
 
@@ -172,14 +177,10 @@ Parser op de zin van de gebruiker (Nederlands, hoofdletterongevoelig):
 - **Agenda**: onderwerpen na ":" of "over", gesplitst op komma's en "en". Herkenbare woorden omzetten: orders → "Lopende orders", problemen/knelpunten → "Knelpunten en beslissingen", planning → "Planning komende week", veiligheid/incidenten → "Veiligheid en incidenten", kwaliteit → "Kwaliteit en klachten"; anders het onderwerp met hoofdletter. Geen onderwerpen → standaard "Lopende zaken" en "Varia".
 - **Openstaande acties** staat altijd als eerste agendablok.
 
-Antwoord: "Begrepen. Links staat een voorstel van agenda, met een plek voor openstaande acties bovenaan. Klopt dit?" + samenvattingskaart (Overleg, Wanneer, Deelnemers) + knoppen **Klopt** en **Iets aanpassen**.
-- Ontbreekt dag/uur → eerst vragen "Wanneer gaat het door?" met chips (ma–vr) en daarna uur-chips (08:00, 09:00, 10:00, 14:00) + vrij veld.
-- Ontbreken deelnemers → "Wie zit er meestal bij? Voornamen volstaan." (overslaan mag: "Later").
-- **Iets aanpassen** → zet de velden in het hoofdvlak in bewerkmodus, focus op het eerste veld.
-- **Klopt** → stap 2.
+De parser vult alleen in; hij stelt geen vragen. **Vervallen (12 okt):** het bericht "Begrepen. Links staat een voorstel…" met samenvattingskaart en de vervolgvragen "Hoe heet dit overleg?", "Wanneer gaat het door?" (dag/uur-chips) en "Wie zit er meestal bij?". Het gesprek na de zin staat in Stap 1.
 
 ### Stap 2 · Openstaande acties (C3)
-Vraag: "Wat werd er vorige keer afgesproken dat nog niet af is? Plak je notities of een mail, spreek het in, of typ het gewoon." + knop "Ik heb niets openstaan" (gaat naar stap 3 met lege actielijst).
+Vraag: "Heb je open punten of notities van de vorige keer? Dan maak ik er acties van." + Kies bestand, Inspreken, "Of plak of typ ze hieronder." + link "Ik heb niets openstaan" (gaat naar stap 3 met lege actielijst).
 - **Hergebruik de bestaande extractie uit `/b/acties`** (eigenaars uit deelnemerslijst, datumwoorden, "beslissen/beslissing" → agendapunt).
 - Microfoon: zelfde simulatie als in `/b/acties` (2 s luisteren, vaste transcriptie).
 - Resultaat verschijnt **op de agenda in het hoofdvlak**, niet in de chat: blok "Openstaande acties" met blauwe rand en label "N voorstellen · vink aan wat klopt", rijen met vinkje, tekst, eigenaar, datum (inline aanpasbaar). Beslissingen worden een agendapunt met doel "Beslissen" onder het passende thema (anders onder het eerste thema).

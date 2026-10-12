@@ -7,6 +7,7 @@ import { AddMeetingsDialog } from "@/components/app/add-meetings-dialog";
 import { AppUiProvider, useAppUi } from "@/components/app/app-ui";
 import { Logo } from "@/components/brand";
 import { Hydrated } from "@/components/hydrated";
+import { AfterSaveAssistant } from "@/components/probeer/after-save";
 import { notAvailable } from "@/lib/not-available";
 import { useStore } from "@/lib/store";
 import { cn } from "@/lib/utils";
@@ -28,6 +29,9 @@ function Sidebar() {
   const bMode = useStore((s) => s.flow === 3 || s.meetings.some((m) => m.origin === "b"));
   // De voorbeeldvergadering (/voorbeeld) hoort ook bij "Vergaderingen".
   const inMeetings = pathname.startsWith("/app") || pathname === "/voorbeeld";
+  const lazyUser = useStore((s) =>
+    s.variant === "A" && s.lazy && s.user ? `${s.user.firstName} ${s.user.lastName}`.trim() : null,
+  );
   const openActions = meetings.reduce((n, m) => n + m.actions.filter((a) => !a.done).length, 0);
 
   const comingSoon = (label: string, badge?: ReactNode) => (
@@ -70,6 +74,8 @@ function Sidebar() {
         {comingSoon("Notities")}
       </div>
       <p className="mt-auto hidden border-t border-white/15 p-3 text-[13px] text-nav-muted lg:block">
+        {/* Variant A: na bewaren staat je naam erbij (SPEC-LAZY.md §7). */}
+        {lazyUser && <span className="block text-sm font-extrabold text-white">{lazyUser}</span>}
         Proefperiode · nog 30 dagen
       </p>
     </nav>
@@ -90,6 +96,9 @@ export function AppShell({ children }: { children: ReactNode }) {
             <div className="mx-auto flex w-full max-w-[920px] flex-col gap-3.5">{children}</div>
           </main>
         </div>
+        <Hydrated>
+          <AfterSaveAssistant />
+        </Hydrated>
       </div>
       <Hydrated>
         <AddMeetingsDialogHost />

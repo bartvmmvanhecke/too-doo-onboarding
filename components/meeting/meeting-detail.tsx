@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { Coffee, LayoutList, ListChecks, Plus } from "lucide-react";
 import { useAppUi } from "@/components/app/app-ui";
-import { Checklist } from "@/components/app/checklist";
+import { Checklist, type ChecklistItem } from "@/components/app/checklist";
 import { InviteDialog } from "@/components/app/invite-dialog";
 import { BreakBlock, TopicsBlock, type AgendaMoves } from "@/components/meeting/agenda";
 import { icon, menuItem, STROKE } from "@/components/meeting/bits";
@@ -221,7 +221,7 @@ export function MeetingDetail({
     ? `${joinNl(invitees.map((p) => p.name.split(" ")[0]))} uitnodigen`
     : "Je collega's uitnodigen";
 
-  const checklist = [
+  const checklist: ChecklistItem[] = [
     { id: "eerste", label: "Je eerste vergadering klaarzetten", done: true },
     {
       id: "andere",
@@ -238,6 +238,33 @@ export function MeetingDetail({
       done: meeting.held,
     },
   ];
+  // Variant A na bewaren (SPEC-LAZY.md §7): eerste overleg met acties, acties gemaild, andere overleggen, houden.
+  const lazy = useStore((s) => (s.lazy?.meetingId === meeting.id ? s.lazy : null));
+  if (meeting.origin === "a") {
+    checklist.splice(
+      0,
+      checklist.length,
+      { id: "eerste", label: "Eerste overleg met acties", done: true },
+      {
+        id: "gemaild",
+        label: "Acties naar eigenaars gemaild",
+        done: meeting.actions.some((a) => a.mailed),
+        highlight: lazy?.intent === "send" && !meeting.actions.some((a) => a.mailed),
+      },
+      {
+        id: "andere",
+        label: "Andere vaste overleggen toevoegen",
+        done: moreAdded,
+        meta: "1 min",
+        onSelect: () => setAddMeetingsOpen(true),
+      },
+      {
+        id: "houden",
+        label: meeting.date ? `${upperFirst(weekdayLong(meeting.date))} het overleg houden` : "Het overleg houden",
+        done: meeting.held,
+      },
+    );
+  }
   const showChecklist = !example && !run && checklist.some((c) => !c.done);
   const detailsItem: AgendaItem | null = items.find((i) => i.id === detailsId) ?? null;
 

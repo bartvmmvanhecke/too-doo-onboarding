@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<title>Variant C – flow: eerst waarde, dan account</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800&amp;display=swap">
+<style>
+body{margin:0;background:#FFFFFF}
+a{color:#0B5FD8}a:hover{color:#08449C}
+</style>
+</helmet>
+<div style="width: 1440px; height: 900px; box-sizing: border-box; padding: 44px 56px; font-family: 'Nunito', system-ui, sans-serif; color: #16213A; background: #FFFFFF; display: flex; flex-direction: column; gap: 26px">
+  <div>
+    <h1 style="margin: 0; font-size: 32px; font-weight: 800">Eerst de waarde, dan het account</h1>
+    <p style="margin: 8px 0 0; font-size: 17px; color: #3E4860">Eén klik van de website naar het product. Het account komt pas op het moment dat de gebruiker iets wil dat een identiteit vraagt.</p>
+  </div>
+
+  <div style="display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 10px; align-items: stretch">
+    <div style="border: 1px solid #C9D3E3; border-radius: 14px; padding: 14px; display: flex; flex-direction: column; gap: 6px">
+      <span style="font-size: 12px; font-weight: 800; color: #0B5FD8">Website</span>
+      <span style="font-size: 15px; font-weight: 800">"Probeer Too-doo gratis"</span>
+      <span style="font-size: 13px; line-height: 1.45; color: #3E4860">Kop belooft het al: geen account of agenda-koppeling nodig.</span>
+    </div>
+    <a href="C1-Meteen-in-app.dc.html" style="border: 1px solid #C9D3E3; border-radius: 14px; padding: 14px; display: flex; flex-direction: column; gap: 6px; text-decoration: none; color: #16213A">
+      <span style="font-size: 12px; font-weight: 800; color: #0B5FD8">C1 · App</span>
+      <span style="font-size: 15px; font-weight: 800">Hoe wil je starten?</span>
+      <span style="font-size: 13px; line-height: 1.45; color: #3E4860">Echte app. Assistent biedt 3 ingangen: volgend overleg, notities, voorbeeld.</span>
+    </a>
+    <a href="C2-Agent-begrijpt.dc.html" style="border: 1px solid #C9D3E3; border-radius: 14px; padding: 14px; display: flex; flex-direction: column; gap: 6px; text-decoration: none; color: #16213A">
+      <span style="font-size: 12px; font-weight: 800; color: #0B5FD8">C2 · Assistent</span>
+      <span style="font-size: 15px; font-weight: 800">Eén zin is genoeg</span>
+      <span style="font-size: 13px; line-height: 1.45; color: #3E4860">Agenda wordt live voorgesteld. Wat hij niet zei, wordt gevraagd, niet verzonnen.</span>
+    </a>
+    <a href="C3-Agent-acties.dc.html" style="border: 1px solid #C9D3E3; border-radius: 14px; padding: 14px; display: flex; flex-direction: column; gap: 6px; text-decoration: none; color: #16213A">
+      <span style="font-size: 12px; font-weight: 800; color: #0B5FD8">C3 · Acties</span>
+      <span style="font-size: 15px; font-weight: 800">Notities plakken</span>
+      <span style="font-size: 13px; line-height: 1.45; color: #3E4860">Voorstellen op de agenda; gaten (geen eigenaar) worden een vraag.</span>
+    </a>
+    <a href="C4-Overleg-klaar.dc.html" style="border: 2px solid #0B5FD8; background: #F2F7FF; border-radius: 14px; padding: 13px; display: flex; flex-direction: column; gap: 6px; text-decoration: none; color: #16213A">
+      <span style="font-size: 12px; font-weight: 800; color: #0B5FD8">C4 · Aha 1 · ±2 min</span>
+      <span style="font-size: 15px; font-weight: 800">Overleg staat klaar</span>
+      <span style="font-size: 13px; line-height: 1.45; color: #3E4860">Daarna het voorstel: acties mailen naar eigenaars.</span>
+    </a>
+    <a href="C5-Bewaren.dc.html" style="border: 2px solid #C9821F; background: #FFF8EE; border-radius: 14px; padding: 13px; display: flex; flex-direction: column; gap: 6px; text-decoration: none; color: #16213A">
+      <span style="font-size: 12px; font-weight: 800; color: #7A3F04">C5 · Account</span>
+      <span style="font-size: 15px; font-weight: 800">Bewaren om te versturen</span>
+      <span style="font-size: 13px; line-height: 1.45; color: #3E4860">Microsoft, Google of e-mail met code. Geen wachtwoord.</span>
+    </a>
+    <a href="C6-Na-bewaren.dc.html" style="border: 2px solid #1E7A4C; background: #F1FAF4; border-radius: 14px; padding: 13px; display: flex; flex-direction: column; gap: 6px; text-decoration: none; color: #16213A">
+      <span style="font-size: 12px; font-weight: 800; color: #1E7A4C">C6 · Daarna</span>
+      <span style="font-size: 15px; font-weight: 800">Mails weg, Outlook als extra</span>
+      <span style="font-size: 13px; line-height: 1.45; color: #3E4860">Aha 2 bij het tweede overleg: acties komen vanzelf terug.</span>
+    </a>
+  </div>
+
+  <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; flex: 1">
+    <section style="background: #F4F7FB; border-radius: 14px; padding: 20px 22px; display: flex; flex-direction: column; gap: 10px">
+      <span style="font-size: 16px; font-weight: 800">Wanneer vragen we een account</span>
+      <span style="font-size: 14px; line-height: 1.55; color: #3E4860">Alleen bij een handeling die een identiteit nodig heeft, nooit op een timer:</span>
+      <span style="font-size: 14px; line-height: 1.7">1. Acties mailen naar eigenaars (hoofdmoment)<br>2. Een collega uitnodigen<br>3. Het verslag na het overleg versturen<br>4. Agenda koppelen<br>5. Zelf op "Bewaar" klikken</span>
+    </section>
+    <section style="background: #F4F7FB; border-radius: 14px; padding: 20px 22px; display: flex; flex-direction: column; gap: 10px">
+      <span style="font-size: 16px; font-weight: 800">Zonder account</span>
+      <span style="font-size: 14px; line-height: 1.7">Alles werkt, behalve versturen.<br>Bewaard op de server, gekoppeld aan dit toestel, 7 dagen.<br>Terugkeer op hetzelfde toestel: "Je productieoverleg staat er nog."<br>Bij bewaren gaat alles mee naar het account, niets opnieuw ingeven.<br>Assistent beperkt per sessie (misbruik en kosten).</span>
+    </section>
+    <section style="background: #F4F7FB; border-radius: 14px; padding: 20px 22px; display: flex; flex-direction: column; gap: 10px">
+      <span style="font-size: 16px; font-weight: 800">Meten (PostHog)</span>
+      <span style="font-size: 14px; line-height: 1.7">Anonieme id vanaf de eerste klik, gekoppeld bij bewaren.<br>Funnel: app geopend → overleg herkend → eerste actie → overleg klaar → bewaard → mail verstuurd → tweede overleg.<br>Activatie blijft: eerste actie met eigenaar.<br>Ook meten: hoeveel kiezen zelf invullen i.p.v. de assistent.</span>
+    </section>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+renderVals() {
+return {};
+}
+}
+</script>
+</body>
+</html>

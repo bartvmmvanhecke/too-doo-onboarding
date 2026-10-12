@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<title>Variant C – overleg staat klaar</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800&amp;display=swap">
+<style>
+body{margin:0;background:#F4F7FB}
+a{color:#0B5FD8}a:hover{color:#08449C}
+</style>
+</helmet>
+<div style="font-family: 'Nunito', system-ui, sans-serif; color: #16213A; background: #F4F7FB; min-height: 900px; display: flex; flex-wrap: wrap">
+  <nav aria-label="Hoofdmenu" style="flex: 1 1 200px; max-width: 220px; min-height: 900px; background: linear-gradient(180deg, #123A80 0%, #0C2A5E 100%); color: #FFFFFF; padding: 24px 14px; box-sizing: border-box; display: flex; flex-direction: column; gap: 4px">
+    <span style="font-size: 26px; font-weight: 800; padding: 0 10px 24px">too-doo</span>
+    <a href="#dashboard" style="color: #D5E2F7; text-decoration: none; font-size: 16px; font-weight: 600; padding: 11px 12px; border-radius: 10px">Dashboard</a>
+    <a href="#overleg" style="color: #FFFFFF; text-decoration: none; font-size: 16px; font-weight: 800; padding: 11px 12px; border-radius: 10px; background: rgba(255,255,255,0.14)">Vergaderingen</a>
+    <a href="#acties" style="color: #D5E2F7; text-decoration: none; font-size: 16px; font-weight: 600; padding: 11px 12px; border-radius: 10px; display: flex; justify-content: space-between">Acties <span style="font-size: 13px; font-weight: 800; background: rgba(255,255,255,0.18); color: #FFFFFF; border-radius: 999px; padding: 1px 9px">3</span></a>
+    <a href="#beslissingen" style="color: #D5E2F7; text-decoration: none; font-size: 16px; font-weight: 600; padding: 11px 12px; border-radius: 10px">Beslissingen</a>
+    <div style="margin-top: auto; padding: 14px 12px; border-top: 1px solid rgba(255,255,255,0.14); display: flex; flex-direction: column; gap: 8px">
+      <span style="font-size: 14px; font-weight: 800">Nog niet bewaard</span>
+      <span style="font-size: 13px; color: #C7D6EE; line-height: 1.4">Je werk staat op dit toestel.</span>
+      <a href="C5-Bewaren.dc.html" style="display: inline-flex; align-items: center; justify-content: center; min-height: 40px; border: 1px solid rgba(255,255,255,0.5); border-radius: 10px; color: #FFFFFF; font-size: 14px; font-weight: 700; text-decoration: none">Bewaar je overleg</a>
+    </div>
+  </nav>
+
+  <main style="flex: 999 1 520px; min-width: 0; padding: 22px 32px 40px; box-sizing: border-box; display: flex; flex-direction: column; gap: 18px">
+    <div role="status" style="display: flex; align-items: center; gap: 12px; background: #E2F4EA; color: #134B30; border-radius: 12px; padding: 14px 18px; font-size: 15px; font-weight: 700">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#134B30" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0"><path d="M20 6L9 17l-5-5"></path></svg>
+      <span style="flex: 1">Je productieoverleg van maandag staat klaar. 3 acties komen vanzelf aan bod tot ze af zijn.</span>
+    </div>
+
+    <div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-end; gap: 16px">
+      <div>
+        <h1 style="margin: 0 0 4px; font-size: 30px; font-weight: 800">Productieoverleg</h1>
+        <div style="font-size: 15px; color: #3E4860">Elke maandag · 08:00–09:00 · volgende: ma 12 okt · 5 deelnemers</div>
+      </div>
+      <div style="display: flex; flex-wrap: wrap; gap: 10px">
+        <button type="button" style="font-family: inherit; display: inline-flex; align-items: center; gap: 8px; background: #FFFFFF; color: #16213A; border: 1px solid #C9D3E3; border-radius: 10px; padding: 0 18px; min-height: 46px; font-size: 15px; font-weight: 700; cursor: pointer"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#16213A" stroke-width="2.5" stroke-linecap="round"><path d="M12 5v14M5 12h14"></path></svg>Actie</button>
+        <button type="button" style="font-family: inherit; display: inline-flex; align-items: center; gap: 8px; background: #0B5FD8; color: #FFFFFF; border: none; border-radius: 10px; padding: 0 20px; min-height: 46px; font-size: 15px; font-weight: 700; cursor: pointer"><svg width="16" height="16" viewBox="0 0 24 24" fill="#FFFFFF"><path d="M7 5l12 7-12 7z"></path></svg>Start overleg</button>
+      </div>
+    </div>
+
+    <section aria-label="Openstaande acties" style="background: #FFFFFF; border: 1px solid #E3E8F1; border-radius: 16px; padding: 18px 20px; display: flex; flex-direction: column; gap: 10px">
+      <div style="display: flex; align-items: center; gap: 10px"><span style="font-size: 17px; font-weight: 800; flex: 1">Openstaande acties</span><span style="font-size: 13px; color: #5B6478; font-weight: 600">komen vanzelf terug tot ze af zijn</span></div>
+      <div style="display: flex; align-items: center; gap: 12px; padding: 10px 0; border-top: 1px solid #EEF2F8">
+        <input type="checkbox" aria-label="Nieuwe offerte plooibank opvragen afvinken" style="width: 18px; height: 18px; accent-color: #0B5FD8; margin: 0">
+        <span style="flex: 1; font-size: 15px; font-weight: 600">Nieuwe offerte plooibank opvragen</span>
+        <span style="width: 28px; height: 28px; border-radius: 50%; background: #F2C9A8; color: #6A3412; font-size: 11px; font-weight: 800; display: flex; align-items: center; justify-content: center">JA</span>
+        <span style="font-size: 13px; font-weight: 700; color: #3E4860; background: #EEF2F8; padding: 4px 10px; border-radius: 6px">vr 16 okt</span>
+      </div>
+      <div style="display: flex; align-items: center; gap: 12px; padding: 10px 0; border-top: 1px solid #EEF2F8">
+        <input type="checkbox" aria-label="Instructie heftruck aanpassen afvinken" style="width: 18px; height: 18px; accent-color: #0B5FD8; margin: 0">
+        <span style="flex: 1; font-size: 15px; font-weight: 600">Instructie heftruck aanpassen na incident</span>
+        <span style="width: 28px; height: 28px; border-radius: 50%; background: #C9DDF6; color: #0F3B7A; font-size: 11px; font-weight: 800; display: flex; align-items: center; justify-content: center">SO</span>
+        <span style="font-size: 13px; font-weight: 600; color: #5B6478">geen deadline</span>
+      </div>
+      <div style="display: flex; align-items: center; gap: 12px; padding: 10px 0; border-top: 1px solid #EEF2F8">
+        <input type="checkbox" aria-label="Leverancier staal opnieuw bellen afvinken" style="width: 18px; height: 18px; accent-color: #0B5FD8; margin: 0">
+        <span style="flex: 1; font-size: 15px; font-weight: 600">Leverancier staal opnieuw bellen</span>
+        <span style="width: 28px; height: 28px; border-radius: 50%; background: #E6DCF5; color: #4B2A7A; font-size: 11px; font-weight: 800; display: flex; align-items: center; justify-content: center">KA</span>
+        <span style="font-size: 13px; font-weight: 700; color: #3E4860; background: #EEF2F8; padding: 4px 10px; border-radius: 6px">wo 14 okt</span>
+      </div>
+    </section>
+
+    <section aria-label="Lopende zaken" style="background: #FFFFFF; border: 1px solid #E3E8F1; border-radius: 16px; padding: 18px 20px; display: flex; flex-direction: column; gap: 10px">
+      <span style="font-size: 17px; font-weight: 800">Lopende zaken</span>
+      <div style="display: flex; align-items: center; gap: 12px; padding: 10px 0; border-top: 1px solid #EEF2F8; flex-wrap: wrap">
+        <span style="flex: 1; font-size: 15px; font-weight: 600">Planning week 42</span>
+        <span style="font-size: 12px; font-weight: 800; color: #4B2A7A; background: #EFE7FA; padding: 4px 9px; border-radius: 6px">beslissing nodig</span>
+      </div>
+      <input type="text" aria-label="Agendapunt toevoegen" placeholder="+ Typ een agendapunt en druk Enter" style="font-family: inherit; font-size: 15px; padding: 11px 14px; border: 1px dashed #A9B4C8; border-radius: 10px; color: #16213A; background: #FBFCFE">
+    </section>
+  </main>
+
+  <aside aria-label="Assistent" style="flex: 1 1 380px; max-width: 440px; min-height: 900px; background: #FFFFFF; border-left: 1px solid #E3E8F1; box-sizing: border-box; display: flex; flex-direction: column">
+    <div style="display: flex; align-items: center; gap: 12px; padding: 16px 18px; border-bottom: 1px solid #E3E8F1">
+      <span style="width: 36px; height: 36px; border-radius: 50%; background: #0B5FD8; display: flex; align-items: center; justify-content: center; flex-shrink: 0"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"></path></svg></span>
+      <span style="flex: 1; display: flex; flex-direction: column"><span style="font-size: 16px; font-weight: 800">Assistent</span><span style="font-size: 13px; color: #5B6478">stelt voor, jij beslist</span></span>
+      <span style="font-size: 12px; font-weight: 800; color: #0B5FD8; background: #E8F1FE; border-radius: 6px; padding: 4px 8px">3 van 3</span>
+      <button type="button" aria-label="Assistent verbergen" style="background: none; border: none; width: 44px; height: 44px; cursor: pointer; display: flex; align-items: center; justify-content: center"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#3E4860" stroke-width="2.5" stroke-linecap="round"><path d="M9 6l6 6-6 6"></path></svg></button>
+    </div>
+
+    <div style="flex: 1; padding: 20px 18px; display: flex; flex-direction: column; gap: 14px">
+      <div style="align-self: flex-start; max-width: 92%; background: #F4F7FB; border-radius: 16px 16px 16px 4px; padding: 12px 16px; font-size: 15px; line-height: 1.5">Klaar. Maandag om 8u staan je 3 acties bovenaan, en de planning van week 42 staat klaar om te beslissen.</div>
+
+      <div style="align-self: flex-start; width: 92%; background: #F4F7FB; border-radius: 16px 16px 16px 4px; padding: 14px 16px; display: flex; flex-direction: column; gap: 12px">
+        <span style="font-size: 15px; line-height: 1.5"><b>Zal ik Jan, Sofie en Karim hun actie nu al mailen?</b> Met een herinnering voor de deadline. Zo hoef jij maandag niet na te vragen wie wat zou doen.</span>
+        <div style="background: #FFFFFF; border: 1px solid #DCE3EE; border-radius: 12px; padding: 12px 14px; display: flex; flex-direction: column; gap: 6px">
+          <span style="font-size: 12px; font-weight: 800; color: #5B6478; text-transform: uppercase; letter-spacing: 0.4px">Voorbeeld voor Jan</span>
+          <span style="font-size: 14px; font-weight: 800">Jouw actie uit het productieoverleg</span>
+          <span style="font-size: 14px; color: #3E4860; line-height: 1.45">Nieuwe offerte plooibank opvragen · tegen vr 16 okt</span>
+          <span style="display: flex; gap: 6px; flex-wrap: wrap; padding-top: 2px">
+            <span style="font-size: 12px; font-weight: 700; border: 1px solid #C9D3E3; border-radius: 6px; padding: 3px 8px">Afgewerkt</span>
+            <span style="font-size: 12px; font-weight: 700; border: 1px solid #C9D3E3; border-radius: 6px; padding: 3px 8px">Andere datum</span>
+          </span>
+          <span style="font-size: 12px; color: #5B6478">Jan heeft geen account nodig.</span>
+        </div>
+        <div style="display: flex; gap: 8px; flex-wrap: wrap">
+          <a href="C5-Bewaren.dc.html" style="display: inline-flex; align-items: center; min-height: 44px; padding: 0 18px; background: #0B5FD8; color: #FFFFFF; border-radius: 10px; font-size: 15px; font-weight: 700; text-decoration: none">Ja, stuur ze</a>
+          <a href="C5-Bewaren.dc.html" style="display: inline-flex; align-items: center; min-height: 44px; padding: 0 16px; background: #FFFFFF; color: #16213A; border: 1px solid #C9D3E3; border-radius: 10px; font-size: 15px; font-weight: 700; text-decoration: none">Alleen bewaren</a>
+          <button type="button" style="font-family: inherit; min-height: 44px; padding: 0 12px; background: none; color: #3E4860; border: none; font-size: 15px; font-weight: 700; cursor: pointer">Nog even rondkijken</button>
+        </div>
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 8px; padding-top: 4px">
+        <span style="font-size: 13px; font-weight: 700; color: #3E4860">Of probeer verder</span>
+        <div style="display: flex; flex-wrap: wrap; gap: 8px">
+          <button type="button" style="font-family: inherit; min-height: 40px; padding: 0 14px; border: 1px solid #C9D3E3; border-radius: 999px; font-size: 14px; font-weight: 700; color: #16213A; background: #FFFFFF; cursor: pointer">Toon hoe het overleg verloopt</button>
+          <button type="button" style="font-family: inherit; min-height: 40px; padding: 0 14px; border: 1px solid #C9D3E3; border-radius: 999px; font-size: 14px; font-weight: 700; color: #16213A; background: #FFFFFF; cursor: pointer">Nog een overleg toevoegen</button>
+        </div>
+      </div>
+    </div>
+
+    <div style="padding: 14px 18px 18px; border-top: 1px solid #E3E8F1; display: flex; gap: 8px; align-items: flex-end">
+      <label for="c4-bericht" style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0)">Bericht aan de assistent</label>
+      <textarea id="c4-bericht" rows="1" placeholder="Vraag of zeg iets" style="flex: 1; min-width: 0; font-family: inherit; font-size: 15px; padding: 12px; border: 1px solid #C9D3E3; border-radius: 12px; resize: none; color: #16213A"></textarea>
+      <button type="button" aria-label="Inspreken" style="width: 46px; height: 46px; border-radius: 12px; border: 1px solid #C9D3E3; background: #FFFFFF; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#16213A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="3" width="6" height="11" rx="3"></rect><path d="M5 11a7 7 0 0 0 14 0M12 18v3"></path></svg></button>
+      <button type="button" aria-label="Versturen" style="width: 46px; height: 46px; border-radius: 12px; border: none; background: #0B5FD8; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"></path></svg></button>
+    </div>
+  </aside>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+renderVals() {
+return {};
+}
+}
+</script>
+</body>
+</html>

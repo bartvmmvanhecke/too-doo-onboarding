@@ -77,6 +77,7 @@ export function OwnerButton({
   role = "Eigenaar",
   id,
   hideEmpty,
+  emptyLabel,
 }: {
   ownerId: string | null;
   onPick: (id: string) => void;
@@ -84,9 +85,27 @@ export function OwnerButton({
   id?: string;
   /** Lege toestand enkel bij hover tonen. */
   hideEmpty?: boolean;
+  /** Variant A: lege toestand als knop "+ Wie?", met dit toegankelijke label. */
+  emptyLabel?: string;
 }) {
   const { people, owners } = useMeeting();
   const owner = findPerson(people, ownerId);
+  if (!owner && emptyLabel) {
+    return (
+      <OwnerPicker people={owners} label={`${role} kiezen`} onPick={onPick}>
+        <button
+          id={id}
+          type="button"
+          aria-label={emptyLabel}
+          className="min-h-11 shrink-0 cursor-pointer rounded-full px-1 text-[13px] font-semibold text-warning"
+        >
+          <span className="rounded-full border border-dashed border-warning-line bg-warning-bg px-3 py-1.5">
+            + Wie?
+          </span>
+        </button>
+      </OwnerPicker>
+    );
+  }
   return (
     <OwnerPicker people={owners} label={`${role} kiezen`} onPick={onPick}>
       <button

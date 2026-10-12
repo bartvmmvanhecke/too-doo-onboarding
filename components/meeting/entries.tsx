@@ -16,7 +16,7 @@ import {
 import { toast } from "sonner";
 import { Avatar } from "@/components/avatar";
 import { DateChip, icon, iconButton, OwnerButton, reveal, STROKE } from "@/components/meeting/bits";
-import { useMeeting } from "@/components/meeting/meeting-context";
+import { useMeeting, useMeetingOps } from "@/components/meeting/meeting-context";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import {
@@ -30,7 +30,7 @@ import {
   type EntryKind,
 } from "@/lib/agenda";
 import { notAvailable } from "@/lib/not-available";
-import { findPerson, useStore } from "@/lib/store";
+import { findPerson } from "@/lib/store";
 import { cn } from "@/lib/utils";
 
 type IconType = ComponentType<{ className?: string; strokeWidth?: number; "aria-hidden"?: boolean }>;
@@ -83,7 +83,7 @@ export function EntryRow({ entry, onRemove }: { entry: Entry; onRemove?: () => v
 /** Een eerder vastgelegd item in het paneel: bewerken en verwijderen kan meteen. */
 function EntryLine({ item, entry }: { item: AgendaItem; entry: Entry }) {
   const { meeting, people } = useMeeting();
-  const { updateEntry, removeEntry } = useStore.getState();
+  const { updateEntry, removeEntry } = useMeetingOps();
   const [editing, setEditing] = useState(false);
   const [text, setText] = useState(entry.text);
   const meta = kindMeta(entry.kind);
@@ -211,7 +211,7 @@ function Composer({
   autoFocus?: boolean;
 }) {
   const { meeting } = useMeeting();
-  const addEntry = useStore((s) => s.addEntry);
+  const { addEntry } = useMeetingOps();
   const [text, setText] = useState("");
   const [ownerId, setOwnerId] = useState<string | null>(item.ownerIds[0] ?? null);
   const [date, setDate] = useState("");
@@ -279,7 +279,7 @@ function Composer({
 /** Bestanden slepen of kiezen; ze blijven in deze sessie (er wordt niets verstuurd). */
 function Dropzone({ item }: { item: AgendaItem }) {
   const { meeting } = useMeeting();
-  const addEntry = useStore((s) => s.addEntry);
+  const { addEntry } = useMeetingOps();
   const [over, setOver] = useState(false);
   const add = (files: FileList | null) => {
     for (const f of Array.from(files ?? [])) {

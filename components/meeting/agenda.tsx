@@ -20,7 +20,7 @@ import {
   STROKE,
 } from "@/components/meeting/bits";
 import { EntryColumns, EntryForm, EntryRow, ItemEditButton } from "@/components/meeting/entries";
-import { useMeeting } from "@/components/meeting/meeting-context";
+import { useMeeting, useMeetingOps } from "@/components/meeting/meeting-context";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
@@ -32,7 +32,7 @@ import {
   type AgendaItem,
   type EntryKind,
 } from "@/lib/agenda";
-import { findPerson, useStore } from "@/lib/store";
+import { findPerson } from "@/lib/store";
 import { cn } from "@/lib/utils";
 
 const ITEM_TYPE = "application/x-too-doo-item";
@@ -90,8 +90,8 @@ export function AgendaItemRow({
   moves: AgendaMoves;
   onOpenDetails: (item: AgendaItem) => void;
 }) {
-  const { meeting } = useMeeting();
-  const updateItem = useStore((s) => s.updateItem);
+  const { meeting, trial } = useMeeting();
+  const { updateItem } = useMeetingOps();
   const [armed, setArmed] = useState(false);
   const [dropAt, setDropAt] = useState<"before" | "after" | null>(null);
   const run = meeting.run;
@@ -151,22 +151,33 @@ export function AgendaItemRow({
           status === "postponed" && "text-ink-3",
         )}
       />
-      {status !== "done" && <PurposePicker value={item.purposes} onChange={(purposes) => update({ purposes })} />}
-      {status !== "done" && (
-        <OwnersPicker id={`owner-${item.id}`} value={item.ownerIds} onChange={(ownerIds) => update({ ownerIds })} />
-      )}
-      {status === "done" && actual !== undefined ? (
-        <span className="px-1.5 text-[13px] whitespace-nowrap text-ink-3 tabular-nums">
-          {Math.max(1, Math.round(actual / 60))} min
-        </span>
+      {trial ? (
+        // Variant A: geen type-labels, eigenaars, duur of tellers zolang er geen inhoud is.
+        item.purposes.includes("decide") && (
+          <span className="ml-auto rounded-md bg-purpose-decide-bg px-2 py-0.5 text-xs font-semibold text-purpose-decide">
+            beslissing nodig
+          </span>
+        )
       ) : (
-        <DurationPicker value={item.duration} onChange={(duration) => update({ duration })} />
+        <>
+          {status !== "done" && <PurposePicker value={item.purposes} onChange={(purposes) => update({ purposes })} />}
+          {status !== "done" && (
+            <OwnersPicker id={`owner-${item.id}`} value={item.ownerIds} onChange={(ownerIds) => update({ ownerIds })} />
+          )}
+          {status === "done" && actual !== undefined ? (
+            <span className="px-1.5 text-[13px] whitespace-nowrap text-ink-3 tabular-nums">
+              {Math.max(1, Math.round(actual / 60))} min
+            </span>
+          ) : (
+            <DurationPicker value={item.duration} onChange={(duration) => update({ duration })} />
+          )}
+          {status === "postponed" && <span className="text-[13px] text-ink-3">naar volgende vergadering</span>}
+          <span className="ml-auto flex items-center">
+            <EntryColumns item={item} />
+            <ItemEditButton item={item} onOpen={() => onOpenDetails(item)} />
+          </span>
+        </>
       )}
-      {status === "postponed" && <span className="text-[13px] text-ink-3">naar volgende vergadering</span>}
-      <span className="ml-auto flex items-center">
-        <EntryColumns item={item} />
-        <ItemEditButton item={item} onOpen={() => onOpenDetails(item)} />
-      </span>
     </li>
   );
 }
@@ -181,7 +192,7 @@ const CAPTURE: { kind: EntryKind; label: string }[] = [
 
 export function CurrentItemCard({ item }: { item: AgendaItem }) {
   const { meeting, now } = useMeeting();
-  const { updateItem, addEntry, removeEntry, nextStep } = useStore.getState();
+  const { updateItem, addEntry, removeEntry, nextStep } = useMeetingOps();
   const [adding, setAdding] = useState<EntryKind | null>(null);
   const run = meeting.run!;
   const elapsed = (now - run.stepStartedAt) / 1000;
@@ -252,7 +263,7 @@ export function CurrentItemCard({ item }: { item: AgendaItem }) {
 
 function BlockMenu({ block, onRename }: { block: AgendaBlock; onRename: () => void }) {
   const { meeting } = useMeeting();
-  const { removeBlock, updateBlock } = useStore.getState();
+  const { removeBlock, updateBlock } = useMeetingOps();
   const [open, setOpen] = useState(false);
   const [duration, setDuration] = useState(false);
   return (
@@ -325,6 +336,10 @@ export function BlockCard({
   children,
   bodyId,
   tinted,
+  tone,
+  badge,
+  hideMenu,
+  onFileDrop,
 }: {
   block: AgendaBlock;
   index: number;
@@ -341,9 +356,17 @@ export function BlockCard({
   bodyId: string;
   /** Lichtgrijs blok met witte kaarten per agendapunt. */
   tinted?: boolean;
+  /** Variant A: gestippeld (nog leeg) of met blauwe rand (voorstel). */
+  tone?: "dashed" | "proposal";
+  /** Variant A: rechts in de kop, bv. "voorstel". */
+  badge?: ReactNode;
+  /** Variant A: geen menu (hernoemen, verwijderen). */
+  hideMenu?: boolean;
+  /** Variant A: een bestand slepen op dit blok. */
+  onFileDrop?: (file: File) => void;
 }) {
   const { meeting } = useMeeting();
-  const updateBlock = useStore((s) => s.updateBlock);
+  const { updateBlock } = useMeetingOps();
   const [armed, setArmed] = useState(false);
   const [renaming, setRenaming] = useState(false);
   const [dropAt, setDropAt] = useState<"before" | "after" | null>(null);
@@ -358,12 +381,18 @@ export function BlockCard({
       }}
       onDragEnd={() => setArmed(false)}
       onDragOver={(e) => {
+        if (onFileDrop && e.dataTransfer.types.includes("Files")) return e.preventDefault();
         if (!e.dataTransfer.types.includes(BLOCK_TYPE)) return;
         e.preventDefault();
         setDropAt(dropBefore(e) ? "before" : "after");
       }}
       onDragLeave={() => setDropAt(null)}
       onDrop={(e) => {
+        const file = onFileDrop && e.dataTransfer.files?.[0];
+        if (file) {
+          e.preventDefault();
+          return onFileDrop(file);
+        }
         const id = e.dataTransfer.getData(BLOCK_TYPE);
         setDropAt(null);
         if (!id) return;
@@ -374,6 +403,8 @@ export function BlockCard({
         card,
         "flex flex-col px-3 py-1.5 sm:px-4",
         tinted && "bg-row-hover",
+        tone === "dashed" && "border-[1.5px] border-dashed border-line bg-white",
+        tone === "proposal" && "border-2 border-proposal-line bg-brand-selected",
         dropAt === "before" && "shadow-[0_-3px_0_var(--brand)]",
         dropAt === "after" && "shadow-[0_3px_0_var(--brand)]",
       )}
@@ -407,7 +438,8 @@ export function BlockCard({
           {meta}
         </div>
         {summary}
-        <BlockMenu block={block} onRename={() => setRenaming(true)} />
+        {badge}
+        {!hideMenu && <BlockMenu block={block} onRename={() => setRenaming(true)} />}
         <button
           type="button"
           aria-expanded={expanded}
@@ -450,8 +482,9 @@ export function TopicsBlock({
   focusInput?: boolean;
   onOpenDetails: (item: AgendaItem) => void;
 }) {
-  const { meeting, people } = useMeeting();
-  const { addAgendaItem, updateBlock } = useStore.getState();
+  const { meeting, people, trial } = useMeeting();
+  const { addAgendaItem, updateBlock } = useMeetingOps();
+  const proposed = !!trial?.proposedBlockIds.has(block.id);
   const [text, setText] = useState("");
   const [adding, setAdding] = useState(false);
   const run = meeting.run;
@@ -479,20 +512,28 @@ export function TopicsBlock({
       onToggle={onToggle}
       bodyId={`block-${block.id}`}
       tinted
+      tone={trial ? (trial.empty ? "dashed" : proposed ? "proposal" : undefined) : undefined}
+      badge={
+        proposed && (
+          <span className="rounded-md bg-brand-soft px-2 py-0.5 text-xs font-semibold text-brand">voorstel</span>
+        )
+      }
       aside={
-        <>
-          <OwnerButton
-            role="Presentator"
-            ownerId={block.presenterId}
-            onPick={(presenterId) => updateBlock(meeting.id, block.id, { presenterId })}
-          />
-          {summary && <span className="px-1 text-[13px] whitespace-nowrap text-ink-3 tabular-nums">{summary}</span>}
-        </>
+        !trial && (
+          <>
+            <OwnerButton
+              role="Presentator"
+              ownerId={block.presenterId}
+              onPick={(presenterId) => updateBlock(meeting.id, block.id, { presenterId })}
+            />
+            {summary && <span className="px-1 text-[13px] whitespace-nowrap text-ink-3 tabular-nums">{summary}</span>}
+          </>
+        )
       }
       meta={block.subtitle && <p className="px-1 text-[13px] text-ink-3">{block.subtitle}</p>}
     >
       {presenter && <span className="sr-only">Presentator: {presenter.name}</span>}
-      {block.items.length > 0 && (
+      {block.items.length > 0 && !trial && (
         // Kolomkoppen; elke teller heeft zelf een volledig label.
         <div aria-hidden className="hidden justify-end pr-[51px] pb-1.5 sm:flex">
           {ENTRY_KINDS.map(({ kind, plural: label }) => (
@@ -536,7 +577,7 @@ export function TopicsBlock({
           ),
         )}
       </ul>
-      {showInput ? (
+      {trial ? null : showInput ? (
         <>
           <div className="relative mt-2">
             <input
@@ -598,7 +639,7 @@ export function TopicsBlock({
 /** Pauze: geen kaart, maar een gecentreerd label met een lijn links en rechts. */
 export function BreakBlock({ block, index, moves }: { block: AgendaBlock; index: number; moves: AgendaMoves }) {
   const { meeting } = useMeeting();
-  const { updateBlock, removeBlock } = useStore.getState();
+  const { updateBlock, removeBlock } = useMeetingOps();
   const [armed, setArmed] = useState(false);
   const [open, setOpen] = useState(false);
   return (

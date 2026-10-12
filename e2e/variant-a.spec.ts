@@ -35,10 +35,12 @@ async function buildMeeting(page: Page) {
   await expectAssistant(page, "Waarover gaat je volgende overleg? Eén zin is genoeg.");
   await say(page, SENTENCE);
   await expectAssistant(page, /Begrepen\. Links staat een voorstel van agenda/);
-  const fields = page.getByRole("region", { name: "Overleg in opbouw" });
-  await expect(fields.getByRole("button", { name: /^Naam: Productieoverleg/ })).toBeVisible();
-  await expect(fields.getByRole("button", { name: /^Wanneer: Elke maandag · 08:00–09:00/ })).toBeVisible();
-  await expect(page.getByRole("region", { name: "Lopende zaken" })).toContainText("Knelpunten en beslissingen");
+  // Het detailscherm: titel, datumregel en agendapunten als blokken met "voorstel".
+  await expect(page.getByRole("heading", { level: 1, name: "Productieoverleg" })).toBeVisible();
+  await expect(page.getByRole("button", { name: /^Wanneer: Elke maandag · 08:00–09:00/ })).toBeVisible();
+  await expect(page.getByRole("button", { name: /^Deelnemers: Jan, Sofie, Pieter, Karim/ })).toBeVisible();
+  await expect(page.getByRole("region", { name: "Knelpunten en beslissingen" })).toContainText("voorstel");
+  await expect(page.getByRole("button", { name: "Start overleg" })).toBeDisabled();
   await expect(assistant(page).getByText("Jan, Sofie, Pieter, Karim en jij")).toBeVisible();
   await expect(assistant(page).getByText("1 van 3")).toBeVisible();
 
@@ -53,12 +55,15 @@ async function buildMeeting(page: Page) {
   const actions = page.getByRole("region", { name: "Openstaande acties" });
   await expect(actions).toContainText("3 voorstellen · vink aan wat klopt");
   await expect(actions.getByRole("button", { name: "Wie doet Leverancier staal opnieuw bellen?" })).toBeVisible();
-  await expect(page.getByRole("region", { name: "Lopende zaken" })).toContainText("beslissing nodig");
+  await expect(page.getByRole("region", { name: "Knelpunten en beslissingen" })).toContainText("beslissing nodig");
   await expectAssistant(page, "Wie gaat leverancier staal opnieuw bellen?");
   await say(page, "Karim belt, tegen woensdag");
   await expectAssistant(page, /Genoteerd: Karim, tegen wo/);
   await expect(
-    actions.getByRole("button", { name: /Eigenaar van Leverancier staal opnieuw bellen: Karim/ }),
+    actions
+      .getByRole("listitem")
+      .filter({ hasText: "Leverancier staal opnieuw bellen" })
+      .getByRole("button", { name: "Eigenaar: Karim. Wijzigen" }),
   ).toBeVisible();
 
   await assistant(page).getByRole("button", { name: "Zet ze op de agenda" }).click();
@@ -115,7 +120,7 @@ test.describe("Variant A · Lazy Registration", () => {
     await expect(page.getByText("Nieuwe offerte plooibank opvragen")).toBeVisible();
     await expect(page.getByText("Leverancier staal opnieuw bellen")).toBeVisible();
     await expect(page.getByText("Planning week 42")).toBeVisible();
-    await expect(page.getByText("Lopende orders")).toBeVisible();
+    await expect(page.getByRole("region", { name: "Lopende orders" })).toBeVisible();
 
     const panel = assistant(page);
     await expect(panel.getByText("Bewaard. Nog de e-mailadressen van je collega's:")).toBeVisible();
@@ -304,11 +309,14 @@ test.describe("Variant A · Lazy Registration", () => {
     await expectAssistant(page, "Wie zit er meestal bij? Voornamen volstaan.");
     await assistant(page).getByRole("group", { name: "Deelnemers" }).getByRole("button", { name: "Later" }).click();
     await assistant(page).getByRole("button", { name: "Iets aanpassen" }).click();
-    const name = page.getByLabel("Naam van het overleg");
+    // De titel staat in bewerkmodus; datumregel en avatars openen hun bewerker.
+    const name = page.getByLabel("Naam van het overleg aanpassen");
     await expect(name).toBeFocused();
     await name.fill("MT-overleg");
+    await name.press("Enter");
+    await page.getByRole("button", { name: /^Wanneer: / }).click();
     await page.getByLabel("Duur").selectOption("60");
-    await page.getByRole("button", { name: "Klaar met aanpassen" }).click();
+    await page.keyboard.press("Escape");
     // Geen nieuwe vraag: de samenvatting bij "Klopt dit?" toont de aanpassing.
     await expect(log(page).getByText("Klopt dit?")).toHaveCount(1);
     await expect(assistant(page).getByText("Om de 2 weken op dinsdag, 14:30–15:30")).toBeVisible();
@@ -350,10 +358,9 @@ test.describe("Variant A · Lazy Registration", () => {
 
     await expectAssistant(page, "Links staat je productieoverleg uit Outlook, als voorstel.");
     await expect(page.getByText("uit Outlook", { exact: true })).toBeVisible();
-    const fields = page.getByRole("region", { name: "Overleg in opbouw" });
-    await expect(fields.getByRole("button", { name: /^Wanneer: Elke maandag · 08:00–09:00/ })).toBeVisible();
-    await expect(page.getByRole("region", { name: "Lopende zaken" })).toContainText(
-      "Orders, stilstanden en planning volgende week",
+    await expect(page.getByRole("button", { name: /^Wanneer: Elke maandag · 08:00–09:00/ })).toBeVisible();
+    await expect(page.getByRole("region", { name: "Orders, stilstanden en planning volgende week" })).toContainText(
+      "voorstel",
     );
     await expectAssistant(page, /Wat werd er vorige keer afgesproken/);
     await say(page, NOTES);
@@ -364,7 +371,10 @@ test.describe("Variant A · Lazy Registration", () => {
     // Eigenaars uit de deelnemers van de agenda.
     const actions = page.getByRole("region", { name: "Openstaande acties" });
     await expect(
-      actions.getByRole("button", { name: /Eigenaar van Instructie heftruck aanpassen na incident: Sofie/ }),
+      actions
+        .getByRole("listitem")
+        .filter({ hasText: "Instructie heftruck aanpassen na incident" })
+        .getByRole("button", { name: "Eigenaar: Sofie De Smet. Wijzigen" }),
     ).toBeVisible();
     await assistant(page)
       .getByRole("group", { name: "Eigenaar kiezen" })
@@ -380,7 +390,7 @@ test.describe("Variant A · Lazy Registration", () => {
     await expect(page.getByRole("dialog")).toHaveCount(0);
     await expect(page).toHaveURL(/\/app\/overleg\/productieoverleg\?welkom=1$/);
     await expect(assistant(page).getByLabel("Sofie")).toHaveValue("sofie.desmet@metaalwerken.be");
-    await expect(page.getByText("Orders, stilstanden en planning volgende week")).toBeVisible();
+    await expect(page.getByRole("region", { name: "Orders, stilstanden en planning volgende week" })).toBeVisible();
     errors.assertNone();
   });
 
@@ -466,7 +476,7 @@ test.describe("Variant A · Lazy Registration", () => {
       dt.items.add(new File([bin], "verslag.pdf", { type: "application/pdf" }));
       return dt;
     }, bytes);
-    const zone = page.locator('[data-dropzone="openstaande-acties"]');
+    const zone = page.getByRole("region", { name: "Openstaande acties" });
     await zone.dispatchEvent("dragover", { dataTransfer: data });
     await zone.dispatchEvent("drop", { dataTransfer: data });
     await expectAssistant(page, "Ik las verslag.pdf.");
@@ -494,15 +504,18 @@ test.describe("Variant A · Lazy Registration", () => {
 
     // Weg en terug terwijl een antwoord onderweg is (Activity verbergt de pagina): het antwoord komt één keer.
     await say(page, "elke maandag om 9u met Els");
-    await page.getByRole("link", { name: "bekijk eerst een voorbeeld" }).click();
-    await page.getByRole("link", { name: "Terug naar je proefomgeving" }).first().click();
+    await page
+      .getByRole("navigation", { name: "Hoofdmenu" })
+      .getByRole("link", { name: /naar de startpagina/ })
+      .click();
+    await page.getByRole("main").getByRole("link", { name: "Probeer Too-doo gratis" }).click();
     await expectAssistant(page, "Hoe heet dit overleg? Bijvoorbeeld Productieoverleg.");
 
-    // "Vul het zelf in" en twee keer "Klaar met aanpassen": de open vraag komt niet opnieuw.
-    await page.getByRole("button", { name: "Vul het zelf in" }).click();
-    await page.getByRole("button", { name: "Klaar met aanpassen" }).click();
-    await page.getByRole("button", { name: "Wie zit erbij: ingevuld. Aanpassen" }).click();
-    await page.getByRole("button", { name: "Klaar met aanpassen" }).click();
+    // Twee keer zelf iets aanpassen in de datumregel: de open vraag komt niet opnieuw.
+    await page.getByRole("button", { name: /^Wanneer: / }).click();
+    await page.getByLabel("Duur").selectOption("30");
+    await page.getByLabel("Duur").selectOption("90");
+    await page.keyboard.press("Escape");
     await page.waitForTimeout(1200);
 
     const said = await log(page).innerText();
@@ -512,5 +525,61 @@ test.describe("Variant A · Lazy Registration", () => {
     expect(count("Hoe heet dit overleg?")).toBe(1);
     expect(count("Welkom terug")).toBe(0);
     await expect(assistant(page).getByRole("status", { name: "De assistent typt" })).toHaveCount(0);
+  });
+
+  test("hoofdvlak in de vorm van het detailscherm: verborgen lagen, + Agendapunt, oplichten", async ({ page }) => {
+    await page.goto("/probeer");
+    const main = page.getByRole("main");
+    // Lege toestand (C1).
+    await expect(main.getByText("Concept", { exact: true })).toBeVisible();
+    await expect(main.getByRole("heading", { level: 1, name: "Je eerste overleg" })).toBeVisible();
+    await expect(main.getByRole("button", { name: /^Wanneer: nog niet ingevuld/ })).toHaveText("Wanneer?");
+    await expect(main.getByRole("button", { name: "Wie zit erbij? Aanpassen" })).toBeVisible();
+    await expect(main.getByRole("button", { name: "Start overleg" })).toBeDisabled();
+    await expect(main.getByRole("heading", { level: 2, name: "Agendapunten" })).toBeVisible();
+    // Verborgen zolang er geen inhoud is: details, terugknop, tijdsbudget, tellers, type-labels, blokken toevoegen.
+    for (const name of [
+      /^Details$/,
+      /^Vergaderingen$/,
+      /Blok of pauze toevoegen/,
+      /^Agendapunt toevoegen aan/,
+      /Doel/,
+    ]) {
+      await expect(main.getByRole("button", { name })).toHaveCount(0);
+    }
+    await expect(main.getByRole("link", { name: /^Vergaderingen$/ })).toHaveCount(0);
+    // "Openstaande acties" staat open, met de uitleg en "kies een bestand".
+    await expect(main.getByRole("button", { name: "Openstaande acties inklappen" })).toHaveAttribute(
+      "aria-expanded",
+      "true",
+    );
+    await expect(main.getByRole("region", { name: "Openstaande acties" })).toContainText("kies een bestand");
+
+    // Eén inline regel "+ Agendapunt".
+    await expect(main.getByRole("button", { name: "Agendapunt", exact: true })).toHaveCount(1);
+    await main.getByRole("button", { name: "Agendapunt", exact: true }).click();
+    await main.getByLabel("Agendapunt toevoegen").fill("Budget 2027");
+    await main.getByLabel("Agendapunt toevoegen").press("Enter");
+    await expect(main.getByRole("region", { name: "Budget 2027" })).toBeVisible();
+
+    // Wat de assistent invult, licht op in de titel, de datumregel en de avatars.
+    await say(page, "Ons productieoverleg, elke maandag om 8u met Jan en Sofie");
+    const title = main.getByRole("heading", { level: 1 });
+    await expect(title).toHaveText("Productieoverleg");
+    await expect(title).toHaveClass(/bg-brand-selected/);
+    await expect(main.getByRole("button", { name: /^Wanneer: Elke maandag/ })).toHaveClass(/bg-brand-selected/);
+    await expect(main.getByRole("button", { name: /^Deelnemers: Jan, Sofie/ })).toHaveClass(/bg-brand-selected/);
+    await expect(title).not.toHaveClass(/bg-brand-selected/, { timeout: 4000 });
+
+    // Titel en deelnemers zijn rechtstreeks aanpasbaar.
+    await main.getByRole("button", { name: /^Deelnemers: Jan, Sofie/ }).click();
+    await page.getByLabel("Deelnemer toevoegen").fill("Karim");
+    await page.getByLabel("Deelnemer toevoegen").press("Enter");
+    await page.keyboard.press("Escape");
+    await expect(main.getByRole("button", { name: /^Deelnemers: Jan, Sofie, Karim/ })).toBeVisible();
+    await title.getByRole("button").click();
+    await main.getByLabel("Naam van het overleg aanpassen").fill("Productie-overleg");
+    await main.getByLabel("Naam van het overleg aanpassen").press("Enter");
+    await expect(title).toHaveText("Productie-overleg");
   });
 });

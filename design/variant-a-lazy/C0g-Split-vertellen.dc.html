@@ -13,40 +13,60 @@
 body{margin:0;background:#FFFFFF}
 a{color:#0B5FD8}a:hover{color:#08449C}
 
-.ia-stage{position:relative;width:600px;max-width:100%;height:460px}
+.ia-stage{position:relative;width:600px;max-width:100%;height:480px}
 .ia-card{position:absolute;background:#FFFFFF;color:#16213A;border-radius:18px;box-shadow:0 24px 50px rgba(5,20,60,.35)}
 .ia-agenda{left:0;top:40px;width:300px;padding:18px 20px;box-sizing:border-box}
-.ia-item{display:flex;gap:10px;align-items:flex-start;border-radius:12px;padding:10px 12px;margin-top:12px;background:#F4F7FB;animation:ia-hl 10s infinite}
+.ia-item{display:flex;gap:10px;align-items:flex-start;border-radius:12px;padding:10px 12px;margin-top:12px;background:#F4F7FB;animation:ia-hl 12s infinite}
+.ia-item .ia-itemtext{animation:ia-itemstrike 12s infinite}
 .ia-dot{width:8px;height:8px;border-radius:50%;background:#8DB6F0;margin-top:7px;flex-shrink:0}
-.ia-line{position:absolute;left:300px;height:2px;background:#8DB6F0;transform-origin:left center;transform:scaleX(0)}
-.ia-l1{top:188px;width:80px;animation:ia-draw1 10s infinite}
-.ia-l2{top:188px;width:190px;animation:ia-draw2 10s infinite;opacity:0}
+.ia-new{display:flex;gap:10px;align-items:center;border-radius:12px;padding:10px 12px;margin-top:8px;background:#F2F7FF;box-shadow:0 0 0 2px #8DB6F0;font-size:14px;font-weight:800;opacity:0;transform:translateY(-6px);animation:ia-new 12s infinite}
+.ia-newtag{margin-left:auto;font-size:11px;font-weight:800;color:#0B5FD8;background:#E8F1FE;border-radius:6px;padding:2px 7px}
+.ia-line{position:absolute;left:300px;height:2px;background:#8DB6F0;transform-origin:left center}
+.ia-l1{top:180px;width:80px;transform:scaleX(0);animation:ia-draw1 12s infinite}
+.ia-l2{top:180px;width:206px;opacity:0;transform:rotate(67deg) scaleX(0);animation:ia-draw2 12s infinite}
 .ia-act{right:0;width:220px;box-sizing:border-box;padding:14px 16px;display:flex;flex-direction:column;gap:8px;opacity:0;transform:translateX(-16px)}
-.ia-a1{top:110px;animation:ia-in1 10s infinite}
-.ia-a2{top:300px;animation:ia-in2 10s infinite}
-.ia-label{font-size:11px;font-weight:800;letter-spacing:.5px;text-transform:uppercase;color:#0B5FD8;display:flex;align-items:center;gap:6px}
+.ia-a1{top:110px;animation:ia-in1 12s infinite}
+.ia-d1{top:300px;animation:ia-in2 12s infinite}
+.ia-label{font-size:11px;font-weight:800;letter-spacing:.5px;text-transform:uppercase;display:flex;align-items:center;gap:6px}
+.ia-a1 .ia-label{color:#0B5FD8}
+.ia-d1 .ia-label{color:#4B2A7A}
 .ia-check{width:18px;height:18px;border-radius:50%;border:2px solid #A9B4C8;display:inline-flex;align-items:center;justify-content:center;box-sizing:border-box;flex-shrink:0}
-.ia-a1 .ia-check{animation:ia-tick 10s infinite}
-.ia-a1 .ia-check svg{opacity:0;animation:ia-tickmark 10s infinite}
-.ia-done{font-size:12px;font-weight:700;color:#1E7A4C;opacity:0;animation:ia-done 10s infinite}
-.ia-a1 .ia-title{animation:ia-strike 10s infinite}
+.ia-check svg{opacity:0}
+.ia-a1 .ia-check{animation:ia-tick-a 12s infinite}
+.ia-a1 .ia-check svg{animation:ia-mark-a 12s infinite}
+.ia-d1 .ia-check{animation:ia-tick-d 12s infinite}
+.ia-d1 .ia-check svg{animation:ia-mark-d 12s infinite}
+.ia-done{font-size:12px;font-weight:700;opacity:0}
+.ia-a1 .ia-done{color:#1E7A4C;animation:ia-done-a 12s infinite}
+.ia-d1 .ia-done{color:#4B2A7A;animation:ia-done-d 12s infinite}
+.ia-a1 .ia-title{animation:ia-strike-a 12s infinite}
 .ia-meta{display:flex;align-items:center;gap:8px;border-top:1px solid #EEF2F8;padding-top:8px;font-size:13px;color:#3E4860}
 .ia-av{width:24px;height:24px;border-radius:50%;font-size:10px;font-weight:800;display:inline-flex;align-items:center;justify-content:center}
 .ia-date{margin-left:auto;font-size:12px;font-weight:800;color:#0B5FD8;background:#E8F1FE;border-radius:6px;padding:3px 8px}
-@keyframes ia-hl{0%,8%{background:#F4F7FB;box-shadow:none}14%,92%{background:#EAF2FF;box-shadow:0 0 0 2px #8DB6F0}100%{background:#F4F7FB;box-shadow:none}}
-@keyframes ia-draw1{0%,14%{transform:scaleX(0)}22%,92%{transform:scaleX(1)}100%{transform:scaleX(0)}}
-@keyframes ia-draw2{0%,30%{opacity:0;transform:rotate(65deg) scaleX(0)}31%{opacity:1;transform:rotate(65deg) scaleX(0)}38%,92%{opacity:1;transform:rotate(65deg) scaleX(1)}100%{opacity:0;transform:rotate(65deg) scaleX(0)}}
-@keyframes ia-in1{0%,20%{opacity:0;transform:translateX(-16px)}28%,92%{opacity:1;transform:none}100%{opacity:0;transform:translateX(-16px)}}
-@keyframes ia-in2{0%,36%{opacity:0;transform:translateX(-16px)}44%,92%{opacity:1;transform:none}100%{opacity:0;transform:translateX(-16px)}}
-@keyframes ia-tick{0%,58%{background:#FFFFFF;border-color:#A9B4C8}62%,92%{background:#1E7A4C;border-color:#1E7A4C}100%{background:#FFFFFF;border-color:#A9B4C8}}
-@keyframes ia-tickmark{0%,58%{opacity:0}62%,92%{opacity:1}100%{opacity:0}}
-@keyframes ia-done{0%,62%{opacity:0}68%,92%{opacity:1}100%{opacity:0}}
-@keyframes ia-strike{0%,60%{color:#16213A;text-decoration:none}64%,92%{color:#5B6478;text-decoration:line-through}100%{color:#16213A;text-decoration:none}}
+.ia-dtag{font-size:12px;font-weight:800;color:#4B2A7A;background:#EFE7FA;border-radius:6px;padding:3px 8px}
+/* tijdlijn (12 s): 0-8% rust · 8-14% punt licht op · 16-24% actie · 28-36% beslissing · 46-50% actie afgevinkt · 58-62% beslissing bevestigd · 66-70% agendapunt doorstreept · 72-78% nieuw punt · 94-100% reset */
+@keyframes ia-hl{0%,8%{background:#F4F7FB;box-shadow:none}14%,64%{background:#EAF2FF;box-shadow:0 0 0 2px #8DB6F0}70%,94%{background:#F4F7FB;box-shadow:none}100%{background:#F4F7FB;box-shadow:none}}
+@keyframes ia-itemstrike{0%,66%{color:#16213A;text-decoration:none;opacity:1}70%,94%{color:#5B6478;text-decoration:line-through;opacity:.75}100%{color:#16213A;text-decoration:none;opacity:1}}
+@keyframes ia-new{0%,72%{opacity:0;transform:translateY(-6px)}78%,94%{opacity:1;transform:none}100%{opacity:0;transform:translateY(-6px)}}
+@keyframes ia-draw1{0%,14%{transform:scaleX(0)}20%,94%{transform:scaleX(1)}100%{transform:scaleX(0)}}
+@keyframes ia-draw2{0%,26%{opacity:0;transform:rotate(67deg) scaleX(0)}27%{opacity:1;transform:rotate(67deg) scaleX(0)}33%,94%{opacity:1;transform:rotate(67deg) scaleX(1)}100%{opacity:0;transform:rotate(67deg) scaleX(0)}}
+@keyframes ia-in1{0%,18%{opacity:0;transform:translateX(-16px)}24%,94%{opacity:1;transform:none}100%{opacity:0;transform:translateX(-16px)}}
+@keyframes ia-in2{0%,30%{opacity:0;transform:translateX(-16px)}36%,94%{opacity:1;transform:none}100%{opacity:0;transform:translateX(-16px)}}
+@keyframes ia-tick-a{0%,46%{background:#FFFFFF;border-color:#A9B4C8}50%,94%{background:#1E7A4C;border-color:#1E7A4C}100%{background:#FFFFFF;border-color:#A9B4C8}}
+@keyframes ia-mark-a{0%,46%{opacity:0}50%,94%{opacity:1}100%{opacity:0}}
+@keyframes ia-done-a{0%,50%{opacity:0}54%,94%{opacity:1}100%{opacity:0}}
+@keyframes ia-strike-a{0%,48%{color:#16213A;text-decoration:none}52%,94%{color:#5B6478;text-decoration:line-through}100%{color:#16213A;text-decoration:none}}
+@keyframes ia-tick-d{0%,58%{background:#FFFFFF;border-color:#A9B4C8}62%,94%{background:#4B2A7A;border-color:#4B2A7A}100%{background:#FFFFFF;border-color:#A9B4C8}}
+@keyframes ia-mark-d{0%,58%{opacity:0}62%,94%{opacity:1}100%{opacity:0}}
+@keyframes ia-done-d{0%,62%{opacity:0}66%,94%{opacity:1}100%{opacity:0}}
 @media (prefers-reduced-motion: reduce){
-.ia-item,.ia-line,.ia-act,.ia-check,.ia-check svg,.ia-done,.ia-title{animation:none!important}
-.ia-l1{transform:scaleX(1)}.ia-l2{opacity:1;transform:rotate(65deg) scaleX(1)}
-.ia-act{opacity:1;transform:none}.ia-item{background:#EAF2FF;box-shadow:0 0 0 2px #8DB6F0}
-.ia-a1 .ia-check{background:#1E7A4C;border-color:#1E7A4C}.ia-a1 .ia-check svg,.ia-done{opacity:1}
+.ia-item,.ia-item .ia-itemtext,.ia-new,.ia-line,.ia-act,.ia-check,.ia-check svg,.ia-done,.ia-title{animation:none!important}
+.ia-l1{transform:scaleX(1)}.ia-l2{opacity:1;transform:rotate(67deg) scaleX(1)}
+.ia-act{opacity:1;transform:none}
+.ia-item .ia-itemtext{color:#5B6478;text-decoration:line-through;opacity:.75}
+.ia-new{opacity:1;transform:none}
+.ia-a1 .ia-check{background:#1E7A4C;border-color:#1E7A4C}.ia-d1 .ia-check{background:#4B2A7A;border-color:#4B2A7A}
+.ia-check svg,.ia-done{opacity:1}
 .ia-a1 .ia-title{color:#5B6478;text-decoration:line-through}
 }
 
@@ -65,7 +85,8 @@ a{color:#0B5FD8}a:hover{color:#08449C}
           <div style="font-size: 17px; font-weight: 800; margin-top: 8px">Lopende orders</div>
           <div style="height: 10px; width: 92%; border-radius: 6px; background: #E9EEF6; margin-top: 14px"></div>
           <div style="height: 10px; width: 64%; border-radius: 6px; background: #E9EEF6; margin-top: 8px"></div>
-          <div class="ia-item"><span class="ia-dot"></span><span style="font-size: 14px; line-height: 1.45"><b>Staal-leverancier blijft te laat leveren</b><br><span style="color: #3E4860">opnieuw bellen · nieuwe offerte vragen</span></span></div>
+          <div class="ia-item"><span class="ia-dot"></span><span class="ia-itemtext" style="font-size: 14px; line-height: 1.45; font-weight: 800">Staal-leverancier blijft te laat leveren</span></div>
+          <div class="ia-new"><span class="ia-dot" style="margin-top: 0"></span>Nieuwe staal-leverancier bevestigen<span class="ia-newtag">nieuw</span></div>
         </div>
         <div class="ia-line ia-l1"></div>
         <div class="ia-line ia-l2"></div>
@@ -75,16 +96,17 @@ a{color:#0B5FD8}a:hover{color:#08449C}
           <span class="ia-done">Afgevinkt door Sofie, via mail</span>
           <span class="ia-meta"><span class="ia-av" style="background: #F2C9A8; color: #6A3412">SO</span>Sofie<span class="ia-date">vr 16 okt</span></span>
         </div>
-        <div class="ia-card ia-act ia-a2">
-          <span class="ia-label"><span class="ia-check"></span>Actie</span>
-          <span class="ia-title" style="font-size: 15px; font-weight: 800; line-height: 1.35">Nieuwe offerte staal vragen</span>
-          <span class="ia-meta"><span class="ia-av" style="background: #C9DDF6; color: #0F3B7A">JA</span>Jan<span class="ia-date">di 20 okt</span></span>
+        <div class="ia-card ia-act ia-d1">
+          <span class="ia-label"><span class="ia-check"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"></path></svg></span>Beslissing</span>
+          <span class="ia-title" style="font-size: 15px; font-weight: 800; line-height: 1.35">We werken met een andere leverancier</span>
+          <span class="ia-done">Bevestigd in het overleg</span>
+          <span class="ia-meta"><span class="ia-dtag">Beslissen</span><span style="margin-left: auto">ma 12 okt</span></span>
         </div>
       </div>
     </div>
     <div style="display: flex; flex-direction: column; gap: 6px; max-width: 460px">
       <span style="font-size: 26px; font-weight: 800; line-height: 1.2">Wat je afspreekt, gebeurt ook.</span>
-      <span style="font-size: 15px; color: #D5E2F7; line-height: 1.5">Uit elk agendapunt komen acties met een eigenaar. Ze komen terug tot ze afgevinkt zijn.</span>
+      <span style="font-size: 15px; color: #D5E2F7; line-height: 1.5">Uit elk agendapunt komen acties en beslissingen. Wat af is, verdwijnt. Wat volgt, staat al klaar.</span>
     </div>
   </section>
   <aside aria-label="Assistent" style="flex: 1 1 520px; max-width: 600px; min-height: 900px; background: #FFFFFF; box-sizing: border-box; display: flex; flex-direction: column; border-left: 1px solid #E3E8F1">

@@ -910,3 +910,29 @@
     text-decoration: line-through;
   }
 }
+
+/* Agenda als document: uitsluitend gebruikt door meeting detail variant B. */
+.meeting-document {
+  --document-border: #e3e7ef;
+  --document-hover: #f7f8fb;
+  --document-focus: #c9d2fa;
+  --document-placeholder: #9aa2b4;
+  --primary-tint: #eef3fe;
+  --suggestion-border: #c9d7f5;
+  border: 1px solid var(--document-border);
+  border-radius: 14px;
+  background: white;
+  width: 100%;
+  max-width: 760px;
+  margin-inline: auto;
+  padding: 28px 36px;
+}
+.document-row { min-height: 44px; border-radius: 8px; }
+.document-row:hover, .document-row:focus-within { background: var(--document-hover); }
+.document-row:has(input:focus) { box-shadow: inset 0 0 0 1.5px var(--document-focus); }
+.document-row input { outline: none; background: transparent; min-width: 0; min-height: 44px; }
+.document-row input::placeholder { color: var(--document-placeholder); }
+.document-reveal { visibility: hidden; }
+.document-row:hover .document-reveal, .document-row:focus-within .document-reveal { visibility: visible; }
+.document-dashed { border: 1px dashed var(--document-border); border-radius: 6px; padding-inline: 6px; color: var(--ink-3); min-height: 44px; font-size: 12px; }
+@media (max-width: 640px) { .meeting-document { padding: 20px 12px; } }

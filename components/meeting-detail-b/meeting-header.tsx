@@ -224,8 +224,7 @@ export function MeetingHeaderB({
           <Participants people={participants} />
         ) : (
           <button type="button" onClick={onInvite} className={metaButton}>
-            <UserPlus className={icon} strokeWidth={STROKE} aria-hidden />
-            + Collega&apos;s uitnodigen
+            <UserPlus className={icon} strokeWidth={STROKE} aria-hidden />+ Collega&apos;s uitnodigen
           </button>
         )}
         <Details meeting={meeting} />

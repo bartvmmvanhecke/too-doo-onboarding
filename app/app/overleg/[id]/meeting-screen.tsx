@@ -22,7 +22,11 @@ export function MeetingScreen() {
   return (
     <>
       <SavedBanner meeting={meeting} />
-      {params.get("variant") === "b" && !meeting.run ? <MeetingDetailB meeting={meeting} /> : <MeetingDetail meeting={meeting} />}
+      {params.get("variant") === "b" && !meeting.run ? (
+        <MeetingDetailB meeting={meeting} />
+      ) : (
+        <MeetingDetail meeting={meeting} />
+      )}
     </>
   );
 }

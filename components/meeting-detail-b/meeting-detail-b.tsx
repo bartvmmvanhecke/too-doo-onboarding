@@ -9,11 +9,24 @@ import { usePeople, useStore, type Meeting } from "@/lib/store";
 
 export function MeetingDetailB({ meeting }: { meeting: Meeting }) {
   const people = usePeople();
-  return <MeetingProvider value={{ meeting, people, owners: ownerOptions(people, meeting.participants, meeting.name, []), now: 0 }}><TooltipProvider>
-    <MeetingHeaderB hint={null} onShowHint={() => {}} onInvite={() => useStore.getState().markInvited(meeting.id)} onAddAction={() => useStore.getState().addAction(meeting.id, { what: "Nieuwe actie", ownerId: null, deadline: "" })} />
-    <div className="meeting-document">
-      <OpenActions meeting={meeting} people={people} />
-      <DocumentEditor meeting={meeting} />
-    </div>
-  </TooltipProvider></MeetingProvider>;
+  return (
+    <MeetingProvider
+      value={{ meeting, people, owners: ownerOptions(people, meeting.participants, meeting.name, []), now: 0 }}
+    >
+      <TooltipProvider>
+        <MeetingHeaderB
+          hint={null}
+          onShowHint={() => {}}
+          onInvite={() => useStore.getState().markInvited(meeting.id)}
+          onAddAction={() =>
+            useStore.getState().addAction(meeting.id, { what: "Nieuwe actie", ownerId: null, deadline: "" })
+          }
+        />
+        <div className="meeting-document">
+          <OpenActions meeting={meeting} people={people} />
+          <DocumentEditor meeting={meeting} />
+        </div>
+      </TooltipProvider>
+    </MeetingProvider>
+  );
 }

@@ -29,6 +29,16 @@ export function Bubble({ from, children }: { from: Message["from"]; children: Re
   );
 }
 
+/** Verwerken duurt langer dan 600 ms vóór de overgang (C0h): een stille indicator met uitleg. */
+export function Preparing({ label }: { label: string }) {
+  return (
+    <div role="status" className="flex items-center gap-2.5 self-start rounded-2xl bg-app px-4 py-3 text-[15px]">
+      <span aria-hidden className="size-2 animate-pulse rounded-full bg-brand" />
+      {label}
+    </div>
+  );
+}
+
 export function TypingDots() {
   return (
     <div role="status" aria-label="De assistent typt" className="flex gap-1 self-start rounded-2xl bg-app px-4 py-3.5">
@@ -172,6 +182,28 @@ function AssistantInput({
   );
 }
 
+/** Volledige klassen per breakpoint (Tailwind leest enkel letterlijke klassen). */
+const LAYOUT = {
+  app: {
+    panel:
+      "lg:sticky lg:top-0 lg:h-dvh lg:w-[400px] lg:shrink-0 lg:rounded-none lg:border-t-0 lg:border-l lg:shadow-none",
+    head: "lg:py-4 lg:pr-24",
+    chevron: "max-lg:rotate-90",
+    collapsed:
+      "lg:sticky lg:top-14 lg:right-auto lg:left-auto lg:mt-14 lg:h-[calc(100dvh-3.5rem)] lg:w-12 lg:flex-col lg:border-t-0 lg:border-l lg:shadow-none",
+    vertical: "lg:[writing-mode:vertical-rl]",
+  },
+  trial: {
+    panel:
+      "panel:sticky panel:top-0 panel:h-dvh panel:w-[400px] panel:shrink-0 panel:rounded-none panel:border-t-0 panel:border-l panel:shadow-none",
+    head: "panel:py-4 panel:pr-24",
+    chevron: "max-panel:rotate-90",
+    collapsed:
+      "panel:sticky panel:top-14 panel:right-auto panel:left-auto panel:mt-14 panel:h-[calc(100dvh-3.5rem)] panel:w-12 panel:flex-col panel:border-t-0 panel:border-l panel:shadow-none",
+    vertical: "panel:[writing-mode:vertical-rl]",
+  },
+} as const;
+
 /**
  * Assistentpaneel rechts (SPEC-LAZY.md §3): kop, voortgang, berichten, invoer onderaan.
  * Inklapbaar; ingeklapt blijft een smalle knop "Assistent". Op smalle schermen een onderblad.
@@ -187,6 +219,11 @@ export function AssistantPanel({
   open,
   onOpenChange,
   onFileDrop,
+  layout = "app",
+  header,
+  intro,
+  fullScreen,
+  typingLabel,
 }: {
   subtitle: string;
   progress?: string;
@@ -199,26 +236,46 @@ export function AssistantPanel({
   onOpenChange: (open: boolean) => void;
   /** Een bestand slepen op het hele paneel verwerkt het als notities. */
   onFileDrop?: ((file: File) => void) | null;
+  /**
+   * "app": kolom rechts vanaf 1024 px (de app na bewaren). "trial": vanaf 900 px, zodat het paneel op het
+   * welkomstscherm en in de proefomgeving op exact dezelfde plek en breedte staat (SPEC-LAZY.md §4, Stap 0).
+   */
+  layout?: "app" | "trial";
+  /** Eigen kop in plaats van "Assistent · …" (welkomstscherm: logo en Inloggen). */
+  header?: ReactNode;
+  /** Inhoud vóór het gesprek, bv. de welkomstkop en de keuzes. */
+  intro?: ReactNode;
+  /** Onder 900 px het volledige scherm in plaats van een half onderblad (welkomstscherm). */
+  fullScreen?: boolean;
+  /** In plaats van de typ-indicator, bv. "Ik zet je overleg klaar…". */
+  typingLabel?: string | null;
 }) {
   const endRef = useRef<HTMLDivElement>(null);
   const drop = useFileDrop((file) => onFileDrop?.(file), !!onFileDrop);
   // Een kaart toont altijd de huidige state, dus enkel bij het laatste bericht met die kaart.
   const lastWithCard = (card: Message["card"]) => messages.findLastIndex((m) => m.card === card);
 
+  const hasIntro = !!intro;
   useEffect(() => {
-    endRef.current?.scrollIntoView({ block: "end", behavior: "smooth" });
-  }, [messages.length, typing, controls]);
+    // De welkomstkop blijft bovenaan staan; het gesprek scrolt mee naar het laatste bericht.
+    if (!hasIntro) endRef.current?.scrollIntoView({ block: "end", behavior: "smooth" });
+  }, [messages.length, typing, controls, hasIntro]);
+
+  const c = LAYOUT[layout];
 
   if (!open) {
     return (
       <button
         type="button"
-        aria-label="Assistent tonen"
+        aria-label="Assistent openen"
         onClick={() => onOpenChange(true)}
-        className="fixed right-0 bottom-0 left-0 z-30 flex min-h-12 cursor-pointer items-center justify-center gap-2 border-t border-line-soft bg-white text-sm font-extrabold text-brand shadow-[0_-8px_24px_rgba(22,33,58,0.08)] lg:sticky lg:top-14 lg:right-auto lg:left-auto lg:mt-14 lg:h-[calc(100dvh-3.5rem)] lg:w-12 lg:flex-col lg:border-t-0 lg:border-l lg:shadow-none"
+        className={cn(
+          "fixed right-0 bottom-0 left-0 z-30 flex min-h-12 cursor-pointer items-center justify-center gap-2 border-t border-line-soft bg-white text-sm font-extrabold text-brand shadow-[0_-8px_24px_rgba(22,33,58,0.08)]",
+          c.collapsed,
+        )}
       >
         <Sparkles className="size-4" aria-hidden />
-        <span className="lg:[writing-mode:vertical-rl]">Assistent</span>
+        <span className={c.vertical}>Assistent</span>
       </button>
     );
   }
@@ -226,28 +283,36 @@ export function AssistantPanel({
   return (
     <aside
       aria-label="Assistent"
+      data-assistant-panel
       {...drop.handlers}
-      className="fixed inset-x-0 bottom-0 z-30 flex h-[55dvh] flex-col rounded-t-2xl border-t border-line-soft bg-white shadow-[0_-12px_32px_rgba(22,33,58,0.14)] lg:sticky lg:top-0 lg:h-dvh lg:w-[400px] lg:shrink-0 lg:rounded-none lg:border-t-0 lg:border-l lg:shadow-none xl:w-[420px]"
+      className={cn(
+        "fixed inset-x-0 bottom-0 z-30 flex h-[55dvh] flex-col rounded-t-2xl border-t border-line-soft bg-white shadow-[0_-12px_32px_rgba(22,33,58,0.14)]",
+        c.panel,
+        fullScreen && "max-panel:top-0 max-panel:h-dvh max-panel:rounded-none max-panel:border-t-0",
+      )}
     >
-      <div className="flex items-center gap-3 border-b border-line-soft py-3 pr-2 pl-4 lg:py-4 lg:pr-24">
-        <span aria-hidden className="flex size-9 shrink-0 items-center justify-center rounded-full bg-brand">
-          <Check className="size-[18px] text-white" strokeWidth={2.5} />
-        </span>
-        <span className="flex min-w-0 flex-1 flex-col">
-          <span className="text-base font-extrabold">Assistent</span>
-          <span className="text-[13px] text-ink-3">{subtitle}</span>
-        </span>
-        {progress && (
-          <span className="shrink-0 rounded-md bg-brand-soft px-2 py-1 text-xs font-extrabold text-brand">
-            {progress}
+      {header ?? (
+        <div className={cn("flex items-center gap-3 border-b border-line-soft py-3 pr-2 pl-4", c.head)}>
+          <span aria-hidden className="flex size-9 shrink-0 items-center justify-center rounded-full bg-brand">
+            <Check className="size-[18px] text-white" strokeWidth={2.5} />
           </span>
-        )}
-        <Button variant="ghost" size="icon" aria-label="Assistent verbergen" onClick={() => onOpenChange(false)}>
-          <ChevronRight className="size-[18px] max-lg:rotate-90" strokeWidth={2.5} aria-hidden />
-        </Button>
-      </div>
+          <span className="flex min-w-0 flex-1 flex-col">
+            <span className="text-base font-extrabold">Assistent</span>
+            <span className="text-[13px] text-ink-3">{subtitle}</span>
+          </span>
+          {progress && (
+            <span className="shrink-0 rounded-md bg-brand-soft px-2 py-1 text-xs font-extrabold text-brand">
+              {progress}
+            </span>
+          )}
+          <Button variant="ghost" size="icon" aria-label="Assistent verbergen" onClick={() => onOpenChange(false)}>
+            <ChevronRight className={cn("size-[18px]", c.chevron)} strokeWidth={2.5} aria-hidden />
+          </Button>
+        </div>
+      )}
 
       <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
+        {intro}
         <div
           role="log"
           aria-live="polite"
@@ -262,7 +327,7 @@ export function AssistantPanel({
               </Bubble>
             </Fragment>
           ))}
-          {typing && <TypingDots />}
+          {typing && (typingLabel ? <Preparing label={typingLabel} /> : <TypingDots />)}
         </div>
         {!typing && controls && <div className="flex flex-col gap-3 px-4 pt-3">{controls}</div>}
         {/* Ruimte onderaan: de demo-knop rechtsonder bedekt zo niets blijvend. */}

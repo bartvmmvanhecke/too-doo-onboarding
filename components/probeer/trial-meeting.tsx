@@ -81,6 +81,10 @@ export function TrialMeeting({
   onEdited,
   onStart,
   onFromCalendar,
+  titleLayoutId,
+  done = false,
+  countUp = false,
+  emptyPath = false,
 }: {
   flash: Set<string>;
   editRequest: number;
@@ -90,6 +94,12 @@ export function TrialMeeting({
   onEdited: () => void;
   onStart: () => void;
   onFromCalendar: (field: "when" | "participants") => void;
+  /** Overgang van welkom naar app (Stap 0): titel als gedeeld element, "✓ Klaar", oplopende teller. */
+  titleLayoutId?: string;
+  done?: boolean;
+  countUp?: boolean;
+  /** "Start met een lege meeting" (C1d): andere uitleg in een leeg blok "Openstaande acties". */
+  emptyPath?: boolean;
 }) {
   const meeting = useGuestStore((s) => s.meeting);
   const actions = useGuestStore((s) => s.actions);
@@ -130,7 +140,9 @@ export function TrialMeeting({
     emptyActions: !ready && (
       <div className="flex flex-col gap-1 px-2 pb-1">
         <p className="text-sm text-ink-3">
-          Wat vorige keer afgesproken werd en nog niet af is. Komt elk overleg vanzelf terug tot het af is.
+          {emptyPath
+            ? "Nog niets open. Acties die je tijdens de vergadering noteert, komen hier vanzelf terug tot ze af zijn."
+            : "Wat vorige keer afgesproken werd en nog niet af is. Komt elk overleg vanzelf terug tot het af is."}
         </p>
         <p className="flex flex-wrap items-center text-[13px] text-ink-2">
           Sleep notities van je vorig overleg op deze plek, of
@@ -144,6 +156,9 @@ export function TrialMeeting({
     onFileDrop: busy || ready ? null : onNotesFile,
     onAddAgendaItem: (text) => useGuestStore.getState().addTopic(text),
     onFromCalendar: busy ? null : onFromCalendar,
+    titleLayoutId,
+    done,
+    countUp,
   };
 
   return (

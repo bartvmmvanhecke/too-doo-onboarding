@@ -49,7 +49,9 @@ const say = (text: string, card?: Message["card"]): Out => ({ from: "assistant",
 const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
 
 export const QUESTIONS = {
-  sentence: "Waarover gaat je volgende overleg? Eén zin is genoeg.",
+  sentence: "Waarover gaat je volgende overleg? Eén zin is genoeg. Wie en wanneer mag erbij, hoeft niet.",
+  whenWho: "**Wanneer gaat het door en wie zit erbij?**",
+  empty: "Zeg het als ik iets kan invullen.",
   name: "Hoe heet dit overleg? Bijvoorbeeld Productieoverleg.",
   day: "Wanneer gaat het door?",
   time: "Hoe laat begint het?",
@@ -60,7 +62,7 @@ export const QUESTIONS = {
   notesReminder: "**Heb je notities van de vorige keer?** Plak ze hier, dan staan de openstaande acties meteen klaar.",
   notes: "**Staat er nog iets open van de vorige keer?** Plak je notities, spreek het in, of typ het gewoon.",
   /** Na "Ik heb notities van de vorige keer" (C1c), met de dropzone eronder. */
-  notesEntry: "Top. Sleep ze hierheen of plak de tekst. Ik haal de acties en eigenaars eruit.",
+  notesEntry: "Top. Sleep ze hierheen, spreek ze in of plak de tekst. Ik haal de acties en eigenaars eruit.",
   notesLater: "Sleep je notities hierheen of plak de tekst. Ik haal de acties en eigenaars eruit.",
   provider: "Outlook of Google?",
   paste: "Dit lijken notities van een vorig overleg. Zal ik er de openstaande acties en agendapunten uit halen?",
@@ -380,8 +382,22 @@ function onText(d: Draft, text: string, ref: Date, plain = false): void {
       applyParsed(d, p, { topics: true });
       d.events.push(["meeting_parsed", { velden: foundFields(p) }]);
       const m = d.state.meeting;
+      // C1: titel en agenda staan er; wanneer en wie in één vraag. Ontbreekt maar één van beide, dan enkel dat.
+      if (m.name && !m.weekday && m.time === null && !m.recurrence && m.participants.length === 0)
+        return void ask(
+          d,
+          { kind: "when-who" },
+          `Je ${lowerFirst(m.name)} staat klaar, met een voorstel van agenda. ${QUESTIONS.whenWho}`,
+        );
       const complete = m.name && m.weekday && m.time !== null && m.recurrence && m.participants.length > 0;
       return askNext(d, complete ? undefined : "Begrepen. Links staat al een voorstel van agenda.");
+    }
+    case "when-who": {
+      const p = parseMeetingUpdate(text);
+      if (foundFields(p).length === 0)
+        return void d.messages.push(say("Typ het gewoon, bijvoorbeeld ‘elke maandag om 8u met Jan, Sofie en Karim’."));
+      applyParsed(d, p, { topics: false });
+      return askNext(d);
     }
     case "name": {
       const name = parseNameReply(text);
@@ -508,14 +524,14 @@ function onEntry(d: Draft, entry: StartChoice) {
 }
 
 /** "Uit agenda halen" / "Deelnemers uit agenda": het agendapad, maar enkel voor dat veld. */
-function onCalendarField(d: Draft, field: CalendarField) {
+function onCalendarField(d: Draft, fields: CalendarField[]) {
   const p = d.state.pending;
-  // De vraag "Outlook of Google?" staat al open: ze komt niet nog eens, enkel het veld komt erbij.
+  // De vraag "Outlook of Google?" staat al open: ze komt niet nog eens, enkel de velden komen erbij.
   if (p.kind === "provider") {
-    if (p.fields) setPending(d, { ...p, fields: [...new Set([...p.fields, field])] });
+    if (p.fields) setPending(d, { ...p, fields: [...new Set([...p.fields, ...fields])] });
     return void d.messages.push(say("Kies hieronder Outlook of Google."));
   }
-  ask(d, { kind: "provider", fields: [field], resume: resumeOf(p) }, QUESTIONS.provider);
+  ask(d, { kind: "provider", fields, resume: resumeOf(p) }, QUESTIONS.provider);
 }
 
 /** Na koppelen: vaste overleggen kiezen (C1b), of een rustige melding en de andere keuzes opnieuw. */
@@ -607,15 +623,21 @@ function newPeople(d: Draft, o: { participants: GuestMeeting["participants"] }) 
 }
 
 /** Notities uit een bestand: toon welk bestand, daarna de bestaande extractie. */
-function onNotesFile(d: Draft, file: { name: string; text: string; sample: boolean; image: boolean }, ref: Date) {
+function onNotesFile(
+  d: Draft,
+  file: { name: string; text: string; sample: boolean; image: boolean; audio?: boolean },
+  ref: Date,
+) {
   // Een bestand beantwoordt ook een open vraag "Outlook of Google?" of "Dit lijken notities…".
   setPending(d, resumeOf(d.state.pending));
   if (d.state.step === 1) d.state = { ...d.state, entry: d.state.entry ?? "notes", step: 2 };
   const note = !file.sample
     ? ""
-    : file.image
-      ? " Tekst uit een foto lezen kan het prototype nog niet; ik gebruik de voorbeeldnotities."
-      : " De tekst kon ik er niet uit halen; ik gebruik de voorbeeldnotities.";
+    : file.audio
+      ? " Een opname echt uitschrijven kan het prototype nog niet; ik gebruik de voorbeeldnotities."
+      : file.image
+        ? " Tekst uit een foto lezen kan het prototype nog niet; ik gebruik de voorbeeldnotities."
+        : " De tekst kon ik er niet uit halen; ik gebruik de voorbeeldnotities.";
   d.messages.push(say(`Ik las **${file.name}**.${note}`));
   extract(d, file.text, ref);
 }
@@ -653,7 +675,15 @@ export function respond(state: AssistantState, input: AssistantInput, ref: Date 
       onEntry(d, input.entry);
       break;
     case "calendar-field":
-      onCalendarField(d, input.field);
+      onCalendarField(d, input.fields);
+      break;
+    case "start-empty":
+      // C1d: de standaardagenda, titel in bewerkmodus; geen herinnering over notities op dit pad.
+      d.state = { ...d.state, entry: "empty", notesReminderShown: true };
+      patchMeeting(d, { name: "Nieuwe vergadering" });
+      setPending(d, { kind: "sentence" });
+      d.messages.push(say(QUESTIONS.empty));
+      d.edit = true;
       break;
     case "paste": {
       const p = d.state.pending;
@@ -682,7 +712,7 @@ export function respond(state: AssistantState, input: AssistantInput, ref: Date 
       const k = d.state.pending.kind;
       // Het voorstel staat al open: de kaart toont de aanpassing, er komt geen nieuwe vraag.
       if (k === "confirm-meeting") break;
-      if (["entry", "sentence", "name", "day", "time", "recurrence", "participants"].includes(k)) {
+      if (["entry", "sentence", "when-who", "name", "day", "time", "recurrence", "participants"].includes(k)) {
         if (k === "entry") d.state = { ...d.state, entry: "meeting" };
         askNext(d);
       }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { BlockCard, type AgendaMoves } from "@/components/meeting/agenda";
 import { OwnerButton } from "@/components/meeting/bits";
 import { useMeeting, useMeetingOps } from "@/components/meeting/meeting-context";
@@ -78,6 +78,25 @@ function ActionRow({ action }: { action: Action }) {
 }
 
 /** "Openstaande acties": komen vanzelf terug tot ze af zijn. */
+/** Telt op van 0 tot `n` (± 600 ms) als `active` bij het tonen aan staat; anders meteen `n`. */
+function useCountUp(n: number, active: boolean): number {
+  const [shown, setShown] = useState<number | null>(() => (active ? 0 : null));
+  useEffect(() => {
+    if (!active) return;
+    let i = 0;
+    const id = setInterval(
+      () => {
+        i += 1;
+        setShown(i >= n ? null : i);
+        if (i >= n) clearInterval(id);
+      },
+      600 / Math.max(n, 1),
+    );
+    return () => clearInterval(id);
+  }, [active, n]);
+  return active && shown !== null ? shown : n;
+}
+
 export function OpenActionsBlock({
   block,
   index,
@@ -121,7 +140,7 @@ export function OpenActionsBlock({
     ) : null;
 
   // Variant A: "3 voorstellen · vink aan wat klopt" in stap 2, daarna "3 openstaande acties".
-  const n = meeting.actions.filter((a) => !a.done).length;
+  const n = useCountUp(meeting.actions.filter((a) => !a.done).length, !!trial?.countUp);
   const trialAside =
     trial &&
     meeting.actions.length > 0 &&

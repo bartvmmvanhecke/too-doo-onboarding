@@ -177,7 +177,7 @@ describe("startkeuzes (C1): de details komen pas na de keuze", () => {
     expect(r.messages).toEqual([
       {
         from: "assistant",
-        text: "Top. Sleep ze hierheen of plak de tekst. Ik haal de acties en eigenaars eruit.",
+        text: "Top. Sleep ze hierheen, spreek ze in of plak de tekst. Ik haal de acties en eigenaars eruit.",
         card: "dropzone",
       },
     ]);
@@ -186,7 +186,9 @@ describe("startkeuzes (C1): de details komen pas na de keuze", () => {
 
   it("vertellen: één zin (C2)", () => {
     const r = respond(start(), { type: "entry", entry: "meeting" }, REF);
-    expect(r.messages[0].text).toBe("Waarover gaat je volgende overleg? Eén zin is genoeg.");
+    expect(r.messages[0].text).toBe(
+      "Waarover gaat je volgende overleg? Eén zin is genoeg. Wie en wanneer mag erbij, hoeft niet.",
+    );
     expect(r.state.pending.kind).toBe("sentence");
   });
 });
@@ -237,8 +239,8 @@ describe("ingangen blijven bereikbaar", () => {
       { type: "entry", entry: "meeting" },
       { type: "text", text: "teamoverleg" },
     ]);
-    expect(state.pending.kind).toBe("day");
-    let r = respond(state, { type: "calendar-field", field: "when" }, REF);
+    expect(state.pending.kind).toBe("when-who");
+    let r = respond(state, { type: "calendar-field", fields: ["when"] }, REF);
     expect(r.messages[0].text).toBe("Outlook of Google?");
     r = respond(
       r.state,
@@ -271,7 +273,7 @@ describe("ingangen blijven bereikbaar", () => {
   it("geen dubbele vragen over alle ingangen heen", () => {
     const { said } = play([
       { type: "entry", entry: "calendar" },
-      { type: "calendar-field", field: "when" },
+      { type: "calendar-field", fields: ["when"] },
       { type: "entry", entry: "calendar" },
       { type: "calendar", provider: "outlook", result: { kind: "admin" } },
       { type: "entry", entry: "notes" },
@@ -280,5 +282,26 @@ describe("ingangen blijven bereikbaar", () => {
       { type: "text", text: SAMPLE_NOTES },
     ]);
     expectNoRepeatedQuestion(said);
+  });
+});
+
+describe("welkom (Stap 0) en eerste vraag (C1)", () => {
+  it("na de zin: wanneer en wie in één vraag; daarna enkel wat ontbreekt", () => {
+    let r = respond(start(), { type: "text", text: "Ons productieoverleg: orders, problemen en planning" }, REF);
+    expect(r.messages.map((m) => m.text)).toEqual([
+      "Je productieoverleg staat klaar, met een voorstel van agenda. **Wanneer gaat het door en wie zit erbij?**",
+    ]);
+    expect(r.state.pending.kind).toBe("when-who");
+    r = respond(r.state, { type: "text", text: "elke maandag om 8u" }, REF);
+    expect(r.state.meeting).toMatchObject({ weekday: 1, time: 480, recurrence: "weekly" });
+    expect(r.messages.map((m) => m.text)).toEqual(["Wie zit er meestal bij? Voornamen volstaan."]);
+  });
+
+  it("een lege vergadering (C1d): standaardagenda, titel in bewerkmodus, geen herinnering", () => {
+    const r = respond(start(), { type: "start-empty" }, REF);
+    expect(r.messages.map((m) => m.text)).toEqual(["Zeg het als ik iets kan invullen."]);
+    expect(r.state.meeting.name).toBe("Nieuwe vergadering");
+    expect(r.state.notesReminderShown).toBe(true);
+    expect(r.edit).toBe(true);
   });
 });

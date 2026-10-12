@@ -44,6 +44,18 @@
   --trial-line: #c5b4f3;
   --trial-accent: #8b5cf6;
 
+  /* Variant A: welkomstscherm (C0f) en de illustratie van agendapunt naar acties. */
+  --welcome-from: #0f2e6b;
+  --welcome-mid: #123a80;
+  --welcome-to: #0b5fd8;
+  --welcome-glow: #2f7bea;
+  --welcome-accent: #7cc4ff;
+  --illu-item-hl: #eaf2ff;
+  --illu-placeholder: #e9eef6;
+  --illu-shadow: rgba(5, 20, 60, 0.35);
+  --avatar-warm-bg: #f2c9a8;
+  --avatar-warm-ink: #6a3412;
+
   --nav-from: #123a80;
   --nav-to: #0c2a5e;
   --nav-ink: #d5e2f7;
@@ -134,7 +146,13 @@
   color: var(--ink);
 }
 
+/* Variant A: vanaf 900 px staat de assistent als vaste kolom van 400 px rechts (SPEC-LAZY.md §4, Stap 0). */
+@theme {
+  --breakpoint-panel: 56.25rem;
+}
+
 @theme inline {
+  --color-welcome-accent: var(--welcome-accent);
   --font-sans: var(--font-nunito), system-ui, sans-serif;
   --font-site: var(--font-rubik), Arial, sans-serif;
 
@@ -273,5 +291,622 @@
   }
   input::placeholder {
     color: var(--ink-3);
+  }
+}
+
+/*
+ * Variant A, overgang welkom → app (SPEC-LAZY.md §4, Stap 0; C0h). Laag 2: de menu-items verschijnen gespreid
+ * (40 ms na elkaar, kort van links). Laag 3: statuslabel, datumregel en agendablokken komen gespreid onder de
+ * titel (60 ms na elkaar, 10 px van onder). Enkel tijdens de overgang (`data-docking`).
+ */
+@keyframes dock-from-left {
+  from {
+    opacity: 0;
+    transform: translateX(-12px);
+  }
+}
+
+@keyframes dock-rise {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  [data-docking] .dock-nav > * {
+    animation: dock-from-left 240ms cubic-bezier(0.65, 0, 0.35, 1) both;
+    animation-delay: calc(250ms + var(--dock-i, 0) * 40ms);
+  }
+
+  [data-docking] .dock-rise,
+  [data-docking] #proefomgeving header > div > div > :not(:has(h1)),
+  [data-docking] #proefomgeving section {
+    animation: dock-rise 300ms cubic-bezier(0.65, 0, 0.35, 1) both;
+    animation-delay: calc(300ms + var(--dock-i, 0) * 60ms);
+  }
+
+  .dock-nav > :nth-child(2),
+  #proefomgeving section:nth-of-type(2) {
+    --dock-i: 1;
+  }
+  .dock-nav > :nth-child(3),
+  #proefomgeving section:nth-of-type(3) {
+    --dock-i: 2;
+  }
+  .dock-nav > :nth-child(4),
+  #proefomgeving section:nth-of-type(4) {
+    --dock-i: 3;
+  }
+  .dock-nav > :nth-child(5),
+  #proefomgeving section:nth-of-type(5) {
+    --dock-i: 4;
+  }
+  .dock-nav > :nth-child(n + 6),
+  #proefomgeving section:nth-of-type(n + 6) {
+    --dock-i: 5;
+  }
+}
+
+/*
+ * Illustratie "van agendapunt naar acties" (SPEC-LAZY.md §4, Stap 0; mockup C0f). Loop van 12 s, pure CSS.
+ * Tijdlijn: 0-8% rust · 8-14% punt licht op · 16-24% actie · 28-36% beslissing · 46-50% actie afgevinkt ·
+ * 58-62% beslissing bevestigd · 66-70% agendapunt doorstreept · 72-78% nieuw punt · 94-100% reset.
+ */
+.mta-stage {
+  position: relative;
+  width: 600px;
+  max-width: 100%;
+  height: 420px;
+}
+
+.mta-card {
+  position: absolute;
+  background: #fff;
+  color: var(--ink);
+  border-radius: 18px;
+  box-shadow: 0 24px 50px var(--illu-shadow);
+}
+
+.mta-agenda {
+  left: 0;
+  top: 10px;
+  width: 300px;
+  padding: 18px 20px;
+  box-sizing: border-box;
+}
+
+.mta-kicker {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+
+.mta-heading {
+  font-size: 17px;
+  font-weight: 800;
+  margin-top: 8px;
+}
+
+.mta-bar {
+  height: 10px;
+  border-radius: 6px;
+  background: var(--illu-placeholder);
+  margin-top: 8px;
+}
+
+.mta-item {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  border-radius: 12px;
+  padding: 10px 12px;
+  margin-top: 12px;
+  background: var(--app);
+  animation: mta-hl 12s infinite;
+}
+
+.mta-item-text {
+  font-size: 14px;
+  line-height: 1.45;
+  font-weight: 800;
+  animation: mta-item-strike 12s infinite;
+}
+
+.mta-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--proposal-line);
+  margin-top: 7px;
+  flex-shrink: 0;
+}
+
+.mta-new {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  border-radius: 12px;
+  padding: 10px 12px;
+  margin-top: 8px;
+  background: var(--brand-selected);
+  box-shadow: 0 0 0 2px var(--proposal-line);
+  font-size: 14px;
+  font-weight: 800;
+  opacity: 0;
+  transform: translateY(-6px);
+  animation: mta-new-item 12s infinite;
+}
+
+.mta-new .mta-dot {
+  margin-top: 0;
+}
+
+.mta-new-tag {
+  margin-left: auto;
+  font-size: 11px;
+  font-weight: 800;
+  color: var(--brand);
+  background: var(--brand-soft);
+  border-radius: 6px;
+  padding: 2px 7px;
+}
+
+.mta-line {
+  position: absolute;
+  left: 300px;
+  top: 150px;
+  height: 2px;
+  background: var(--proposal-line);
+  transform-origin: left center;
+}
+
+.mta-line1 {
+  width: 80px;
+  transform: scaleX(0);
+  animation: mta-draw1 12s infinite;
+}
+
+.mta-line2 {
+  width: 206px;
+  opacity: 0;
+  transform: rotate(67deg) scaleX(0);
+  animation: mta-draw2 12s infinite;
+}
+
+/* Omhulsel van een actie- of beslissingskaart (positie); de kaart zelf animeert in de loop. */
+.mta-slot {
+  position: absolute;
+  right: 0;
+  width: 220px;
+}
+
+.mta-slot-action {
+  top: 80px;
+}
+
+.mta-slot-decision {
+  top: 270px;
+}
+
+.mta-act {
+  position: relative;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  opacity: 0;
+  transform: translateX(-16px);
+}
+
+.mta-slot-action .mta-act {
+  animation: mta-in1 12s infinite;
+}
+
+.mta-slot-decision .mta-act {
+  animation: mta-in2 12s infinite;
+}
+
+.mta-label {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.mta-slot-action .mta-label {
+  color: var(--brand);
+}
+
+.mta-slot-decision .mta-label {
+  color: var(--purpose-decide);
+}
+
+.mta-check {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 2px solid var(--checkbox);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  flex-shrink: 0;
+}
+
+.mta-check svg {
+  opacity: 0;
+}
+
+.mta-slot-action .mta-check {
+  animation: mta-tick-a 12s infinite;
+}
+
+.mta-slot-action .mta-check svg {
+  animation: mta-mark-a 12s infinite;
+}
+
+.mta-slot-decision .mta-check {
+  animation: mta-tick-d 12s infinite;
+}
+
+.mta-slot-decision .mta-check svg {
+  animation: mta-mark-d 12s infinite;
+}
+
+.mta-title {
+  font-size: 15px;
+  font-weight: 800;
+  line-height: 1.35;
+}
+
+.mta-slot-action .mta-title {
+  animation: mta-strike-a 12s infinite;
+}
+
+.mta-done {
+  font-size: 12px;
+  font-weight: 700;
+  opacity: 0;
+}
+
+.mta-slot-action .mta-done {
+  color: var(--success);
+  animation: mta-done-a 12s infinite;
+}
+
+.mta-slot-decision .mta-done {
+  color: var(--purpose-decide);
+  animation: mta-done-d 12s infinite;
+}
+
+.mta-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border-top: 1px solid var(--line-faint);
+  padding-top: 8px;
+  font-size: 13px;
+  color: var(--ink-2);
+}
+
+.mta-avatar {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  font-size: 10px;
+  font-weight: 800;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--avatar-warm-bg);
+  color: var(--avatar-warm-ink);
+}
+
+.mta-date {
+  margin-left: auto;
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--brand);
+  background: var(--brand-soft);
+  border-radius: 6px;
+  padding: 3px 8px;
+}
+
+.mta-decide {
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--purpose-decide);
+  background: var(--purpose-decide-bg);
+  border-radius: 6px;
+  padding: 3px 8px;
+}
+
+@keyframes mta-hl {
+  0%,
+  8% {
+    background: var(--app);
+    box-shadow: none;
+  }
+  14%,
+  64% {
+    background: var(--illu-item-hl);
+    box-shadow: 0 0 0 2px var(--proposal-line);
+  }
+  70%,
+  100% {
+    background: var(--app);
+    box-shadow: none;
+  }
+}
+
+@keyframes mta-item-strike {
+  0%,
+  66% {
+    color: var(--ink);
+    text-decoration: none;
+    opacity: 1;
+  }
+  70%,
+  94% {
+    color: var(--ink-3);
+    text-decoration: line-through;
+    opacity: 0.75;
+  }
+  100% {
+    color: var(--ink);
+    text-decoration: none;
+    opacity: 1;
+  }
+}
+
+@keyframes mta-new-item {
+  0%,
+  72% {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+  78%,
+  94% {
+    opacity: 1;
+    transform: none;
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+}
+
+@keyframes mta-draw1 {
+  0%,
+  14% {
+    transform: scaleX(0);
+  }
+  20%,
+  94% {
+    transform: scaleX(1);
+  }
+  100% {
+    transform: scaleX(0);
+  }
+}
+
+@keyframes mta-draw2 {
+  0%,
+  26% {
+    opacity: 0;
+    transform: rotate(67deg) scaleX(0);
+  }
+  27% {
+    opacity: 1;
+    transform: rotate(67deg) scaleX(0);
+  }
+  33%,
+  94% {
+    opacity: 1;
+    transform: rotate(67deg) scaleX(1);
+  }
+  100% {
+    opacity: 0;
+    transform: rotate(67deg) scaleX(0);
+  }
+}
+
+@keyframes mta-in1 {
+  0%,
+  18% {
+    opacity: 0;
+    transform: translateX(-16px);
+  }
+  24%,
+  94% {
+    opacity: 1;
+    transform: none;
+  }
+  100% {
+    opacity: 0;
+    transform: translateX(-16px);
+  }
+}
+
+@keyframes mta-in2 {
+  0%,
+  30% {
+    opacity: 0;
+    transform: translateX(-16px);
+  }
+  36%,
+  94% {
+    opacity: 1;
+    transform: none;
+  }
+  100% {
+    opacity: 0;
+    transform: translateX(-16px);
+  }
+}
+
+@keyframes mta-tick-a {
+  0%,
+  46% {
+    background: #fff;
+    border-color: var(--checkbox);
+  }
+  50%,
+  94% {
+    background: var(--success);
+    border-color: var(--success);
+  }
+  100% {
+    background: #fff;
+    border-color: var(--checkbox);
+  }
+}
+
+@keyframes mta-mark-a {
+  0%,
+  46% {
+    opacity: 0;
+  }
+  50%,
+  94% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes mta-done-a {
+  0%,
+  50% {
+    opacity: 0;
+  }
+  54%,
+  94% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes mta-strike-a {
+  0%,
+  48% {
+    color: var(--ink);
+    text-decoration: none;
+  }
+  52%,
+  94% {
+    color: var(--ink-3);
+    text-decoration: line-through;
+  }
+  100% {
+    color: var(--ink);
+    text-decoration: none;
+  }
+}
+
+@keyframes mta-tick-d {
+  0%,
+  58% {
+    background: #fff;
+    border-color: var(--checkbox);
+  }
+  62%,
+  94% {
+    background: var(--purpose-decide);
+    border-color: var(--purpose-decide);
+  }
+  100% {
+    background: #fff;
+    border-color: var(--checkbox);
+  }
+}
+
+@keyframes mta-mark-d {
+  0%,
+  58% {
+    opacity: 0;
+  }
+  62%,
+  94% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes mta-done-d {
+  0%,
+  62% {
+    opacity: 0;
+  }
+  66%,
+  94% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+/* Geen beweging: de eindtoestand, statisch. */
+@media (prefers-reduced-motion: reduce) {
+  .mta-item,
+  .mta-item-text,
+  .mta-new,
+  .mta-line,
+  .mta-act,
+  .mta-check,
+  .mta-check svg,
+  .mta-done,
+  .mta-title {
+    animation: none !important;
+  }
+  .mta-line1 {
+    transform: scaleX(1);
+  }
+  .mta-line2 {
+    opacity: 1;
+    transform: rotate(67deg) scaleX(1);
+  }
+  .mta-act {
+    opacity: 1;
+    transform: none;
+  }
+  .mta-item-text {
+    color: var(--ink-3);
+    text-decoration: line-through;
+    opacity: 0.75;
+  }
+  .mta-new {
+    opacity: 1;
+    transform: none;
+  }
+  .mta-slot-action .mta-check {
+    background: var(--success);
+    border-color: var(--success);
+  }
+  .mta-slot-decision .mta-check {
+    background: var(--purpose-decide);
+    border-color: var(--purpose-decide);
+  }
+  .mta-check svg,
+  .mta-done {
+    opacity: 1;
+  }
+  .mta-slot-action .mta-title {
+    color: var(--ink-3);
+    text-decoration: line-through;
   }
 }

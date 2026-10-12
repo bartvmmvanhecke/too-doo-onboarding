@@ -42,7 +42,7 @@ test.describe("prototype-knop rechtsboven", () => {
     await page.goto("/prototype");
     await page.getByRole("button", { name: /Start flow 3:/ }).click();
     await page.goto("/probeer");
-    await page.getByRole("button", { name: "Ik vertel het je" }).click();
+    await page.getByRole("button", { name: /^Vertel het me/ }).click();
     await expect(page.getByRole("log").getByText("Waarover gaat je volgende overleg?")).toBeVisible();
 
     const nav = page.getByRole("button", { name: "Prototype-menu" });

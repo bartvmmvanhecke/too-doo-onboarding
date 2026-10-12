@@ -8,8 +8,9 @@ Registration). Mockups: [`design/`](design/) en [`design/variant-a-lazy/`](desig
 Twee onboardingvarianten naast elkaar. De **prototype-knop** rechtsboven op elk scherm heeft een menu met
 "Herstart demo" (wist alle state en opent de website).
 
-- **Variant A · Lazy Registration**: de website `/` → "Probeer Too-doo gratis" → **`/probeer`**. Meteen in de app,
-  zonder account; een gesimuleerde assistent zet het eerste overleg klaar. Het account komt pas bij bewaren.
+- **Variant A · Lazy Registration**: de website `/` → "Probeer Too-doo gratis" → **`/probeer`**. Eerst een
+  gesplitst welkomstscherm; na de keuze dokt het aan in de app (Framer Motion, één keer per gast). Zonder account;
+  een gesimuleerde assistent zet het eerste overleg klaar. Het account komt pas bij bewaren.
 - **Variant B · Classic Onboarding**: **`/prototype`** (via de URL), de vier flows en randgevallen (account eerst).
 
 Dit is een **prototype met nepdata**: geen echte login, Microsoft Graph, e-mail of backend. Externe stappen worden
@@ -57,11 +58,11 @@ app/                     routes; elk scherm is een client component naast zijn p
 components/
   onboarding/            OnboardingLayout, StepProgress, MeetingPreview, TimeInput, DateInput,
                          ChipSuggestions, ChoiceGroup, DurationPicker, ActionRow, OwnerCombobox,
-                         Field, BenefitList, ItEmailForm
+                         Field, BenefitList, ItEmailForm, MeetingToActionIllustration (ook voor de website)
   app/                   AppShell (zijbalk), Checklist, AddMeetingsDialog, InviteDialog
   b/                     variant B: WeekGrid, ProposalRow, OwnerPicker, MailPreview, StatTile
-  probeer/               Variant A: TrialScreen, TrialMeeting (detailscherm-variant), AssistantPanel, SaveDialog,
-                         AfterSaveAssistant
+  probeer/               Variant A: TrialScreen (welkom en app in één route), Welcome, TrialMeeting
+                         (detailscherm-variant), AssistantPanel, PlusMenu, SaveDialog, AfterSaveAssistant
   prototype/             PrototypeNav, de prototype-knop met menu (alleen prototype)
   demo/                  DemoBar (alleen prototype)
   ui/                    shadcn/ui-basis (button, input, label, dialog, sonner)

@@ -27,10 +27,16 @@ import { uid } from "@/lib/utils";
 export const GUEST_STORAGE_KEY = "toodoo-guest";
 export const GUEST_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 
-/** Stap 1: één openingsbericht, welkom en startvraag samen (SPEC-LAZY.md §4). */
+/**
+ * Stap 0: het welkomstscherm toont kop en keuzes; na een keuze blijft dit het eerste bericht van het
+ * gesprek (SPEC-LAZY.md §4, C0g).
+ */
 export const WELCOME_MESSAGES: Omit<Message, "id">[] = [
-  { from: "assistant", text: "Je eerste overleg staat in twee minuten klaar. **Waarmee wil je starten?**" },
+  { from: "assistant", text: "**Welkom bij Too-doo.** Laten we je eerste overleg klaarzetten." },
 ];
+
+/** Hoe de gast startte op het welkomstscherm. */
+export type StartPath = "tell" | "notes" | "agenda" | "empty";
 
 /** Typ-indicator voor elk antwoord (600–900 ms). */
 export const TYPING_DELAY = 750;
@@ -48,6 +54,9 @@ interface GuestData extends AssistantState {
   createdAt: number;
   conversation: Message[];
   account: GuestAccount | null;
+  startPath: StartPath | null;
+  /** De overgang van welkom naar app speelde al (één keer per gast); daarna meteen de app. */
+  transitionPlayed: boolean;
 }
 
 /** Enkel in het geheugen, nooit bewaard: een antwoord dat onderweg is en wat het hoofdvlak markeert. */
@@ -58,6 +67,8 @@ interface GuestUi {
   flashAt: number;
   /** Telt op bij "Iets aanpassen": de velden gaan in bewerkmodus. */
   editRequest: number;
+  /** Waar in het gesprek het laatste antwoord van de assistent begint. */
+  replyFrom: number;
 }
 
 interface GuestActions {
@@ -68,6 +79,10 @@ interface GuestActions {
    */
   dispatch: (input: AssistantInput, userText?: string) => boolean;
   setAccount: (account: GuestAccount | null) => void;
+  setStartPath: (path: StartPath) => void;
+  setTransitionPlayed: () => void;
+  /** "Start met een lege meeting" (C1d): meteen, zonder typ-indicator; het gesprek begint opnieuw. */
+  startEmpty: () => void;
   addMessages: (messages: Omit<Message, "id">[]) => void;
   updateMeeting: (patch: Partial<GuestMeeting>) => void;
   addParticipant: (name: string) => GuestPerson;
@@ -102,10 +117,12 @@ export function initialGuest(): GuestData {
     notesReminderShown: false,
     conversation: withIds(WELCOME_MESSAGES),
     account: null,
+    startPath: null,
+    transitionPlayed: false,
   };
 }
 
-const initialUi = (): GuestUi => ({ typing: false, flash: [], flashAt: 0, editRequest: 0 });
+const initialUi = (): GuestUi => ({ typing: false, flash: [], flashAt: 0, editRequest: 0, replyFrom: 0 });
 
 /** Het antwoord dat onderweg is (één tegelijk). */
 let replyTimer: ReturnType<typeof setTimeout> | null = null;
@@ -151,6 +168,7 @@ export const useGuestStore = create<GuestStore>()(
             const reply = respond(assistantState(s), input);
             set({
               ...reply.state,
+              replyFrom: s.conversation.length,
               conversation: [...s.conversation, ...withIds(reply.messages)],
               typing: false,
               ...(reply.flash.length ? { flash: reply.flash, flashAt: Date.now() } : {}),
@@ -161,6 +179,18 @@ export const useGuestStore = create<GuestStore>()(
           return true;
         },
         setAccount: (account) => set({ account }),
+        setStartPath: (startPath) => set({ startPath }),
+        setTransitionPlayed: () => set({ transitionPlayed: true }),
+        startEmpty: () => {
+          const reply = respond(assistantState(get()), { type: "start-empty" });
+          set({
+            ...reply.state,
+            startPath: "empty",
+            transitionPlayed: true,
+            conversation: withIds(reply.messages),
+            replyFrom: 0,
+          });
+        },
         addMessages: (messages) => set((s) => ({ conversation: [...s.conversation, ...withIds(messages)] })),
         updateMeeting: meeting,
         addParticipant: (name) => {
@@ -215,8 +245,8 @@ export const useGuestStore = create<GuestStore>()(
       migrate: () => initialGuest(),
       // Wat enkel in het geheugen hoort (antwoord onderweg, markering), wordt nooit bewaard.
       partialize: (s) => {
-        const { typing, flash, flashAt, editRequest, ...rest } = s;
-        void [typing, flash, flashAt, editRequest];
+        const { typing, flash, flashAt, editRequest, replyFrom, ...rest } = s;
+        void [typing, flash, flashAt, editRequest, replyFrom];
         return rest;
       },
       storage: createJSONStorage(() => (typeof window === "undefined" ? noopStorage : window.localStorage)),
@@ -224,7 +254,10 @@ export const useGuestStore = create<GuestStore>()(
       merge: (persisted, current) => {
         const p = persisted as Partial<GuestData> | undefined;
         if (!p || isExpired(p.createdAt)) return current;
-        return { ...current, ...p };
+        // Van vóór het welkomstscherm: wie al bezig was, ziet het niet meer.
+        const legacy =
+          p.transitionPlayed === undefined && !!p.conversation && hasGuestWork({ conversation: p.conversation });
+        return { ...current, ...p, ...(legacy ? { transitionPlayed: true } : {}) };
       },
     },
   ),

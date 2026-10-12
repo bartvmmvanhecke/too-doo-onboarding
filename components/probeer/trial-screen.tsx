@@ -668,8 +668,7 @@ export function TrialScreen({ onSave }: { onSave: (intent: SaveIntent, trigger: 
             <main
               className={cn("min-w-0 flex-1 px-4 pt-5 sm:px-8 panel:pb-10", open ? "pb-[60dvh]" : "pb-16 panel:pr-24")}
             >
-              {/* De banner neemt de volle breedte: zo past hij op brede schermen op één regel. */}
-              <div className="dock-rise mb-[18px]">
+              <div className="dock-rise mx-auto mb-[18px] w-full max-w-[860px]">
                 <StatusBanner account={account} onLogin={() => onSave("login", "ik-heb-al-een-account")} />
               </div>
               <div className="mx-auto w-full max-w-[860px]">

@@ -25,7 +25,9 @@ test.describe("Vier flows vanaf /prototype", () => {
     const errors = trackErrors(page);
     const shot = shooter(page, "flow-1");
     await page.goto("/");
-    await page.getByRole("main").getByRole("link", { name: "Probeer gratis" }).last().click();
+    // Variant B start via de flowkeuze-knop; de website-CTA gaat naar Variant A.
+    await page.getByRole("button", { name: /^Flowkeuze/ }).click();
+    await page.getByRole("menuitemradio", { name: /Variant B - Classic Onboarding/ }).click();
     await expect(page).toHaveURL(/\/prototype$/);
     await shot("prototype");
     await page.getByRole("button", { name: /Start flow 1:/ }).click();

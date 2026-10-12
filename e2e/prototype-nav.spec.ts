@@ -94,6 +94,6 @@ test.describe("flowkeuze-knop met de twee varianten", () => {
     await expect(page.getByRole("button", { name: /^Flowkeuze/ })).toHaveCount(0);
     await page.getByRole("link", { name: "Ga terug naar website" }).click();
     await expect(page).toHaveURL(/\/$/);
-    await expect(page.getByRole("heading", { name: "Hou jij niet van vergaderen? Wij wel." })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Van overleg naar duidelijke acties." })).toBeVisible();
   });
 });

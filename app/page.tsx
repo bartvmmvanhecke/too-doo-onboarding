@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { RotateCw } from "lucide-react";
 import { Avatar } from "@/components/avatar";
-import { NextWeekdayDate, NotAvailableLink } from "@/components/site/client-bits";
+import { NextWeekdayDate, NotAvailableLink, TryLink } from "@/components/site/client-bits";
 import { CompareSection } from "@/components/site/home/compare-section";
 import { CtaSection } from "@/components/site/home/cta-section";
 import { FaqSection } from "@/components/site/home/faq-section";
@@ -54,12 +54,12 @@ export default function HeroPage() {
               <Link href="/app" className={navLink}>
                 Inloggen
               </Link>
-              <Link
-                href="/prototype"
+              <TryLink
+                location="header"
                 className="inline-flex min-h-11 items-center rounded-full bg-brand px-[22px] font-bold text-white no-underline hover:bg-brand-hover hover:text-white"
               >
                 Probeer gratis
-              </Link>
+              </TryLink>
             </nav>
           </header>
 
@@ -67,25 +67,26 @@ export default function HeroPage() {
             <section className="mx-auto mt-12 flex max-w-[1200px] flex-wrap items-center gap-14 sm:mt-16">
               <div className="flex min-w-0 flex-[1_1_460px] flex-col gap-6">
                 <span className="self-start rounded-full bg-brand-tint px-3.5 py-1.5 text-sm font-bold text-brand-hover">
-                  Voor KMO&apos;s met vaste overlegmomenten
+                  Overleggen zonder losse eindjes
                 </span>
                 <h1 className="text-[40px] leading-[1.05] font-extrabold tracking-[-1px] sm:text-[56px]">
-                  Hou jij niet van vergaderen? Wij wel.
+                  Van overleg naar duidelijke acties.
                 </h1>
                 <p className="max-w-[520px] text-[19px] leading-[1.55] text-ink-2">
-                  Omdat onze vergaderingen eindigen in duidelijke beslissingen, en too-doo de acties opvolgt tot ze
-                  uitgevoerd zijn. Openstaande acties komen vanzelf terug op je volgende overleg.
+                  Maak in enkele minuten je eerste meeting klaar.
                 </p>
                 <div className="flex flex-col items-start gap-3">
                   <div className="flex flex-wrap gap-3">
-                    <Link href="/prototype" className={siteButton("primary")}>
-                      Probeer gratis
-                    </Link>
+                    <TryLink location="hero" className={siteButton("primary")}>
+                      Probeer Too-doo gratis
+                    </TryLink>
                     <NotAvailableLink href="#demo" className={siteButton("secondary")}>
                       Boek een demo
                     </NotAvailableLink>
                   </div>
-                  <p className="font-site text-sm text-[#5F637E]">Geen creditcard • 30 dagen gratis proberen</p>
+                  <p className="font-site text-sm text-[#5F637E]">
+                    Geen account of agenda-koppeling nodig. Start direct in een proefomgeving.
+                  </p>
                 </div>
               </div>
 

@@ -31,6 +31,7 @@ test.describe("prototype-knop rechtsboven", () => {
       await nav.click();
       await expect(page.getByRole("menu", { name: "Prototype-menu" }).getByRole("menuitem")).toHaveText([
         "Herstart demo",
+        "Demo-instellingen",
       ]);
       await page.keyboard.press("Escape");
       await expect(page.getByRole("menu")).toHaveCount(0);

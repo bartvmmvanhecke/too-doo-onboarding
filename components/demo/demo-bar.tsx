@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useId, useRef, useState } from "react";
+import { useEffect, useId } from "react";
 import { useRouter } from "next/navigation";
-import { FlaskConical, RotateCcw, X } from "lucide-react";
+import { RotateCcw, X } from "lucide-react";
+import { create } from "zustand";
 import { GUEST_STORAGE_KEY } from "@/lib/guest-store";
 import { useStore, STORAGE_KEY, type CalendarOutcome, type LoginOutcome } from "@/lib/store";
 import { useHydrated } from "@/lib/use-hydrated";
@@ -20,16 +21,23 @@ const CALENDAR_OPTIONS: { value: CalendarOutcome; label: string }[] = [
   { value: "cancelled", label: "Geannuleerd" },
 ];
 
+/** Open of dicht; geopend via "Demo-instellingen" in het prototype-menu rechtsboven. */
+const useDemoPanel = create<{ open: boolean }>(() => ({ open: false }));
+
+export function openDemoSettings() {
+  useDemoPanel.setState({ open: true });
+}
+
 /**
- * Demo-balk (alleen prototype, SPEC.md §4): kies de uitkomst van gesimuleerde
- * stappen en reset de demo. Inklapbaar, rechtsonder.
+ * Demo-balk (alleen prototype, SPEC.md §4): kies de uitkomst van gesimuleerde stappen en reset de demo.
+ * Geen eigen knop meer: het paneel opent via het prototype-menu, rechtsboven onder die knop.
  */
 export function DemoBar() {
   const hydrated = useHydrated();
   const router = useRouter();
   const panelId = useId();
-  const toggleRef = useRef<HTMLButtonElement>(null);
-  const [open, setOpen] = useState(false);
+  const open = useDemoPanel((s) => s.open);
+  const setOpen = (o: boolean) => useDemoPanel.setState({ open: o });
   const demo = useStore((s) => s.demo);
   const setDemo = useStore((s) => s.setDemo);
   const reset = useStore((s) => s.reset);
@@ -37,16 +45,13 @@ export function DemoBar() {
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
-        setOpen(false);
-        toggleRef.current?.focus();
-      }
+      if (e.key === "Escape") useDemoPanel.setState({ open: false });
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [open]);
 
-  if (!hydrated) return null;
+  if (!hydrated || !open) return null;
 
   // Volledig herladen naar de hero: zo kan geen scherm nog met oude state doorverwijzen.
   const resetDemo = () => {
@@ -62,11 +67,10 @@ export function DemoBar() {
   };
 
   return (
-    <div className="fixed right-3 bottom-20 z-40 flex flex-col items-end gap-2 print:hidden">
+    <div className="fixed top-14 right-3 z-50 print:hidden">
       <section
         id={panelId}
         aria-label="Demo-instellingen"
-        hidden={!open}
         className="w-[min(320px,calc(100vw-24px))] rounded-2xl border border-white/10 bg-ink p-4 text-white shadow-[0_20px_50px_rgba(10,20,40,0.35)]"
       >
         <div className="mb-3 flex items-start justify-between gap-2">
@@ -106,17 +110,6 @@ export function DemoBar() {
           Reset demo
         </button>
       </section>
-      <button
-        ref={toggleRef}
-        type="button"
-        aria-expanded={open}
-        aria-controls={panelId}
-        onClick={() => setOpen((o) => !o)}
-        className="flex min-h-11 cursor-pointer items-center gap-2 rounded-full bg-ink px-4 text-sm font-extrabold text-white shadow-[0_8px_24px_rgba(10,20,40,0.3)] hover:bg-[#0b1426]"
-      >
-        <FlaskConical className="size-4" aria-hidden />
-        Demo
-      </button>
     </div>
   );
 }

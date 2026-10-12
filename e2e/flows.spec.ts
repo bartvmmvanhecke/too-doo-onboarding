@@ -563,7 +563,8 @@ test.describe("Robuustheid", () => {
     await page.getByLabel("Naam", { exact: true }).fill("Teamoverleg");
     await page.getByRole("button", { name: "Maak overleg aan" }).click();
     await expect(page).toHaveURL(/teamoverleg$/);
-    await page.getByRole("button", { name: "Demo", exact: true }).click();
+    await page.getByRole("button", { name: "Prototype-menu" }).click();
+    await page.getByRole("menuitem", { name: "Demo-instellingen" }).click();
     await page.getByRole("button", { name: "Reset demo" }).click();
     await expect(page).toHaveURL(/\/$/);
     await page.goto("/app");

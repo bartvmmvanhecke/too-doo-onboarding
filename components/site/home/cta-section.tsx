@@ -1,5 +1,4 @@
-import Link from "next/link";
-import { NotAvailableLink } from "@/components/site/client-bits";
+import { NotAvailableLink, TryLink } from "@/components/site/client-bits";
 import { SiteHeading, siteButton } from "@/components/site/home/site-ui";
 import { IMAGES } from "@/lib/site-content";
 
@@ -25,9 +24,9 @@ export function CtaSection() {
           Sluit je aan bij 500+ teams die voorbereiden, beslissen en uitvoeren met too-doo.
         </p>
         <div className="mt-7 mb-3.5 flex flex-wrap justify-center gap-3">
-          <Link href="/prototype" className={siteButton("primary")}>
+          <TryLink location="cta" className={siteButton("primary")}>
             Start je pilot van 30 dagen
-          </Link>
+          </TryLink>
           <NotAvailableLink href="#demo" className={siteButton("secondary")}>
             Boek een demo
           </NotAvailableLink>

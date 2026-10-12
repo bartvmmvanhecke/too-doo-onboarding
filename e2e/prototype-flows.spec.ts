@@ -25,12 +25,14 @@ test.describe("Vier flows vanaf /prototype", () => {
     const errors = trackErrors(page);
     const shot = shooter(page, "flow-1");
     await page.goto("/");
-    await page.getByRole("main").getByRole("link", { name: "Probeer gratis" }).last().click();
+    // Variant B start via de flowkeuze-knop; de website-CTA gaat naar Variant A.
+    await page.getByRole("button", { name: /^Flowkeuze/ }).click();
+    await page.getByRole("menuitemradio", { name: /Variant B - Classic Onboarding/ }).click();
     await expect(page).toHaveURL(/\/prototype$/);
     await shot("prototype");
     await page.getByRole("button", { name: /Start flow 1:/ }).click();
     await expect(page).toHaveURL(/\/start$/);
-    await expect(page.getByRole("link", { name: "Terug naar flowkeuze (flow 1)" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Flowkeuze (actief: variant B · Flow 1)" })).toBeVisible();
     await shot("account");
     await page.getByRole("button", { name: "Doorgaan met Microsoft" }).click();
     await expect(page).toHaveURL(/\/overleg$/);
@@ -82,7 +84,7 @@ test.describe("Vier flows vanaf /prototype", () => {
     errors.assertNone();
   });
 
-  test("flow 3: Outlook, overlegstructuur en acties uit notities (variant B)", async ({ page }) => {
+  test("flow 3: overlegstructuur en acties uit notities", async ({ page }) => {
     const errors = trackErrors(page);
     const shot = shooter(page, "flow-3");
     await page.goto("/b");
@@ -175,7 +177,8 @@ test.describe("Vier flows vanaf /prototype", () => {
     await page.getByLabel("Naam", { exact: true }).fill("Teamoverleg");
     await page.getByRole("button", { name: "Maak overleg aan" }).click();
     await expect(page).toHaveURL(/teamoverleg$/);
-    await page.getByRole("link", { name: /Terug naar flowkeuze/ }).click();
+    await page.getByRole("button", { name: /^Flowkeuze/ }).click();
+    await page.getByRole("menuitemradio", { name: /Variant B - Classic Onboarding/ }).click();
     await page.getByRole("button", { name: /Start flow 4:/ }).click();
     await page.goto("/app");
     await expect(page.getByRole("heading", { name: "Zet je eerste vaste overleg klaar" })).toBeVisible();
@@ -220,7 +223,7 @@ test.describe("Vier randgevallen vanaf /prototype", () => {
   });
 });
 
-test.describe("Variant B in detail", () => {
+test.describe("Flow 3 in detail", () => {
   test("/b/structuur: minstens één overleg, knoptekst volgt het aantal", async ({ page }) => {
     await startFlow(page, /Start flow 3:/);
     await page.goto("/b/structuur");

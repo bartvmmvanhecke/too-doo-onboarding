@@ -64,10 +64,10 @@ export function PrototypeScreen() {
               </button>
             </div>
           </div>
-          <h1 className="text-3xl font-extrabold">Kies een flow</h1>
+          <h1 className="text-3xl font-extrabold">Variant B · Classic Onboarding</h1>
           <p className="max-w-[720px] text-base text-[#4B5563]">
-            Tussenscherm tussen website en proefperiode. &quot;Start flow&quot; wist de demo en zet de juiste uitkomsten
-            klaar. De knop rechtsboven op elk scherm brengt je hier terug.
+            Kies een flow: account eerst, dan het eerste overleg. &quot;Start flow&quot; wist de demo en zet de juiste
+            uitkomsten klaar. Met de knop rechtsboven op elk scherm kies je opnieuw een variant.
           </p>
         </header>
 
@@ -89,9 +89,6 @@ export function PrototypeScreen() {
                     <span className="sr-only">Flow {f.id}: </span>
                     {f.title}
                   </h3>
-                  <span className="rounded-md bg-[#F3F4F6] px-2 py-0.5 text-xs font-bold text-[#4B5563]">
-                    Variant {f.variant}
-                  </span>
                 </div>
                 <p className="text-[15px] leading-normal text-[#4B5563]">{f.text}</p>
                 <ol
@@ -152,10 +149,10 @@ export function PrototypeScreen() {
 
         <nav aria-label="Overige schermen" className="flex flex-wrap gap-x-6 gap-y-2 text-sm font-bold">
           <Link href="/" className="inline-flex min-h-11 items-center text-[#1F2937] underline">
-            Website variant A
+            Website
           </Link>
           <Link href="/b" className="inline-flex min-h-11 items-center text-[#1F2937] underline">
-            Website variant B
+            Website (grip-versie)
           </Link>
           <Link href="/b/reis" className="inline-flex min-h-11 items-center text-[#1F2937] underline">
             De reis van sales tot tweede overleg

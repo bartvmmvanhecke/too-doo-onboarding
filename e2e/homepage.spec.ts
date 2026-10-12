@@ -3,15 +3,20 @@ import { expectToast } from "./helpers";
 
 /** Homepage: hero (eigen versie) + secties van de nieuwe website vanaf sectie 2. */
 test.describe("Homepage", () => {
-  test("hero-knoppen: Probeer gratis en Boek een demo", async ({ page }) => {
+  test("hero: kop uit Variant A, Probeer Too-doo gratis en Boek een demo", async ({ page }) => {
     await page.goto("/");
     const main = page.getByRole("main");
-    await expect(main.getByText("Geen creditcard • 30 dagen gratis proberen")).toBeVisible();
+    await expect(main.getByText("Overleggen zonder losse eindjes")).toBeVisible();
+    await expect(main.getByRole("heading", { level: 1, name: "Van overleg naar duidelijke acties." })).toBeVisible();
+    await expect(main.getByText("Maak in enkele minuten je eerste meeting klaar.")).toBeVisible();
+    await expect(
+      main.getByText("Geen account of agenda-koppeling nodig. Start direct in een proefomgeving."),
+    ).toBeVisible();
     await expect(page.getByRole("link", { name: "Start gratis met Microsoft" })).toHaveCount(0);
     await main.getByRole("link", { name: "Boek een demo" }).first().click();
     await expectToast(page, "Niet beschikbaar in dit prototype");
-    await main.getByRole("link", { name: "Probeer gratis" }).last().click();
-    await expect(page).toHaveURL(/\/prototype$/);
+    await main.getByRole("link", { name: "Probeer Too-doo gratis" }).click();
+    await expect(page).toHaveURL(/\/probeer$/);
   });
 
   test("secties vanaf 'Gedaan met Oeps' tot de footer", async ({ page }) => {
@@ -55,6 +60,6 @@ test.describe("Homepage", () => {
     await expect(page.getByText("Je vergadergegevens worden gehost bij Level27, in Hasselt, België.")).toBeVisible();
 
     await page.getByRole("link", { name: "Start je pilot van 30 dagen" }).click();
-    await expect(page).toHaveURL(/\/prototype$/);
+    await expect(page).toHaveURL(/\/probeer$/);
   });
 });

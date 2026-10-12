@@ -32,6 +32,8 @@ function trialOps(onStart: () => void): MeetingOps {
   const decision = (id: string) => g().decisions.some((d) => d.id === id);
   return {
     updateBlock: (_, blockId, patch) => {
+      // Presentator van het thema, zoals in het detailscherm.
+      if ("presenterId" in patch) g().setPresenter(blockId, patch.presenterId ?? null);
       if (!patch.title) return;
       if (isTopicBlock(blockId)) g().updateTopic(blockId, patch.title);
       // "Lopende zaken" hernoemen maakt er een eigen agendapunt van.
@@ -50,9 +52,17 @@ function trialOps(onStart: () => void): MeetingOps {
       return "";
     },
     updateItem: (_, itemId, patch) => {
-      if (!patch.text) return;
-      if (decision(itemId)) g().updateDecision(itemId, { text: patch.text });
-      else g().updateItem(itemId, patch.text);
+      // Titel, doel, eigenaars en duur, zoals in het detailscherm.
+      const { text, purposes, ownerIds, duration } = patch;
+      const update = {
+        ...(text ? { text } : {}),
+        ...(purposes ? { purposes } : {}),
+        ...(ownerIds ? { ownerIds } : {}),
+        ...(duration !== undefined ? { duration } : {}),
+      };
+      if (!Object.keys(update).length) return;
+      if (decision(itemId)) g().updateDecision(itemId, update);
+      else g().updateItem(itemId, update);
     },
     removeItem: (_, itemId) => {
       if (decision(itemId)) g().updateDecision(itemId, { confirmed: false });

@@ -85,7 +85,7 @@ async function buildMeeting(page: Page) {
   const actions = page.getByRole("region", { name: "Openstaande acties" });
   await expect(actions).toContainText("3 voorstellen · vink aan wat klopt");
   await expect(actions.getByRole("button", { name: "Wie doet Leverancier staal opnieuw bellen?" })).toBeVisible();
-  await expect(page.getByRole("region", { name: "Knelpunten en beslissingen" })).toContainText("beslissing nodig");
+  await expect(page.getByRole("region", { name: "Knelpunten en beslissingen" })).toContainText("Beslissen");
   await expectAssistant(page, "Wie gaat leverancier staal opnieuw bellen?");
   await say(page, "Karim belt, tegen woensdag");
   await expectAssistant(page, /Genoteerd: Karim, tegen wo/);
@@ -511,7 +511,7 @@ test.describe("Variant A · Lazy Registration", () => {
     await zone.dispatchEvent("drop", { dataTransfer: data });
     await expectAssistant(page, "Ik las verslag.pdf.");
     await expect(page.getByRole("region", { name: "Openstaande acties" })).toContainText("Budget");
-    await expect(page.getByRole("region", { name: "Lopende zaken" })).toContainText("beslissing nodig");
+    await expect(page.getByRole("region", { name: "Lopende zaken" })).toContainText("Beslissen");
     errors.assertNone();
   });
 
@@ -1037,13 +1037,56 @@ test.describe("Variant A · agenda en assistent sluiten", () => {
     await main.getByLabel("Thema toevoegen").fill("Veiligheid");
     await main.getByLabel("Thema toevoegen").press("Enter");
     await addItem(page, "Veiligheid", "Nieuwe brandblussers");
-    await expect(items(page, "Lopende orders")).toHaveText(["Order Peeters"]);
-    await expect(items(page, "Varia")).toHaveText(["Bedrijfsfeest"]);
-    await expect(items(page, "Veiligheid")).toHaveText(["Nieuwe brandblussers"]);
+    await expect(items(page, "Lopende orders")).toHaveText([/^Order Peeters/]);
+    await expect(items(page, "Varia")).toHaveText([/^Bedrijfsfeest/]);
+    await expect(items(page, "Veiligheid")).toHaveText([/^Nieuwe brandblussers/]);
 
     await page.reload();
-    await expect(items(page, "Lopende orders")).toHaveText(["Order Peeters"]);
-    await expect(items(page, "Veiligheid")).toHaveText(["Nieuwe brandblussers"]);
+    await expect(items(page, "Lopende orders")).toHaveText([/^Order Peeters/]);
+    await expect(items(page, "Veiligheid")).toHaveText([/^Nieuwe brandblussers/]);
+  });
+
+  test("per thema een presentator en de totale duur; per agendapunt doel, eigenaars, duur en één teller", async ({
+    page,
+  }) => {
+    await page.goto("/probeer");
+    await say(page, "Ons productieoverleg elke maandag om 8u met Jan en Sofie: orders, problemen en planning");
+    await expectDocked(page);
+    await addItem(page, "Lopende orders", "Order Peeters");
+    const theme = page.getByRole("main").getByRole("region", { name: "Lopende orders" });
+    const row = items(page, "Lopende orders").first();
+
+    // Geen vier kolommen (beslissingen, acties, notities, documenten), wel één icoon met teller.
+    await expect(theme.getByText("Beslissingen", { exact: true })).toHaveCount(0);
+    await expect(row.getByRole("img", { name: "0 items bij Order Peeters" })).toBeVisible();
+
+    // Doel.
+    await row.getByRole("button", { name: "Doel toevoegen" }).click();
+    await page.getByRole("checkbox", { name: /Bespreken/ }).check();
+    await page.getByRole("button", { name: "Pas 1 doel toe" }).click();
+    await expect(row.getByRole("button", { name: "Doel: Bespreken. Wijzigen" })).toBeVisible();
+    // Eigenaar.
+    await row.getByRole("button", { name: "Eigenaar kiezen" }).click();
+    await page.getByLabel("Zoek een collega").fill("jan");
+    await page.getByRole("checkbox", { name: /Jan/ }).check();
+    await page.getByRole("button", { name: "Wijs 1 eigenaar toe" }).click();
+    await expect(row.getByRole("button", { name: "Eigenaar: Jan. Wijzigen" })).toBeVisible();
+    // Duur; het thema telt de duur op.
+    await row.getByRole("button", { name: "Duur toevoegen" }).click();
+    await page.getByRole("button", { name: "20", exact: true }).click();
+    await expect(row.getByRole("button", { name: "Duur: 20 minuten. Wijzigen" })).toBeVisible();
+    await expect(theme.getByText("20 min", { exact: true }).first()).toBeVisible();
+    // Presentator van het thema.
+    await theme.getByRole("button", { name: "Presentator kiezen" }).click();
+    await page.getByRole("button", { name: /^Sofie/ }).click();
+    await expect(theme.getByRole("button", { name: "Presentator: Sofie. Wijzigen" })).toBeVisible();
+
+    // Bewaard in de gast-state.
+    await page.reload();
+    await expect(row.getByRole("button", { name: "Doel: Bespreken. Wijzigen" })).toBeVisible();
+    await expect(row.getByRole("button", { name: "Eigenaar: Jan. Wijzigen" })).toBeVisible();
+    await expect(row.getByRole("button", { name: "Duur: 20 minuten. Wijzigen" })).toBeVisible();
+    await expect(theme.getByRole("button", { name: "Presentator: Sofie. Wijzigen" })).toBeVisible();
   });
 
   test("verslepen met het toetsenbord: spatie, pijltjes over themagrenzen, spatie; Escape annuleert; aria-live", async ({
@@ -1066,18 +1109,18 @@ test.describe("Variant A · agenda en assistent sluiten", () => {
     await expect(live).toHaveText("Order Peeters verplaatst naar Knelpunten en beslissingen, positie 1");
     await page.keyboard.press("Space");
     await expect(live).toHaveText("Order Peeters neergezet.");
-    await expect(items(page, "Lopende orders")).toHaveText(["Order Janssens"]);
-    await expect(items(page, "Knelpunten en beslissingen")).toHaveText(["Order Peeters"]);
+    await expect(items(page, "Lopende orders")).toHaveText([/^Order Janssens/]);
+    await expect(items(page, "Knelpunten en beslissingen")).toHaveText([/^Order Peeters/]);
 
     // Escape zet terug.
     const grip2 = page.getByRole("button", { name: "Verplaats Order Janssens" });
     await grip2.focus();
     await page.keyboard.press("Space");
     await page.keyboard.press("ArrowDown");
-    await expect(items(page, "Knelpunten en beslissingen")).toHaveText(["Order Janssens", "Order Peeters"]);
+    await expect(items(page, "Knelpunten en beslissingen")).toHaveText([/^Order Janssens/, /^Order Peeters/]);
     await page.keyboard.press("Escape");
     await expect(live).toHaveText("Verplaatsen van Order Janssens geannuleerd.");
-    await expect(items(page, "Lopende orders")).toHaveText(["Order Janssens"]);
+    await expect(items(page, "Lopende orders")).toHaveText([/^Order Janssens/]);
 
     // Bewaard in de gast-state.
     const topics = await page.evaluate(
@@ -1130,7 +1173,7 @@ test.describe("Variant A · agenda en assistent sluiten", () => {
     await expect(target.getByText("Zet het agendapunt hier neer")).toBeVisible();
     await target.dispatchEvent("dragover", { dataTransfer: data });
     await target.dispatchEvent("drop", { dataTransfer: data });
-    await expect(items(page, "Planning komende week")).toHaveText(["Order Peeters"]);
+    await expect(items(page, "Planning komende week")).toHaveText([/^Order Peeters/]);
     await expect(items(page, "Lopende orders")).toHaveCount(0);
     await expect(target).not.toHaveAttribute("data-item-over");
   });

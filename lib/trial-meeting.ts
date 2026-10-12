@@ -3,8 +3,15 @@
  * blijft de bron; hier wordt ze een `Meeting` (met vaste id's) en worden wijzigingen uit het detailscherm
  * teruggeschreven naar de gast-state.
  */
-import { newBlock, newItem, type AgendaBlock } from "@/lib/agenda";
-import { ME, type GuestBundle, type GuestDecision, type GuestItem, type GuestMeeting } from "@/lib/assistant/types";
+import { newBlock, newItem, type AgendaBlock, type AgendaItem } from "@/lib/agenda";
+import {
+  ME,
+  type GuestBundle,
+  type GuestDecision,
+  type GuestItem,
+  type GuestItemMeta,
+  type GuestMeeting,
+} from "@/lib/assistant/types";
 import { formatShortDate, nextWeekday, toISO } from "@/lib/date";
 import { deriveMeetingType } from "@/lib/meeting";
 import { AVATAR_COLORS, USER_PERSON_ID, type Person } from "@/lib/mock-data";
@@ -27,13 +34,16 @@ const DECISION_BLOCK = /beslis|knelpunt|probleem|problemen/i;
 export function guestBlocks(b: GuestBundle, opts: { stableIds: boolean }): AgendaBlock[] {
   const stable = (id: string) => (opts.stableIds ? { id } : {});
   const items = (list: GuestItem[] | undefined) =>
-    (list ?? []).filter((i) => i.text.trim()).map((i) => newItem(i.text.trim(), stable(i.id)));
+    (list ?? []).filter((i) => i.text.trim()).map((i) => newItem(i.text.trim(), { ...stable(i.id), ...meta(i) }));
   const topics = b.meeting.topics.filter((t) => t.text.trim());
   const blocks: AgendaBlock[] = topics.length
-    ? topics.map((t) => ({ ...newBlock("topics", { ...stable(t.id), title: t.text.trim() }), items: items(t.items) }))
+    ? topics.map((t) => ({
+        ...newBlock("topics", { ...stable(t.id), title: t.text.trim(), presenterId: t.presenterId ?? null }),
+        items: items(t.items),
+      }))
     : [newBlock("topics", { ...stable(DEFAULT_BLOCK), title: "Lopende zaken" })];
   const varia = {
-    ...newBlock("topics", { ...stable(VARIA_BLOCK), title: "Varia" }),
+    ...newBlock("topics", { ...stable(VARIA_BLOCK), title: "Varia", presenterId: b.meeting.variaPresenterId ?? null }),
     items: items(b.meeting.variaItems),
   };
   const all = [...blocks, varia];
@@ -41,9 +51,19 @@ export function guestBlocks(b: GuestBundle, opts: { stableIds: boolean }): Agend
   for (const d of [...b.decisions].reverse()) {
     if (!d.confirmed || !d.text.trim()) continue;
     const at = decisionBlockIndex(d, ids, blocks);
-    all[at].items = [newItem(d.text.trim(), { ...stable(d.id), purposes: ["decide"] }), ...all[at].items];
+    const item = newItem(d.text.trim(), { ...stable(d.id), purposes: ["decide"], ...meta(d) });
+    all[at].items = [item, ...all[at].items];
   }
   return [newBlock("actions", stable(ACTIONS_BLOCK)), ...all];
+}
+
+/** Doel, eigenaars en duur, enkel wat gezet is. */
+function meta(i: GuestItemMeta): Partial<AgendaItem> {
+  return {
+    ...(i.purposes ? { purposes: i.purposes } : {}),
+    ...(i.ownerIds ? { ownerIds: i.ownerIds } : {}),
+    ...(i.duration !== undefined ? { duration: i.duration } : {}),
+  };
 }
 
 /** Waar een beslissing staat: het thema waarheen ze versleept werd, anders het thema over beslissingen of het eerste. */
@@ -78,11 +98,25 @@ export function addGuestItem(m: GuestMeeting, blockId: string, text: string): Gu
 
 const allLists = (m: GuestMeeting) => [VARIA_BLOCK, ...m.topics.map((t) => t.id)];
 
-export function updateGuestItem(m: GuestMeeting, itemId: string, text: string): GuestMeeting {
+export function updateGuestItem(
+  m: GuestMeeting,
+  itemId: string,
+  patch: Partial<Pick<GuestItem, "text"> & GuestItemMeta>,
+): GuestMeeting {
   return allLists(m).reduce(
-    (acc, id) => withList(acc, id, (items) => items.map((i) => (i.id === itemId ? { ...i, text } : i))),
+    (acc, id) => withList(acc, id, (items) => items.map((i) => (i.id === itemId ? { ...i, ...patch } : i))),
     m,
   );
+}
+
+/** Presentator van een thema; "Lopende zaken" wordt daarbij een echt thema. */
+export function setGuestPresenter(m: GuestMeeting, blockId: string, presenterId: string | null): GuestMeeting {
+  if (blockId === VARIA_BLOCK) return { ...m, variaPresenterId: presenterId };
+  const target = materialize(m, blockId);
+  return {
+    ...target.meeting,
+    topics: target.meeting.topics.map((t) => (t.id === target.blockId ? { ...t, presenterId } : t)),
+  };
 }
 
 export function removeGuestItem(m: GuestMeeting, itemId: string): GuestMeeting {

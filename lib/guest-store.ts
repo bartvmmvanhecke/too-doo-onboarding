@@ -14,6 +14,8 @@ import type {
   CalendarProvider,
   GuestAction,
   GuestDecision,
+  GuestItem,
+  GuestItemMeta,
   GuestMeeting,
   GuestPerson,
   GuestTopic,
@@ -21,7 +23,7 @@ import type {
 } from "@/lib/assistant/types";
 import { emptyMeeting } from "@/lib/assistant/engine";
 import { guestPerson } from "@/lib/assistant/people";
-import { addGuestItem, moveGuestItem, removeGuestItem, updateGuestItem } from "@/lib/trial-meeting";
+import { addGuestItem, moveGuestItem, removeGuestItem, setGuestPresenter, updateGuestItem } from "@/lib/trial-meeting";
 import { track } from "@/lib/track";
 import { uid } from "@/lib/utils";
 
@@ -101,7 +103,8 @@ interface GuestActions {
   moveTopic: (id: string, index: number) => void;
   /** Agendapunten onder een thema (ook "Lopende zaken" en "Varia"). */
   addItem: (blockId: string, text: string) => void;
-  updateItem: (id: string, text: string) => void;
+  updateItem: (id: string, patch: Partial<Pick<GuestItem, "text"> & GuestItemMeta>) => void;
+  setPresenter: (blockId: string, presenterId: string | null) => void;
   removeItem: (id: string) => void;
   moveItem: (id: string, blockId: string, index: number) => void;
   setAssistantOpen: (open: boolean) => void;
@@ -238,7 +241,8 @@ export const useGuestStore = create<GuestStore>()(
           meeting({ topics: [...get().meeting.topics, { id: uid("t-"), text } satisfies GuestTopic] }),
         removeTopic: (id) => meeting({ topics: get().meeting.topics.filter((t) => t.id !== id) }),
         addItem: (blockId, text) => meeting(addGuestItem(get().meeting, blockId, text)),
-        updateItem: (id, text) => meeting(updateGuestItem(get().meeting, id, text)),
+        updateItem: (id, patch) => meeting(updateGuestItem(get().meeting, id, patch)),
+        setPresenter: (blockId, presenterId) => meeting(setGuestPresenter(get().meeting, blockId, presenterId)),
         removeItem: (id) => meeting(removeGuestItem(get().meeting, id)),
         moveItem: (id, blockId, index) => set((s) => moveGuestItem(s, id, blockId, index)),
         setAssistantOpen: (assistantOpen) => set({ assistantOpen }),

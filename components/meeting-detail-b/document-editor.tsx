@@ -1,8 +1,11 @@
 "use client";
-import { useRef, useState, type KeyboardEvent } from "react";
+import { useRef, useState, useEffect, type KeyboardEvent } from "react";
 import { toast } from "sonner";
 import { Plus, GripVertical } from "lucide-react";
 import { newBlock, blockDuration, type AgendaBlock, type AgendaItem, type EntryKind, type Entry } from "@/lib/agenda";
+import { Dictation, speechSupported } from "./dictation";
+import { parsePastedLines, DOCUMENT_TEMPLATES, documentTemplate } from "@/lib/meeting-document";
+import { weekdayLong } from "@/lib/date";
 import { EntryFields } from "./entry-fields";
 import { LineFields } from "./line-fields";
 import { TokenInput, parseDuration } from "./inline-tokens";
@@ -11,6 +14,8 @@ import { usePeople, useStore, type Meeting } from "@/lib/store";
 type Draft = { id: string; blockId: string; afterId?: string; text: string; patch?: Partial<AgendaItem>; parentId?: string; kind?: EntryKind; ownerId?: string | null; date?: string };
 export function DocumentEditor({ meeting }: { meeting: Meeting }) {
   const people = usePeople().filter((p) => meeting.participants.includes(p.id));
+  const [supportsSpeech] = useState(speechSupported);
+  const [structured, setStructured] = useState(false);
   const [announcement, setAnnouncement] = useState("");
   const [edits, setEdits] = useState<Record<string, string>>({});
   const [currentDraft, setDraft] = useState<Draft | null>(null);
@@ -18,7 +23,12 @@ export function DocumentEditor({ meeting }: { meeting: Meeting }) {
   const sequence = useRef(0);
   const refs = useRef(new Map<string, HTMLInputElement>());
   const ops = useStore.getState();
-  const blocks = meeting.blocks.filter((b) => b.kind !== "actions");
+  const content = meeting.blocks.some((b) => b.items.some((i) => i.text.trim()));
+  const hasCustomBlocks = meeting.blocks.some((b) => b.kind === "break" || (b.kind === "topics" && b.title && !["Lopende zaken", "Varia"].includes(b.title)));
+  const pristine = !content && !structured && !hasCustomBlocks;
+  const blocks = pristine ? [] : meeting.blocks.filter((b) => b.kind !== "actions");
+  const showExamples = !content && !draft?.text;
+  useEffect(() => { if (!content) refs.current.get("empty-")?.focus(); }, [content]);
   const focus = (id: string) => requestAnimationFrame(() => { const el = refs.current.get(id); el?.focus(); el?.setSelectionRange(el.value.length, el.value.length); });
   function empty(blockId: string, afterId?: string, parentId?: string, kind?: EntryKind) {
     const id = `draft-${++sequence.current}`;
@@ -31,7 +41,7 @@ export function DocumentEditor({ meeting }: { meeting: Meeting }) {
     let blockId = draft.blockId;
     if (!blockId) {
       const block = newBlock("topics", { title: "" });
-      ops.putMeeting({ ...useStore.getState().meetings.find((m) => m.id === meeting.id)!, blocks: [...meeting.blocks, block] });
+      ops.putMeeting({ ...useStore.getState().meetings.find((m) => m.id === meeting.id)!, blocks: [...meeting.blocks.filter((b) => b.kind === "actions" || b.items.length || !pristine), block] });
       blockId = block.id;
     }
     if (draft.parentId) {
@@ -45,6 +55,11 @@ export function DocumentEditor({ meeting }: { meeting: Meeting }) {
     if (draft.text.trim().startsWith("#")) {
       const title = draft.text.trim().slice(1).trim();
       if (!title) return null;
+      setStructured(true);
+      const current = useStore.getState().meetings.find((m) => m.id === meeting.id)!;
+      const unnamed = current.blocks.find((b) => b.kind === "topics" && !b.title);
+      if (unnamed?.items.length) ops.updateBlock(meeting.id, unnamed.id, { title: "Lopende zaken" });
+      else if (unnamed) ops.removeBlock(meeting.id, unnamed.id);
       const id = ops.addBlock(meeting.id, "topics");
       ops.updateBlock(meeting.id, id, { title });
       setDraft(null);
@@ -75,6 +90,34 @@ export function DocumentEditor({ meeting }: { meeting: Meeting }) {
     ops.putMeeting({ ...snapshot, blocks: rest });
     toast("Blok verwijderd", { action: { label: "Ongedaan maken", onClick: () => ops.putMeeting({ ...useStore.getState().meetings.find((m) => m.id === meeting.id)!, blocks: snapshot.blocks }) } });
   }
+  function paste(text: string, initialBlockId: string, afterId?: string, parentId?: string) {
+    const lines = parsePastedLines(text);
+    if (!lines.length) return;
+    let blockId = initialBlockId;
+    if (!blockId) {
+      const block = newBlock("topics", { title: "" });
+      const current = useStore.getState().meetings.find((m) => m.id === meeting.id)!;
+      ops.putMeeting({ ...current, blocks: [...current.blocks.filter((b) => b.kind === "actions" || b.items.length || !pristine), block] });
+      blockId = block.id;
+    }
+    let previous = parentId ?? afterId;
+    let last = previous;
+    let index = afterId ? (useStore.getState().meetings.find((m) => m.id === meeting.id)!.blocks.find((b) => b.id === blockId)!.items.findIndex((i) => i.id === afterId) + 1) : useStore.getState().meetings.find((m) => m.id === meeting.id)!.blocks.find((b) => b.id === blockId)!.items.length;
+    for (const line of lines) {
+      if ((line.indented || parentId) && previous) {
+        const action = /^\[\s?\]/.test(line.text);
+        last = ops.addEntry(meeting.id, previous, { kind: action ? "action" : "note", text: line.text.replace(/^\[\s?\]\s*/, ""), ownerId: null, date: "" });
+      } else {
+        const parsed = parseDuration(line.text);
+        previous = ops.addAgendaItem(meeting.id, blockId, parsed.text);
+        ops.updateItem(meeting.id, previous, parsed);
+        ops.moveItem(meeting.id, previous, blockId, index++);
+        last = previous;
+      }
+    }
+    setDraft(null);
+    if (last) focus(last);
+  }
   function addAt(itemId: string, kind: EntryKind | "break") {
     if (kind === "break") {
       const id = ops.addBlock(meeting.id, "break");
@@ -104,6 +147,7 @@ export function DocumentEditor({ meeting }: { meeting: Meeting }) {
     return <div key={id} className={`document-row flex flex-wrap items-center gap-1 ${active && draft.parentId ? "ml-7" : ""}`}>
       {active && (draft.kind === "action" || /^\[\s?\]/.test(text)) ? <input type="checkbox" disabled aria-label="Nieuwe actie" /> : <Plus size={14} className="text-ink-3 shrink-0" aria-hidden />}
       <TokenInput id={id} text={text} label={active && draft.parentId ? "Nieuwe ingesprongen regel" : "Nieuw agendapunt"} people={people} inputRef={(el) => { if (el) refs.current.set(id, el); else refs.current.delete(id); }} placeholder="Typ een agendapunt…" purposes={temp.purposes} update={patch} add={add}
+        onPaste={(e) => { if (e.clipboardData.getData("text").includes("\n")) { e.preventDefault(); paste(e.clipboardData.getData("text"), blockId, afterId, active ? draft.parentId : undefined); } }}
         onFocus={() => { if (!active) setDraft({ id, blockId, afterId, text: "" }); }}
         onChange={(text) => setDraft((d) => ({ ...(active ? d : {}), id, blockId, afterId, text }))}
         onBlur={() => { if (active && draft.text.trim()) saveDraft(); }}
@@ -117,6 +161,7 @@ export function DocumentEditor({ meeting }: { meeting: Meeting }) {
           }
           if (e.key === "Backspace" && !text) { e.preventDefault(); setDraft(null); if (afterId) focus(afterId); else { const last = blocks.find((b) => b.id === blockId)?.items.at(-1); if (last) focus(last.id); } }
         }} />
+      {!text && supportsSpeech && <Dictation onText={(spoken) => { setDraft((d) => ({ ...(d ?? {}), id, blockId, afterId, text: spoken })); focus(id); }} />}
       {text && active && draft.parentId ? <EntryFields ownerId={draft.ownerId ?? draft.patch?.ownerIds?.[0] ?? null} date={draft.date ?? ""} people={people} update={(p) => setDraft((d) => d ? { ...d, ...p } : d)} /> : text ? <LineFields item={temp} people={people} update={patch} add={add} focus={() => focus(id)} /> : <span className="text-[10px] text-ink-3">Tab voor een notitie</span>}
     </div>;
   }
@@ -127,7 +172,7 @@ export function DocumentEditor({ meeting }: { meeting: Meeting }) {
         <button type="button" draggable onDragStart={(e) => { e.dataTransfer.setData("text/agenda-item", item.id); e.dataTransfer.effectAllowed = "move"; }} onKeyDown={(e) => {
           if (e.key === "ArrowUp" || e.key === "ArrowDown") { e.preventDefault(); const index = block.items.indexOf(item); const delta = e.key === "ArrowUp" ? -1 : 1; const target = index + delta; const topics = blocks.filter((b) => b.kind === "topics"); const next = topics[topics.indexOf(block) + delta]; if (target >= 0 && target < block.items.length) ops.moveItem(meeting.id, item.id, block.id, target); else if (next) ops.moveItem(meeting.id, item.id, next.id, delta > 0 ? 0 : next.items.length); setAnnouncement(`${item.text} verplaatst`); requestAnimationFrame(() => document.querySelector<HTMLButtonElement>(`[data-b-grip="${item.id}"]`)?.focus()); }
         }} data-b-grip={item.id} aria-label={`Verplaats ${item.text}`} className="document-reveal min-h-11 w-5"><GripVertical size={14} /></button><span aria-hidden>•</span>
-        <TokenInput id={item.id} text={text} label={`Agendapunt in ${block.title || "naamloos blok"}`} people={people} inputRef={(el) => { if (el) refs.current.set(item.id, el); else refs.current.delete(item.id); }} onChange={(text) => setEdits((e) => ({ ...e, [item.id]: text }))} update={(patch) => ops.updateItem(meeting.id, item.id, patch)} purposes={item.purposes} add={(kind, sourceText) => { if (sourceText !== undefined) saveItem(item, sourceText); addAt(item.id, kind); }} onBlur={(text) => saveItem(item, text)} onKeyDown={(e) => {
+        <TokenInput id={item.id} text={text} label={`Agendapunt in ${block.title || "naamloos blok"}`} people={people} inputRef={(el) => { if (el) refs.current.set(item.id, el); else refs.current.delete(item.id); }} onPaste={(e) => { if (e.clipboardData.getData("text").includes("\n")) { e.preventDefault(); paste(e.clipboardData.getData("text"), block.id, item.id); } }} onChange={(text) => setEdits((e) => ({ ...e, [item.id]: text }))} update={(patch) => ops.updateItem(meeting.id, item.id, patch)} purposes={item.purposes} add={(kind, sourceText) => { if (sourceText !== undefined) saveItem(item, sourceText); addAt(item.id, kind); }} onBlur={(text) => saveItem(item, text)} onKeyDown={(e) => {
           if (arrows(e)) return;
           if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); if (text.trim()) { saveItem(item, text); empty(block.id, item.id); } }
           if (e.key === "Tab" && !e.shiftKey) {
@@ -174,7 +219,20 @@ export function DocumentEditor({ meeting }: { meeting: Meeting }) {
         {draftRow(b.id)}
       </>}
     </section>)}
-    {!blocks.some((b) => b.kind === "topics") && draftRow("")}
+    {!blocks.some((b) => b.kind === "topics") && <div>
+      {showExamples && <p className="mb-4 text-lg font-semibold" style={{ color: "var(--document-placeholder)" }}>{meeting.name} · {meeting.date ? weekdayLong(meeting.date) : "maandag"}</p>}
+      {draftRow("")}
+      {showExamples && <div className="pointer-events-none mt-3 whitespace-pre-line text-sm leading-8" style={{ color: "var(--document-placeholder)" }}>{`Typ, plak${supportsSpeech ? " of spreek" : ""} zoals je normaal doet…\n\n• Staal-leverancier opnieuw te laat\n• Jan maakt nieuwe offerte voor vrijdag\n• Beslissen welke orders deze week voorrang krijgen`}</div>}
+    </div>}
+    {!content && <>
+      <p className="mt-5 text-xs text-ink-3">Een titel volstaat. Eigenaar, duur en doel voeg je later toe — of nooit.</p>
+      <div className="mt-5 border-t border-line pt-4"><p className="mb-2 text-sm text-ink-3">Liever een vertrekpunt?</p><div className="flex flex-wrap gap-2">{DOCUMENT_TEMPLATES.map((name) => <button type="button" key={name} className="document-dashed rounded-full px-3" onClick={() => {
+        const current = useStore.getState().meetings.find((m) => m.id === meeting.id)!;
+        const template = documentTemplate(name, current, useStore.getState().meetings);
+        ops.putMeeting({ ...current, blocks: [...current.blocks.filter((b) => b.kind === "actions"), ...template] });
+        setDraft(null); if (name === DOCUMENT_TEMPLATES[1] && !useStore.getState().meetings.some((m) => m.id !== meeting.id && m.name === meeting.name && m.blocks.some((b) => b.items.length))) toast("Geen vorige agenda beschikbaar. Een voorbeeld is ingevuld."); focus(template[0].items[0].id);
+      }}>{name}</button>)}</div></div>
+    </>}
     <p className="mt-6 border-t border-line pt-4 text-[11px] leading-relaxed text-ink-3">Enter nieuw agendapunt · Tab notitie bij het punt · [] actie · # nieuw blok · @ eigenaar · 10m duur · / doel, beslissing of actie.</p>
   </div>;
 }

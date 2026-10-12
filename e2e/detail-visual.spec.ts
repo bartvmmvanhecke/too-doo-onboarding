@@ -40,10 +40,12 @@ test.describe("detailscherm van een bestaand overleg (ongewijzigd)", () => {
 
   test("lopende vergadering", async ({ page }) => {
     await openMeeting(page);
+    // Zet de klok stil vóór starten, zodat de verstreken tijd niet van de testsnelheid afhangt.
+    await page.clock.pauseAt(new Date("2026-10-12T09:00:10"));
     await page.getByRole("button", { name: "Start vergadering" }).click();
     await page.getByRole("button", { name: "Volgend punt" }).waitFor();
     // De klok staat stil, zodat de verstreken tijd gelijk blijft.
-    await page.clock.pauseAt(new Date("2026-10-12T09:00:05"));
+    await page.clock.runFor(5000);
     await expect(page).toHaveScreenshot("overleg-detail-bezig.png", { fullPage: true, animations: "disabled" });
   });
 });

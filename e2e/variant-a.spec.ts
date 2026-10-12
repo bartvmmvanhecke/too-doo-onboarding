@@ -1118,6 +1118,7 @@ test.describe("Variant A · agenda en assistent sluiten", () => {
     await page.keyboard.press("Space");
     await page.keyboard.press("ArrowDown");
     await expect(items(page, "Knelpunten en beslissingen")).toHaveText([/^Order Janssens/, /^Order Peeters/]);
+    await expect(grip2).toBeFocused();
     await page.keyboard.press("Escape");
     await expect(live).toHaveText("Verplaatsen van Order Janssens geannuleerd.");
     await expect(items(page, "Lopende orders")).toHaveText([/^Order Janssens/]);

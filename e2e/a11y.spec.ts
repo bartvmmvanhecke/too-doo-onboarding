@@ -75,6 +75,11 @@ const CASES: { name: string; path: string; setup?: (page: import("@playwright/te
       await page.getByRole("button", { name: "Start vergadering" }).click();
       await page.getByRole("button", { name: "Volgend punt" }).click();
       await page.locator("[aria-current=step]").waitFor();
+      // De header hergebruikt knoppen; meet na de kleurtransitie naar de lopende vergadering.
+      await expect(page.getByRole("button", { name: "Beëindigen", exact: true })).toHaveCSS(
+        "color",
+        "rgb(255, 255, 255)",
+      );
     },
   },
   { name: "prototype", path: "/prototype" },
@@ -98,6 +103,8 @@ const CASES: { name: string; path: string; setup?: (page: import("@playwright/te
     setup: async (page) => {
       await page.getByRole("button", { name: "Start met een lege meeting" }).click();
       await page.getByRole("region", { name: "Proefomgeving" }).waitFor();
+      // De inkomende app is al zichtbaar terwijl het welkomstscherm nog uitfade.
+      await page.getByRole("button", { name: "Start met een lege meeting" }).waitFor({ state: "detached" });
     },
   },
   {
@@ -172,6 +179,10 @@ for (const c of CASES) {
     await page.goto(c.path);
     await page.waitForLoadState("networkidle");
     if (c.setup) await c.setup(page);
+    // Laat navigatie-assets en sluitende tooltip/popover-animaties afronden vóór de contrastmeting.
+    await page.mouse.move(0, 0);
+    await page.waitForLoadState("networkidle");
+    await expect(page.locator('[data-slot="tooltip-content"][data-state="closed"]')).toHaveCount(0);
     const results = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"]).analyze();
     const summary = results.violations.map((v) => `${v.id}: ${v.nodes.map((n) => n.target.join(" ")).join(", ")}`);
     expect(summary, summary.join("\n")).toEqual([]);

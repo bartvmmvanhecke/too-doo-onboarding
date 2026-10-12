@@ -116,7 +116,14 @@ Typ-indicator (3 puntjes, 600–900 ms) voor elk antwoord. Velden die net ingevu
   - In de kop van het assistentpaneel staat een knop **"⋯" (Meer opties)**, met een menu (shadcn DropdownMenu):
     - **Bekijk een voorbeeld** · "Je eigen werk blijft bewaard" → `/voorbeeld`; de voorbeeldbalk krijgt dan de knop **"Terug naar mijn overleg"** die terugkeert naar de laatste toestand van `/probeer`.
     - **Zelf verder zonder assistent** · "Start met een lege meeting" → C1d. Alleen getoond zolang er nog geen overleg is aangemaakt.
-  - Na de overgang heeft de assistentkop naast "⋯" de bestaande inklapknop (›) met `aria-label` en tooltip **"Zelf verder (assistent verbergen)"**. Inklappen = de lege-meeting-ervaring met het overleg dat er al staat.
+  - **Na de overgang (C1f, C1g) · update 12 okt:** de assistentkop heeft **"⋯"** en een sluitknop **×** (`aria-label` "Assistent sluiten", tooltip "Sluiten · je vindt me rechtsonder"). De badge "1 van 3" vervalt. Het ⋯-menu bevat dan:
+    - **Bekijk een voorbeeldagenda** · "Je eigen overleg blijft bewaard" → `/voorbeeld` (met "Terug naar mijn overleg").
+    - **Assistent sluiten** · "Je werkt zelf verder. Ik sta rechtsonder." (zelfde als ×).
+  - **Ook via de chat:** zinnen als "ik doe het zelf", "sluit maar", "laat maar", "toon een voorbeeld" voeren dezelfde actie uit. Bij sluiten antwoordt de assistent eerst kort "Oké, je werkt zelf verder. Je vindt me rechtsonder." en sluit na ± 800 ms.
+  - **Gesloten = zwevende knop rechtsonder (C1g):** het paneel verdwijnt, het hoofdvlak neemt de volle breedte, en rechtsonder (24–28 px van de rand) staat een pil-knop **"Assistent"** (min. 56 px hoog, `aria-label` "Assistent openen"). Het paneel schuift naar die knop toe bij sluiten en eruit bij openen (± 250 ms; reduced motion: geen beweging). De eerste keer verschijnt boven de knop één tooltip "Ik ben hier als je me nodig hebt. Ons gesprek blijft bewaard." die na 4 s of bij de eerste klik verdwijnt. Openen toont het gesprek waar het was; de assistent stelt geen openstaande vraag opnieuw en vraagt niets proactiefs zolang hij gesloten is. Bewaar `assistantOpen` in de gast-state.
+  - De gebruiker werkt gewoon verder op hetzelfde overleg; er is geen aparte "zelf aanmaken"-modus.
+  - Dit vervangt de smalle strook "Assistent openen" overal, ook in C1d (lege meeting start met de zwevende knop).
+  - De prototypeknop "Demo" mag niet onder de zwevende knop liggen: verplaats hem naar linksonder.
   - In de lege toestand van de app blijft "Bekijk eerst een voorbeeld" staan zoals vandaag.
 - **Overgang na bevestiging (C0h, demo-lus C0i):** start pas wanneer de inhoud klaar is (titel+agenda uit de zin, acties uit de notities, of de reekslijst uit de agenda). Duurt verwerken > 600 ms, toon eerst in de assistent "Ik zet je overleg klaar…" met een stille indicator. De assistent **beweegt niet** (vaste 400 px rechts). Totaal ± 700 ms, drie overlappende lagen (easing `cubic-bezier(.65,0,.35,1)`):
   1. **0–220 ms** – actie- en beslissingskaart van de illustratie schuiven terug naar het agendapunt en vervagen; slogans vervagen.
@@ -135,7 +142,7 @@ Typ-indicator (3 puntjes, 600–900 ms) voor elk antwoord. Velden die net ingevu
 - titel "Nieuwe vergadering" meteen in bewerkmodus (geselecteerd, cursor erin);
 - de standaardagenda: Openstaande acties (leeg: "Nog niets open. Acties die je tijdens de vergadering noteert, komen hier vanzelf terug tot ze af zijn." + sleep-hint), Lopende zaken, Varia; per thema "+ Agendapunt toevoegen", onderaan "+ Thema";
 - datumregel met "Uit agenda halen" en "Deelnemers uit agenda";
-- het assistentpaneel **ingeklapt** tot een smalle strook met knop "Assistent openen". Openen toont één bericht: "Zeg het als ik iets kan invullen." De "+"-knop, slepen en intentieherkenning werken zoals overal.
+- het assistentpaneel **gesloten**, met de zwevende knop "Assistent" rechtsonder (zie C1g). Openen toont één bericht: "Zeg het als ik iets kan invullen." De "+"-knop, slepen en intentieherkenning werken zoals overal.
 - **Geen** proactieve herinnering over notities op dit pad (`startPath: empty`).
 Dit is hetzelfde scherm als "nieuwe vergadering" voor bestaande gebruikers.
 

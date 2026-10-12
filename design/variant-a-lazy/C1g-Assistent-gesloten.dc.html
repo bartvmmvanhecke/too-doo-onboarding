@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<title>Variant A – assistent gesloten, zwevende knop</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800&amp;display=swap">
+<style>
+body{margin:0;background:#F4F7FB}
+a{color:#0B5FD8}a:hover{color:#08449C}
+</style>
+</helmet>
+<div style="position: relative; font-family: 'Nunito', system-ui, sans-serif; color: #16213A; background: #F4F7FB; min-height: 900px; display: flex; flex-wrap: wrap">
+  <nav aria-label="Hoofdmenu" style="flex: 1 1 200px; max-width: 220px; min-height: 900px; background: linear-gradient(180deg, #123A80 0%, #0C2A5E 100%); color: #FFFFFF; padding: 24px 14px; box-sizing: border-box; display: flex; flex-direction: column; gap: 4px">
+    <span style="font-size: 26px; font-weight: 800; padding: 0 10px 24px">too-doo</span>
+    <a href="#dashboard" style="color: #D5E2F7; text-decoration: none; font-size: 16px; font-weight: 600; padding: 11px 12px; border-radius: 10px">Dashboard</a>
+    <a href="#overleg" style="color: #FFFFFF; text-decoration: none; font-size: 16px; font-weight: 800; padding: 11px 12px; border-radius: 10px; background: rgba(255,255,255,0.14)">Vergaderingen</a>
+    <a href="#acties" style="color: #D5E2F7; text-decoration: none; font-size: 16px; font-weight: 600; padding: 11px 12px; border-radius: 10px">Acties</a>
+    <a href="#beslissingen" style="color: #D5E2F7; text-decoration: none; font-size: 16px; font-weight: 600; padding: 11px 12px; border-radius: 10px">Beslissingen</a>
+    <div style="margin-top: auto; padding: 14px 12px; border-top: 1px solid rgba(255,255,255,0.14); display: flex; flex-direction: column; gap: 6px">
+      <span style="font-size: 14px; font-weight: 800">Nog niet bewaard</span>
+      <span style="font-size: 13px; color: #C7D6EE; line-height: 1.4">Je werk staat op dit toestel. Bewaar het wanneer je wilt.</span>
+    </div>
+  </nav>
+
+  <main style="flex: 999 1 520px; min-width: 0; padding: 22px 32px 40px; box-sizing: border-box; display: flex; flex-direction: column; gap: 18px">
+    
+    <div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-end; gap: 16px">
+      <div style="display: flex; flex-direction: column; gap: 8px; min-width: 0">
+        <span style="align-self: flex-start; display: inline-flex; align-items: center; gap: 6px; background: #EEF2F8; color: #3E4860; border-radius: 8px; padding: 4px 10px; font-size: 14px; font-weight: 700"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#3E4860" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"></rect><path d="M3 10h18M8 3v4M16 3v4"></path></svg>Concept</span>
+        <h1 style="margin: 0; font-size: 36px; line-height: 1.15; font-weight: 800; ; background: #F2F7FF; box-shadow: 0 0 0 2px #8DB6F0; border-radius: 8px; padding: 2px 8px; margin-left: -8px">Productieoverleg</h1>
+        <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 12px; font-size: 14px">
+          <span style="color: #8A95AB">Wanneer?</span><a href="C1b-Agenda-gekoppeld.dc.html" style="display: inline-flex; align-items: center; gap: 4px; font-size: 13px; font-weight: 700; text-decoration: none; padding: 4px 0"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#0B5FD8" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"></rect><path d="M3 10h18M8 3v4M16 3v4"></path></svg>Uit agenda halen</a><span style="color: #B3BDCE">·</span><span style="color: #8A95AB">Wie zit erbij?</span><a href="C1b-Agenda-gekoppeld.dc.html" style="display: inline-flex; align-items: center; gap: 4px; font-size: 13px; font-weight: 700; text-decoration: none; padding: 4px 0"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#0B5FD8" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"></rect><path d="M3 10h18M8 3v4M16 3v4"></path></svg>Deelnemers uit agenda</a>
+          
+        </div>
+      </div>
+      <button type="button" disabled aria-disabled="true" style="font-family: inherit; display: inline-flex; align-items: center; gap: 8px; background: #C9D3E3; color: #5B6478; border: none; border-radius: 12px; padding: 0 22px; min-height: 50px; font-size: 16px; font-weight: 800; cursor: pointer"><svg width="16" height="16" viewBox="0 0 24 24" fill="#5B6478" aria-hidden="true"><path d="M7 5l12 7-12 7z"></path></svg>Start overleg</button>
+    </div>
+    <div style="display: flex; flex-direction: column; gap: 10px">
+      <h2 style="margin: 6px 0 4px; font-size: 24px; font-weight: 800">Agenda</h2>
+      
+      <section style="background: #FFFFFF; border: 1.5px dashed #B8C3D6; border-radius: 14px; padding: 14px 18px; display: flex; flex-direction: column; gap: 10px">
+        <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap"><svg width="14" height="20" viewBox="0 0 14 20" aria-hidden="true" style="flex-shrink: 0"><g fill="#B3BDCE"><circle cx="4" cy="4" r="1.6"></circle><circle cx="10" cy="4" r="1.6"></circle><circle cx="4" cy="10" r="1.6"></circle><circle cx="10" cy="10" r="1.6"></circle><circle cx="4" cy="16" r="1.6"></circle><circle cx="10" cy="16" r="1.6"></circle></g></svg><span style="font-size: 17px; font-weight: 800; color: #16213A">Openstaande acties</span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#5B6478" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-label="Komt elk overleg terug"><path d="M21 12a9 9 0 1 1-3-6.7L21 8M21 3v5h-5"></path></svg><span style="font-size: 13px; color: #3E4860"></span><span style="flex: 1"></span></div>
+        <span style="font-size: 14px; color: #5B6478">Wat vorige keer afgesproken werd en nog niet af is.</span><span style="font-size: 13px; color: #3E4860">Sleep notities van je vorig overleg op deze plek, of <a href="C3v2-Acties.dc.html" style="font-weight: 700">kies een bestand</a>.</span>
+      </section>
+      <section style="background: #F2F7FF; border: 2px solid #8DB6F0; border-radius: 14px; padding: 14px 18px; display: flex; flex-direction: column; gap: 10px">
+        <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap"><svg width="14" height="20" viewBox="0 0 14 20" aria-hidden="true" style="flex-shrink: 0"><g fill="#B3BDCE"><circle cx="4" cy="4" r="1.6"></circle><circle cx="10" cy="4" r="1.6"></circle><circle cx="4" cy="10" r="1.6"></circle><circle cx="10" cy="10" r="1.6"></circle><circle cx="4" cy="16" r="1.6"></circle><circle cx="10" cy="16" r="1.6"></circle></g></svg><span style="font-size: 17px; font-weight: 800; color: #16213A">Lopende orders</span><span style="flex: 1"></span><span style="font-size: 12px; font-weight: 800; color: #0B5FD8; background: #E8F1FE; border-radius: 6px; padding: 3px 8px">voorstel</span></div>
+        
+        <label style="display: flex; align-items: center; gap: 8px; padding: 2px 0 0 24px; color: #5B6478; font-size: 14px"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#8A95AB" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg><input type="text" placeholder="Agendapunt toevoegen" aria-label="Agendapunt toevoegen onder Lopende orders" style="flex: 1; min-width: 0; font-family: inherit; font-size: 14px; border: none; background: transparent; color: #16213A; padding: 6px 0"></label>
+      </section>
+      <section style="background: #F2F7FF; border: 2px solid #8DB6F0; border-radius: 14px; padding: 14px 18px; display: flex; flex-direction: column; gap: 10px">
+        <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap"><svg width="14" height="20" viewBox="0 0 14 20" aria-hidden="true" style="flex-shrink: 0"><g fill="#B3BDCE"><circle cx="4" cy="4" r="1.6"></circle><circle cx="10" cy="4" r="1.6"></circle><circle cx="4" cy="10" r="1.6"></circle><circle cx="10" cy="10" r="1.6"></circle><circle cx="4" cy="16" r="1.6"></circle><circle cx="10" cy="16" r="1.6"></circle></g></svg><span style="font-size: 17px; font-weight: 800; color: #16213A">Knelpunten en beslissingen</span><span style="flex: 1"></span><span style="font-size: 12px; font-weight: 800; color: #0B5FD8; background: #E8F1FE; border-radius: 6px; padding: 3px 8px">voorstel</span></div>
+        
+        <label style="display: flex; align-items: center; gap: 8px; padding: 2px 0 0 24px; color: #5B6478; font-size: 14px"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#8A95AB" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg><input type="text" placeholder="Agendapunt toevoegen" aria-label="Agendapunt toevoegen onder Knelpunten en beslissingen" style="flex: 1; min-width: 0; font-family: inherit; font-size: 14px; border: none; background: transparent; color: #16213A; padding: 6px 0"></label>
+      </section>
+      <section style="background: #F2F7FF; border: 2px solid #8DB6F0; border-radius: 14px; padding: 14px 18px; display: flex; flex-direction: column; gap: 10px">
+        <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap"><svg width="14" height="20" viewBox="0 0 14 20" aria-hidden="true" style="flex-shrink: 0"><g fill="#B3BDCE"><circle cx="4" cy="4" r="1.6"></circle><circle cx="10" cy="4" r="1.6"></circle><circle cx="4" cy="10" r="1.6"></circle><circle cx="10" cy="10" r="1.6"></circle><circle cx="4" cy="16" r="1.6"></circle><circle cx="10" cy="16" r="1.6"></circle></g></svg><span style="font-size: 17px; font-weight: 800; color: #16213A">Planning komende week</span><span style="flex: 1"></span><span style="font-size: 12px; font-weight: 800; color: #0B5FD8; background: #E8F1FE; border-radius: 6px; padding: 3px 8px">voorstel</span></div>
+        
+        <label style="display: flex; align-items: center; gap: 8px; padding: 2px 0 0 24px; color: #5B6478; font-size: 14px"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#8A95AB" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg><input type="text" placeholder="Agendapunt toevoegen" aria-label="Agendapunt toevoegen onder Planning komende week" style="flex: 1; min-width: 0; font-family: inherit; font-size: 14px; border: none; background: transparent; color: #16213A; padding: 6px 0"></label>
+      </section>
+      <section style="background: #FFFFFF; border: 1px solid #E3E8F1; border-radius: 14px; padding: 14px 18px; display: flex; flex-direction: column; gap: 10px">
+        <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap"><svg width="14" height="20" viewBox="0 0 14 20" aria-hidden="true" style="flex-shrink: 0"><g fill="#B3BDCE"><circle cx="4" cy="4" r="1.6"></circle><circle cx="10" cy="4" r="1.6"></circle><circle cx="4" cy="10" r="1.6"></circle><circle cx="10" cy="10" r="1.6"></circle><circle cx="4" cy="16" r="1.6"></circle><circle cx="10" cy="16" r="1.6"></circle></g></svg><span style="font-size: 17px; font-weight: 800; color: #16213A">Varia</span><span style="flex: 1"></span></div>
+        
+        <label style="display: flex; align-items: center; gap: 8px; padding: 2px 0 0 24px; color: #5B6478; font-size: 14px"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#8A95AB" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg><input type="text" placeholder="Agendapunt toevoegen" aria-label="Agendapunt toevoegen onder Varia" style="flex: 1; min-width: 0; font-family: inherit; font-size: 14px; border: none; background: transparent; color: #16213A; padding: 6px 0"></label>
+      </section>
+      <button type="button" style="align-self: flex-start; font-family: inherit; display: inline-flex; align-items: center; gap: 8px; background: none; border: none; color: #0B5FD8; font-size: 15px; font-weight: 700; padding: 6px 0; cursor: pointer"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#0B5FD8" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg>Thema</button>
+    </div>
+  </main>
+
+  <div style="position: absolute; right: 28px; bottom: 28px; display: flex; flex-direction: column; align-items: flex-end; gap: 10px; z-index: 3">
+    <div role="status" style="max-width: 260px; background: #16213A; color: #FFFFFF; border-radius: 12px; padding: 10px 14px; font-size: 14px; line-height: 1.45; box-shadow: 0 12px 28px rgba(22, 33, 58, 0.22)">Ik ben hier als je me nodig hebt. Ons gesprek blijft bewaard.</div>
+    <a href="C1v2-Meteen-in-app.dc.html" role="button" aria-label="Assistent openen" style="display: inline-flex; align-items: center; gap: 10px; min-height: 56px; padding: 0 20px 0 8px; border-radius: 999px; background: #0B5FD8; color: #FFFFFF; text-decoration: none; font-size: 16px; font-weight: 800; box-shadow: 0 14px 30px rgba(11, 95, 216, 0.35)"><span style="width: 40px; height: 40px; border-radius: 50%; background: rgba(255,255,255,0.18); display: flex; align-items: center; justify-content: center"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5"></path></svg></span>Assistent</a>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+renderVals() {
+return {};
+}
+}
+</script>
+</body>
+</html>

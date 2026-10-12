@@ -2,7 +2,8 @@
 
 import { useRef, useState, type KeyboardEvent } from "react";
 import { usePathname } from "next/navigation";
-import { List, RotateCcw, Shuffle, type LucideIcon } from "lucide-react";
+import { FlaskConical, List, RotateCcw, Shuffle, type LucideIcon } from "lucide-react";
+import { openDemoSettings } from "@/components/demo/demo-bar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { GUEST_STORAGE_KEY } from "@/lib/guest-store";
@@ -33,10 +34,14 @@ interface MenuItem {
 }
 
 /** De items van het prototype-menu. Nieuwe items komen gewoon in deze lijst. */
-const MENU_ITEMS: MenuItem[] = [{ id: "herstart", label: "Herstart demo", icon: RotateCcw, onSelect: restartDemo }];
+const MENU_ITEMS: MenuItem[] = [
+  { id: "herstart", label: "Herstart demo", icon: RotateCcw, onSelect: restartDemo },
+  { id: "demo", label: "Demo-instellingen", icon: FlaskConical, onSelect: openDemoSettings },
+];
 
 /**
- * Prototype-element (SPEC-LAZY.md §1.1): vaste knop rechtsboven met een klein menu (Herstart demo).
+ * Prototype-element (SPEC-LAZY.md §1.1): vaste knop rechtsboven met een klein menu (Herstart demo,
+ * Demo-instellingen).
  * Layouts houden rechtsboven ruimte vrij, zodat hij niets overlapt. Variant B blijft bereikbaar via /prototype.
  * Op stap 3 (/acties) staat er links naast een "Toon alternatief voor stap 3"-knop om tussen beide versies te wisselen.
  */

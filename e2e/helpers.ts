@@ -21,7 +21,8 @@ export async function setDemo(
     calendar?: "Reeksen gevonden" | "Geen reeksen" | "IT-goedkeuring nodig" | "Geannuleerd";
   },
 ) {
-  await page.getByRole("button", { name: "Demo", exact: true }).click();
+  await page.getByRole("button", { name: "Prototype-menu" }).click();
+  await page.getByRole("menuitem", { name: "Demo-instellingen" }).click();
   const panel = page.getByRole("region", { name: "Demo-instellingen" });
   if (opts.login)
     await panel.getByRole("group", { name: "Microsoft-login" }).getByText(opts.login, { exact: true }).click();

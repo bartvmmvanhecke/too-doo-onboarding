@@ -20,7 +20,7 @@ import {
   reveal,
   STROKE,
 } from "@/components/meeting/bits";
-import { EntryColumns, EntryForm, EntryRow, ItemEditButton } from "@/components/meeting/entries";
+import { EntryColumns, EntryCount, EntryForm, EntryRow, ItemEditButton } from "@/components/meeting/entries";
 import { useMeeting, useMeetingOps } from "@/components/meeting/meeting-context";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -156,12 +156,15 @@ export function AgendaItemRow({
         )}
       />
       {trial ? (
-        // Variant A: geen type-labels, eigenaars, duur of tellers zolang er geen inhoud is.
-        item.purposes.includes("decide") && (
-          <span className="ml-auto rounded-md bg-purpose-decide-bg px-2 py-0.5 text-xs font-semibold text-purpose-decide">
-            beslissing nodig
+        // Variant A: doel, eigenaars en duur zoals in het detailscherm; rechts één icoon met teller.
+        <>
+          <PurposePicker value={item.purposes} onChange={(purposes) => update({ purposes })} />
+          <OwnersPicker id={`owner-${item.id}`} value={item.ownerIds} onChange={(ownerIds) => update({ ownerIds })} />
+          <DurationPicker value={item.duration} onChange={(duration) => update({ duration })} />
+          <span className="ml-auto flex items-center">
+            <EntryCount item={item} />
           </span>
-        )
+        </>
       ) : (
         <>
           {status !== "done" && <PurposePicker value={item.purposes} onChange={(purposes) => update({ purposes })} />}
@@ -551,16 +554,15 @@ export function TopicsBlock({
         )
       }
       aside={
-        !trial && (
-          <>
-            <OwnerButton
-              role="Presentator"
-              ownerId={block.presenterId}
-              onPick={(presenterId) => updateBlock(meeting.id, block.id, { presenterId })}
-            />
-            {summary && <span className="px-1 text-[13px] whitespace-nowrap text-ink-3 tabular-nums">{summary}</span>}
-          </>
-        )
+        // Presentator en totale duur, ook in de proefomgeving (Variant A).
+        <>
+          <OwnerButton
+            role="Presentator"
+            ownerId={block.presenterId}
+            onPick={(presenterId) => updateBlock(meeting.id, block.id, { presenterId })}
+          />
+          {summary && <span className="px-1 text-[13px] whitespace-nowrap text-ink-3 tabular-nums">{summary}</span>}
+        </>
       }
       meta={block.subtitle && <p className="px-1 text-[13px] text-ink-3">{block.subtitle}</p>}
       onItemDrop={(itemId) => moves.dropItem(itemId, block.id, block.items.length)}

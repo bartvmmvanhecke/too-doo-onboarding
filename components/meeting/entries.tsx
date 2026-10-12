@@ -4,6 +4,7 @@ import { useRef, useState, type ComponentType, type DragEvent, type KeyboardEven
 import {
   Check,
   ExternalLink,
+  File,
   FileText,
   Paperclip,
   Pencil,
@@ -521,6 +522,27 @@ export function EntryForm({
         Toevoegen
       </button>
     </div>
+  );
+}
+
+/**
+ * Variant A: één icoon met het aantal beslissingen, acties, notities en documenten samen, in plaats van
+ * de vier kolommen.
+ */
+export function EntryCount({ item }: { item: AgendaItem }) {
+  const n = item.entries.length;
+  return (
+    <span
+      role="img"
+      aria-label={`${n} ${n === 1 ? "item" : "items"} bij ${item.text}`}
+      className={cn(
+        "flex min-h-11 shrink-0 items-center gap-1 px-2 text-[13px] tabular-nums",
+        n ? "text-ink-2" : "text-ink-3",
+      )}
+    >
+      <File className={icon} strokeWidth={STROKE} aria-hidden />
+      {n}
+    </span>
   );
 }
 

@@ -2,6 +2,7 @@
  * In- en uitvoer van de assistent in Variant A (SPEC-LAZY.md §4). De assistent is regelgebaseerd;
  * deze types blijven dezelfde als hij later een echte LLM-aanroep wordt.
  */
+import type { Purpose } from "@/lib/agenda";
 import type { ISODate } from "@/lib/date";
 import type { Recurrence } from "@/lib/meeting";
 import type { Person } from "@/lib/mock-data";
@@ -13,8 +14,15 @@ export type GuestPerson = Pick<Person, "id" | "name" | "initials" | "color">;
 /** Eigenaar van een actie: een deelnemer, de gebruiker zelf ("me") of nog niemand. */
 export const ME = "me";
 
+/** Doel, eigenaars en duur van een agendapunt, zoals in het detailscherm. */
+export interface GuestItemMeta {
+  purposes?: Purpose[];
+  ownerIds?: string[];
+  duration?: Minutes | null;
+}
+
 /** Een agendapunt onder een thema. */
-export interface GuestItem {
+export interface GuestItem extends GuestItemMeta {
   id: string;
   text: string;
 }
@@ -24,6 +32,8 @@ export interface GuestTopic {
   id: string;
   text: string;
   items?: GuestItem[];
+  /** Wie het thema brengt. */
+  presenterId?: string | null;
 }
 
 /** Het overleg in opbouw. Null = (nog) niet gezegd. */
@@ -43,6 +53,8 @@ export interface GuestMeeting {
   topics: GuestTopic[];
   /** Agendapunten onder het vaste thema "Varia" (altijd laatste). */
   variaItems?: GuestItem[];
+  /** Presentator van "Varia". */
+  variaPresenterId?: string | null;
   /** Nog niet bevestigd met "Klopt". */
   proposed: boolean;
   /** Uit de agenda overgenomen (label "uit Outlook"). */
@@ -89,7 +101,7 @@ export interface GuestAction {
   done?: boolean;
 }
 
-export interface GuestDecision {
+export interface GuestDecision extends GuestItemMeta {
   id: string;
   text: string;
   confirmed: boolean;

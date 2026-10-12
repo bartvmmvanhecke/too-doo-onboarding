@@ -18,6 +18,7 @@ Mockups: `design/variant-a-lazy/` (C0 t/m C6). Zoals eerder: lees de HTML en inl
 | `C2b-Plakken-herkend.dc.html` | Lange tekst geplakt in de chat → assistent herkent notities |
 | `C3-Agent-acties.dc.html` | Notities plakken → acties op de agenda, ontbrekende eigenaar wordt een vraag |
 | `C4-Overleg-klaar.dc.html` | Overleg klaar, voorstel om acties te mailen |
+| `C4s-Smal.dc.html` | Zelfde scherm onder 720 px: eigenschappen onder de titel |
 | `C5-Bewaren.dc.html` | Account als "bewaren" (modal over de app) |
 | `C6-Na-bewaren.dc.html` | Na bewaren: e-mailadressen, mails versturen, Outlook als extra |
 
@@ -66,11 +67,12 @@ Drie kolommen, zie C1–C4:
    - **Verborgen tot er inhoud is** (zelfde plek zodra ze verschijnen): het infopaneel (vestiging, type, lokaal, prep score), de tabs (Beslissingen, Notities, Acties, Deelnemers), het tijdsbudget, tellers die op 0 staan, type-labels (Bespreken, Informeren) en "Open acties overslaan". De knoppen "Blok / Item / Pauze toevoegen" worden: per thema een inline regel "+ Agendapunt toevoegen" en onderaan één knop "+ Thema".
    - **Twee niveaus, zoals in het product: thema's (blokken) met agendapunten eronder.** Kop "Agenda". Elk thema (behalve Openstaande acties) eindigt met een lichte inline regel "+ Agendapunt toevoegen" (tekstveld, Enter maakt het punt aan en de focus blijft). Onderaan de agenda één ghost-knop "+ Thema" (maakt een nieuw blok). Geen "Pauze toevoegen" in de onboarding. Geen coachmarks of producttour: de structuur wordt duidelijk door de inhoud. De assistent zet voorgestelde onderwerpen als thema's en plaatst gevonden punten **onder** het juiste thema (bv. "Planning week 42" onder "Knelpunten en beslissingen"). Vrije tekst als "zet X onder Orders" of "maak een thema Veiligheid" werkt ook via de assistent.
    - **Per agendapunt: tellers en "+", zoals in het detailscherm.** Rechts op de rij de tellers voor beslissingen, acties, notities en documenten, **alleen als ze groter zijn dan 0**, zonder kolomkoppen. Klikken op een teller opent een popover met die items. Bij hover of focus verschijnt een "+" die een menu opent: Beslissing / Actie / Notitie / Document (C4). Bij extractie uit notities krijgt een agendapunt de bronregel als notitie (teller "1"), zodat zichtbaar is waar het vandaan komt (C3). Dit is dezelfde component als in het detailscherm, niet nagebouwd.
-   - **Volgorde in een rij: alle eigenschappen links, naast de titel; rechts alleen tellers en "+".**
-     - Agendapunt: `[grip] Titel  [doel-chip(s)]  (eigenaar)  [duur]  ……  [tellers > 0]  [+ bij hover/focus]`. Doel = Bespreken / Informeren / Beslissen, alleen tonen als het gekozen of herkend is. Eigenaar zonder waarde = kleine gestippelde cirkel met "+" ("Eigenaar kiezen"). Duur alleen als ingevuld.
-     - Openstaande actie: `[vinkje] Titel  (eigenaar + naam)  [datum-chip]  ……` — eigenaar en datum ook links, direct na de titel.
-     - Het "+" verschijnt bij hover en bij `:focus-within` (toetsenbord); op touch-toestellen altijd zichtbaar.
-     - Een punt dat uit notities als beslissing herkend wordt, krijgt het **doel "Beslissen"** (chip), geen apart label "beslissing nodig".
+   - **Rij-opbouw: één regel, eigenschappen in een vaste kolom (update 12 okt).**
+     - Agendapunt (CSS grid): `[grip 14px] [titel 1fr, afkappen met …, volledige titel bij hover] [doel 96px] [eigenaar 32px] [duur 64px] [tellers 64px] [+ 32px]`. Doel, eigenaar en duur staan zo bij elk punt op dezelfde x-positie, links uitgelijnd binnen hun kolom. Lege waarden houden hun plek (eigenaar zonder waarde = gestippelde cirkel met "+", "Eigenaar kiezen"; doel en duur blijven leeg). Doel = Bespreken / Informeren / Beslissen, alleen als gekozen of herkend.
+     - Openstaande actie: `[vinkje 22px] [titel 1fr] [eigenaar + naam 150px] [datum-chip 104px]`.
+     - Rechts enkel tellers (> 0) en "+". Het "+" verschijnt bij hover en `:focus-within`; op touch altijd zichtbaar.
+     - **Onder 720 px** schuiven doel, eigenaar en duur (resp. eigenaar en datum) op een tweede regel onder de titel; tellers en "+" blijven op de eerste regel (zie `C4s-Smal`).
+   - Een punt dat uit notities als beslissing herkend wordt, krijgt het **doel "Beslissen"** (chip), geen apart label "beslissing nodig".
    - **Openstaande acties** staat bij het eerste overleg **opengeklapt** met de acties als rijen (vinkje, tekst, eigenaar, datum). Later gedraagt het blok zich zoals vandaag (ingeklapt met "N openstaande acties, M te laat").
    - Wat de assistent invult, licht 2 s op **in de titel, de datumregel en de avatars zelf** (blauwe markering); agendapunten die een voorstel zijn, krijgen het label "voorstel" tot de gebruiker bevestigt. Geen apart veldenraster.
    - Lege toestand (C1): titel "Je eerste overleg" en datumregel "Wanneer? · Wie zit erbij?" in gedempte kleur, blokken gestippeld. Alles is rechtstreeks aanpasbaar: klikken op titel, datumregel of avatars maakt ze bewerkbaar.

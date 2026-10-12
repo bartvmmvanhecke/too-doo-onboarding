@@ -1,10 +1,13 @@
 "use client";
 
 import { Fragment, useEffect, useRef, useState, type ReactNode } from "react";
-import { Check, ChevronRight, FileUp, Loader2, Mic, SendHorizontal, Sparkles } from "lucide-react";
+import { AnimatePresence, motion, useReducedMotion, type Transition } from "framer-motion";
+import { Check, FileUp, Loader2, Mic, SendHorizontal, X } from "lucide-react";
+import { AssistantMenu, type AssistantMenuItem } from "@/components/probeer/assistant-menu";
 import { useFileDrop } from "@/components/probeer/entry-blocks";
 import { PlusMenu, type PlusMenuActions } from "@/components/probeer/plus-menu";
 import { Button } from "@/components/ui/button";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import type { Message } from "@/lib/assistant/types";
 import { cn } from "@/lib/utils";
 
@@ -188,29 +191,23 @@ const LAYOUT = {
     panel:
       "lg:sticky lg:top-0 lg:h-dvh lg:w-[400px] lg:shrink-0 lg:rounded-none lg:border-t-0 lg:border-l lg:shadow-none",
     head: "lg:py-4 lg:pr-24",
-    chevron: "max-lg:rotate-90",
-    collapsed:
-      "lg:sticky lg:top-14 lg:right-auto lg:left-auto lg:mt-14 lg:h-[calc(100dvh-3.5rem)] lg:w-12 lg:flex-col lg:border-t-0 lg:border-l lg:shadow-none",
-    vertical: "lg:[writing-mode:vertical-rl]",
   },
   trial: {
     panel:
       "panel:sticky panel:top-0 panel:h-dvh panel:w-[400px] panel:shrink-0 panel:rounded-none panel:border-t-0 panel:border-l panel:shadow-none",
     head: "panel:py-4 panel:pr-24",
-    chevron: "max-panel:rotate-90",
-    collapsed:
-      "panel:sticky panel:top-14 panel:right-auto panel:left-auto panel:mt-14 panel:h-[calc(100dvh-3.5rem)] panel:w-12 panel:flex-col panel:border-t-0 panel:border-l panel:shadow-none",
-    vertical: "panel:[writing-mode:vertical-rl]",
   },
 } as const;
 
 /**
- * Assistentpaneel rechts (SPEC-LAZY.md §3): kop, voortgang, berichten, invoer onderaan.
- * Inklapbaar; ingeklapt blijft een smalle knop "Assistent". Op smalle schermen een onderblad.
+ * Assistentpaneel rechts (SPEC-LAZY.md §3): kop met ⋯ en ×, berichten, invoer onderaan. Gesloten wordt het een
+ * zwevende knop "Assistent" rechtsonder (C1g). Op smalle schermen een onderblad.
  */
 export function AssistantPanel({
   subtitle,
-  progress,
+  menu,
+  closedHint,
+  onClosedHintDone,
   messages,
   typing,
   renderCard,
@@ -226,7 +223,11 @@ export function AssistantPanel({
   typingLabel,
 }: {
   subtitle: string;
-  progress?: string;
+  /** "⋯" in de kop (C1f), bv. een voorbeeldagenda of de assistent sluiten. */
+  menu?: AssistantMenuItem[];
+  /** De eerste keer gesloten: tooltip boven de zwevende knop (C1g), weg na 4 s of bij de eerste klik. */
+  closedHint?: boolean;
+  onClosedHintDone?: () => void;
   messages: Message[];
   typing: boolean;
   renderCard?: (card: NonNullable<Message["card"]>, isLast: boolean) => ReactNode;
@@ -262,89 +263,155 @@ export function AssistantPanel({
   }, [messages.length, typing, controls, hasIntro]);
 
   const c = LAYOUT[layout];
+  const reduce = useReducedMotion();
+  const transition: Transition = reduce ? { duration: 0 } : { duration: 0.25, ease: [0.65, 0, 0.35, 1] };
 
-  if (!open) {
-    return (
+  return (
+    <AnimatePresence initial={false}>
+      {!open ? (
+        <FloatingAssistant
+          key="knop"
+          transition={transition}
+          hint={!!closedHint}
+          onHintDone={onClosedHintDone}
+          onOpen={() => onOpenChange(true)}
+        />
+      ) : (
+        <motion.aside
+          key="paneel"
+          aria-label="Assistent"
+          data-assistant-panel
+          {...drop.handlers}
+          // Het paneel schuift naar de zwevende knop rechtsonder bij sluiten, en eruit bij openen.
+          initial={{ opacity: 0, x: 32, scale: 0.97 }}
+          animate={{ opacity: 1, x: 0, scale: 1 }}
+          exit={{ opacity: 0, x: 32, scale: 0.97 }}
+          transition={transition}
+          style={{ transformOrigin: "bottom right" }}
+          className={cn(
+            "fixed inset-x-0 bottom-0 z-30 flex h-[55dvh] flex-col rounded-t-2xl border-t border-line-soft bg-white shadow-[0_-12px_32px_rgba(22,33,58,0.14)]",
+            c.panel,
+            fullScreen && "max-panel:top-0 max-panel:h-dvh max-panel:rounded-none max-panel:border-t-0",
+          )}
+        >
+          {header ?? (
+            <div className={cn("flex items-center gap-3 border-b border-line-soft py-3 pr-2 pl-4", c.head)}>
+              <span aria-hidden className="flex size-9 shrink-0 items-center justify-center rounded-full bg-brand">
+                <Check className="size-[18px] text-white" strokeWidth={2.5} />
+              </span>
+              <span className="flex min-w-0 flex-1 flex-col">
+                <span className="text-base font-extrabold">Assistent</span>
+                <span className="text-[13px] text-ink-3">{subtitle}</span>
+              </span>
+              {menu && <AssistantMenu items={menu} />}
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      aria-label="Assistent sluiten"
+                      onClick={() => onOpenChange(false)}
+                    >
+                      <X className="size-[18px]" strokeWidth={2.5} aria-hidden />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Sluiten · je vindt me rechtsonder</TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            </div>
+          )}
+
+          <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
+            {intro}
+            <div
+              role="log"
+              aria-live="polite"
+              aria-label="Gesprek met de assistent"
+              className="flex flex-col gap-3.5 px-4 pt-5"
+            >
+              {messages.map((m, i) => (
+                <Fragment key={m.id}>
+                  <Bubble from={m.from}>
+                    <RichText text={m.text} />
+                    {m.card && renderCard?.(m.card, i === lastWithCard(m.card))}
+                  </Bubble>
+                </Fragment>
+              ))}
+              {typing && (typingLabel ? <Preparing label={typingLabel} /> : <TypingDots />)}
+            </div>
+            {!typing && controls && <div className="flex flex-col gap-3 px-4 pt-3">{controls}</div>}
+            {/* Ruimte onderaan: de demo-knop rechtsonder bedekt zo niets blijvend. */}
+            <div ref={endRef} aria-hidden className="h-16 shrink-0" />
+          </div>
+
+          <AssistantInput {...input} />
+
+          {drop.over && (
+            <div
+              aria-hidden
+              className="pointer-events-none absolute inset-2 z-10 flex flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-brand bg-brand-selected/95 text-[15px] font-bold text-brand"
+            >
+              <FileUp className="size-7" aria-hidden />
+              Laat los om je notities te verwerken
+            </div>
+          )}
+        </motion.aside>
+      )}
+    </AnimatePresence>
+  );
+}
+
+/**
+ * Gesloten assistent (C1g): een pil-knop "Assistent" rechtsonder. De eerste keer staat erboven één tooltip,
+ * die na 4 s of bij de eerste klik verdwijnt.
+ */
+function FloatingAssistant({
+  hint,
+  onHintDone,
+  onOpen,
+  transition,
+}: {
+  hint: boolean;
+  onHintDone?: () => void;
+  onOpen: () => void;
+  transition: Transition;
+}) {
+  useEffect(() => {
+    if (!hint) return;
+    const id = setTimeout(() => onHintDone?.(), 4000);
+    return () => clearTimeout(id);
+  }, [hint, onHintDone]);
+  return (
+    <motion.div
+      initial={{ opacity: 0, scale: 0.9 }}
+      animate={{ opacity: 1, scale: 1 }}
+      exit={{ opacity: 0, scale: 0.9 }}
+      transition={transition}
+      className="fixed right-6 bottom-6 z-40 flex flex-col items-end gap-2"
+    >
+      {hint && (
+        <p
+          role="status"
+          className="max-w-[260px] rounded-xl bg-ink px-3.5 py-2.5 text-[13px] leading-snug text-white shadow-[0_8px_24px_rgba(10,20,40,0.25)]"
+        >
+          Ik ben hier als je me nodig hebt. Ons gesprek blijft bewaard.
+        </p>
+      )}
       <button
         type="button"
         aria-label="Assistent openen"
-        onClick={() => onOpenChange(true)}
-        className={cn(
-          "fixed right-0 bottom-0 left-0 z-30 flex min-h-12 cursor-pointer items-center justify-center gap-2 border-t border-line-soft bg-white text-sm font-extrabold text-brand shadow-[0_-8px_24px_rgba(22,33,58,0.08)]",
-          c.collapsed,
-        )}
+        onClick={() => {
+          onHintDone?.();
+          onOpen();
+        }}
+        className="flex min-h-14 cursor-pointer items-center gap-2.5 rounded-full bg-brand pr-5 pl-2 text-[15px] font-extrabold text-white shadow-[0_10px_28px_rgba(11,95,216,0.35)] hover:bg-brand-hover"
       >
-        <Sparkles className="size-4" aria-hidden />
-        <span className={c.vertical}>Assistent</span>
+        <span aria-hidden className="flex size-10 items-center justify-center rounded-full bg-white/15">
+          <Check className="size-[18px]" strokeWidth={2.5} />
+        </span>
+        Assistent
       </button>
-    );
-  }
-
-  return (
-    <aside
-      aria-label="Assistent"
-      data-assistant-panel
-      {...drop.handlers}
-      className={cn(
-        "fixed inset-x-0 bottom-0 z-30 flex h-[55dvh] flex-col rounded-t-2xl border-t border-line-soft bg-white shadow-[0_-12px_32px_rgba(22,33,58,0.14)]",
-        c.panel,
-        fullScreen && "max-panel:top-0 max-panel:h-dvh max-panel:rounded-none max-panel:border-t-0",
-      )}
-    >
-      {header ?? (
-        <div className={cn("flex items-center gap-3 border-b border-line-soft py-3 pr-2 pl-4", c.head)}>
-          <span aria-hidden className="flex size-9 shrink-0 items-center justify-center rounded-full bg-brand">
-            <Check className="size-[18px] text-white" strokeWidth={2.5} />
-          </span>
-          <span className="flex min-w-0 flex-1 flex-col">
-            <span className="text-base font-extrabold">Assistent</span>
-            <span className="text-[13px] text-ink-3">{subtitle}</span>
-          </span>
-          {progress && (
-            <span className="shrink-0 rounded-md bg-brand-soft px-2 py-1 text-xs font-extrabold text-brand">
-              {progress}
-            </span>
-          )}
-          <Button variant="ghost" size="icon" aria-label="Assistent verbergen" onClick={() => onOpenChange(false)}>
-            <ChevronRight className={cn("size-[18px]", c.chevron)} strokeWidth={2.5} aria-hidden />
-          </Button>
-        </div>
-      )}
-
-      <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
-        {intro}
-        <div
-          role="log"
-          aria-live="polite"
-          aria-label="Gesprek met de assistent"
-          className="flex flex-col gap-3.5 px-4 pt-5"
-        >
-          {messages.map((m, i) => (
-            <Fragment key={m.id}>
-              <Bubble from={m.from}>
-                <RichText text={m.text} />
-                {m.card && renderCard?.(m.card, i === lastWithCard(m.card))}
-              </Bubble>
-            </Fragment>
-          ))}
-          {typing && (typingLabel ? <Preparing label={typingLabel} /> : <TypingDots />)}
-        </div>
-        {!typing && controls && <div className="flex flex-col gap-3 px-4 pt-3">{controls}</div>}
-        {/* Ruimte onderaan: de demo-knop rechtsonder bedekt zo niets blijvend. */}
-        <div ref={endRef} aria-hidden className="h-16 shrink-0" />
-      </div>
-
-      <AssistantInput {...input} />
-
-      {drop.over && (
-        <div
-          aria-hidden
-          className="pointer-events-none absolute inset-2 z-10 flex flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-brand bg-brand-selected/95 text-[15px] font-bold text-brand"
-        >
-          <FileUp className="size-7" aria-hidden />
-          Laat los om je notities te verwerken
-        </div>
-      )}
-    </aside>
+    </motion.div>
   );
 }

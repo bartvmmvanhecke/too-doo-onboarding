@@ -9,6 +9,7 @@ import { icon, InlineText, ProgressBar, STROKE } from "@/components/meeting/bits
 import { useMeeting, useMeetingOps, type TrialView } from "@/components/meeting/meeting-context";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { formatClock, plannedMinutes } from "@/lib/agenda";
 import { scheduleLine } from "@/lib/meeting";
 import { USER_PERSON_ID, type Person } from "@/lib/mock-data";
@@ -246,6 +247,35 @@ export function MeetingHeader({
   );
 }
 
+/**
+ * "Start overleg" in de proefomgeving: grijs en uitgeschakeld tot er minstens één agendapunt is, met een
+ * tooltip. De knop zit in een span, zodat de tooltip ook bij een uitgeschakelde knop werkt.
+ */
+function StartButton({ enabled, onStart }: { enabled: boolean; onStart: () => void }) {
+  const button = (
+    <Button
+      size="sm"
+      className="font-semibold disabled:bg-line-soft disabled:text-ink-3 disabled:opacity-100"
+      disabled={!enabled}
+      onClick={onStart}
+    >
+      <Play className={icon} strokeWidth={STROKE} aria-hidden />
+      Start overleg
+    </Button>
+  );
+  if (enabled) return <span className="self-start">{button}</span>;
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <span tabIndex={0} aria-describedby="start-overleg-uitleg" className="self-start rounded-[10px]">
+          {button}
+        </span>
+      </TooltipTrigger>
+      <TooltipContent id="start-overleg-uitleg">Voeg eerst een agendapunt toe</TooltipContent>
+    </Tooltip>
+  );
+}
+
 /** Subtiele link in de datumregel die het agendapad start, enkel voor dat veld (Variant A, C1). */
 function FromCalendar({ trial, field, label }: { trial: TrialView; field: "when" | "participants"; label: string }) {
   const onFromCalendar = trial.onFromCalendar;
@@ -283,20 +313,21 @@ function TrialHeader({ trial, participants }: { trial: TrialView; participants: 
   // Kleine tekst: gedempt, maar met voldoende contrast (WCAG AA).
   const mutedSmall = "text-ink-3";
   return (
-    <header className="flex flex-col gap-1 pb-2">
-      <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-3">
-        <div className="flex min-w-0 flex-[1_1_360px] flex-col gap-2">
-          <span className="flex flex-wrap items-center gap-2">
-            <span className="inline-flex items-center gap-1.5 rounded-lg bg-line-faint px-2.5 py-1 text-[13px] font-semibold text-ink-2">
-              <CircleDashed className={icon} strokeWidth={STROKE} aria-hidden />
-              {trial.status}
-            </span>
-            {trial.source && (
-              <span className="rounded-lg bg-brand-soft px-2.5 py-1 text-[13px] font-semibold text-brand">
-                {trial.source}
-              </span>
-            )}
+    <header className="flex flex-col gap-2 pb-2">
+      {/* Statuslabel boven de rij; de rij is titel+datumregel | knop, bovenaan uitgelijnd (SPEC-LAZY.md §3). */}
+      <span className="flex flex-wrap items-center gap-2">
+        <span className="inline-flex items-center gap-1.5 rounded-lg bg-line-faint px-2.5 py-1 text-[13px] font-semibold text-ink-2">
+          <CircleDashed className={icon} strokeWidth={STROKE} aria-hidden />
+          {trial.status}
+        </span>
+        {trial.source && (
+          <span className="rounded-lg bg-brand-soft px-2.5 py-1 text-[13px] font-semibold text-brand">
+            {trial.source}
           </span>
+        )}
+      </span>
+      <div className="flex flex-col gap-3 min-[720px]:flex-row min-[720px]:items-start min-[720px]:justify-between min-[720px]:gap-6">
+        <div className="flex min-w-0 flex-1 flex-col gap-2">
           <motion.div layoutId={trial.titleLayoutId} className="flex min-w-0 flex-wrap items-center gap-3">
             <h1
               className={cn(
@@ -375,16 +406,7 @@ function TrialHeader({ trial, participants }: { trial: TrialView; participants: 
             )}
           </div>
         </div>
-        <Button
-          size="sm"
-          className="font-semibold"
-          disabled={!trial.canStart}
-          aria-disabled={!trial.canStart}
-          onClick={() => startRun(meeting.id)}
-        >
-          <Play className={icon} strokeWidth={STROKE} aria-hidden />
-          Start overleg
-        </Button>
+        <StartButton enabled={trial.canStart} onStart={() => startRun(meeting.id)} />
       </div>
     </header>
   );

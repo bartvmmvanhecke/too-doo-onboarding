@@ -21,6 +21,7 @@ import type {
 } from "@/lib/assistant/types";
 import { emptyMeeting } from "@/lib/assistant/engine";
 import { guestPerson } from "@/lib/assistant/people";
+import { addGuestItem, moveGuestItem, removeGuestItem, updateGuestItem } from "@/lib/trial-meeting";
 import { track } from "@/lib/track";
 import { uid } from "@/lib/utils";
 
@@ -57,6 +58,10 @@ interface GuestData extends AssistantState {
   startPath: StartPath | null;
   /** De overgang van welkom naar app speelde al (één keer per gast); daarna meteen de app. */
   transitionPlayed: boolean;
+  /** Het assistentpaneel staat open; gesloten = de zwevende knop "Assistent" rechtsonder (C1g). */
+  assistantOpen: boolean;
+  /** De tooltip boven de zwevende knop werd al getoond (één keer). */
+  closedHintShown: boolean;
 }
 
 /** Enkel in het geheugen, nooit bewaard: een antwoord dat onderweg is en wat het hoofdvlak markeert. */
@@ -69,6 +74,8 @@ interface GuestUi {
   editRequest: number;
   /** Waar in het gesprek het laatste antwoord van de assistent begint. */
   replyFrom: number;
+  /** "ik doe het zelf" / "toon een voorbeeld" in de chat: het scherm voert het uit (met `at` uniek). */
+  uiRequest: { kind: "close" | "example"; at: number } | null;
 }
 
 interface GuestActions {
@@ -92,6 +99,13 @@ interface GuestActions {
   removeTopic: (id: string) => void;
   /** Verplaatst een agendapunt naar een andere plaats in de lijst. */
   moveTopic: (id: string, index: number) => void;
+  /** Agendapunten onder een thema (ook "Lopende zaken" en "Varia"). */
+  addItem: (blockId: string, text: string) => void;
+  updateItem: (id: string, text: string) => void;
+  removeItem: (id: string) => void;
+  moveItem: (id: string, blockId: string, index: number) => void;
+  setAssistantOpen: (open: boolean) => void;
+  setClosedHintShown: () => void;
   updateAction: (id: string, patch: Partial<GuestAction>) => void;
   addAction: (text: string) => void;
   removeAction: (id: string) => void;
@@ -119,10 +133,19 @@ export function initialGuest(): GuestData {
     account: null,
     startPath: null,
     transitionPlayed: false,
+    assistantOpen: true,
+    closedHintShown: false,
   };
 }
 
-const initialUi = (): GuestUi => ({ typing: false, flash: [], flashAt: 0, editRequest: 0, replyFrom: 0 });
+const initialUi = (): GuestUi => ({
+  typing: false,
+  flash: [],
+  flashAt: 0,
+  editRequest: 0,
+  replyFrom: 0,
+  uiRequest: null,
+});
 
 /** Het antwoord dat onderweg is (één tegelijk). */
 let replyTimer: ReturnType<typeof setTimeout> | null = null;
@@ -173,6 +196,7 @@ export const useGuestStore = create<GuestStore>()(
               typing: false,
               ...(reply.flash.length ? { flash: reply.flash, flashAt: Date.now() } : {}),
               editRequest: reply.edit ? s.editRequest + 1 : s.editRequest,
+              ...(reply.ui ? { uiRequest: { kind: reply.ui, at: Date.now() } } : {}),
             });
             for (const [event, props] of reply.events) track(event, props);
           }, TYPING_DELAY);
@@ -187,6 +211,8 @@ export const useGuestStore = create<GuestStore>()(
             ...reply.state,
             startPath: "empty",
             transitionPlayed: true,
+            // C1d: de assistent start gesloten, als zwevende knop rechtsonder.
+            assistantOpen: false,
             conversation: withIds(reply.messages),
             replyFrom: 0,
           });
@@ -211,6 +237,12 @@ export const useGuestStore = create<GuestStore>()(
         addTopic: (text) =>
           meeting({ topics: [...get().meeting.topics, { id: uid("t-"), text } satisfies GuestTopic] }),
         removeTopic: (id) => meeting({ topics: get().meeting.topics.filter((t) => t.id !== id) }),
+        addItem: (blockId, text) => meeting(addGuestItem(get().meeting, blockId, text)),
+        updateItem: (id, text) => meeting(updateGuestItem(get().meeting, id, text)),
+        removeItem: (id) => meeting(removeGuestItem(get().meeting, id)),
+        moveItem: (id, blockId, index) => set((s) => moveGuestItem(s, id, blockId, index)),
+        setAssistantOpen: (assistantOpen) => set({ assistantOpen }),
+        setClosedHintShown: () => set({ closedHintShown: true }),
         moveTopic: (id, index) => {
           const topics = get().meeting.topics;
           const topic = topics.find((t) => t.id === id);
@@ -245,8 +277,8 @@ export const useGuestStore = create<GuestStore>()(
       migrate: () => initialGuest(),
       // Wat enkel in het geheugen hoort (antwoord onderweg, markering), wordt nooit bewaard.
       partialize: (s) => {
-        const { typing, flash, flashAt, editRequest, replyFrom, ...rest } = s;
-        void [typing, flash, flashAt, editRequest, replyFrom];
+        const { typing, flash, flashAt, editRequest, replyFrom, uiRequest, ...rest } = s;
+        void [typing, flash, flashAt, editRequest, replyFrom, uiRequest];
         return rest;
       },
       storage: createJSONStorage(() => (typeof window === "undefined" ? noopStorage : window.localStorage)),

@@ -3,13 +3,14 @@
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { LayoutGroup, motion, useReducedMotion } from "framer-motion";
-import { CalendarDays } from "lucide-react";
+import { CalendarDays, FileUp, LayoutList, Mic, PanelRightClose } from "lucide-react";
 import { AssistantPanel, Chips, Preparing } from "@/components/probeer/assistant-panel";
 import { AppUiProvider } from "@/components/app/app-ui";
 import { StatusBanner } from "@/components/probeer/trial-banner";
 import { TrialMeeting } from "@/components/probeer/trial-meeting";
 import {
   EntryChoices,
+  FilePicker,
   NotesDropzone,
   PickMeeting,
   ProviderChoice,
@@ -143,6 +144,14 @@ function MailCard() {
   );
 }
 
+/** "Start met een lege meeting" (C1d): geen overgang, meteen de app met de assistent gesloten. */
+function startEmptyMeeting() {
+  track("assistant_entry_chosen", { ingang: "empty" });
+  useGuestStore.getState().startEmpty();
+  // De titel "Nieuwe vergadering" meteen in bewerkmodus, zodra het overleg er staat.
+  setTimeout(() => useGuestStore.setState((s) => ({ editRequest: s.editRequest + 1 })), 50);
+}
+
 /** Variant A · de proefomgeving op /probeer (C1–C4): zijbalk, overleg in opbouw, assistent. */
 export function TrialScreen({ onSave }: { onSave: (intent: SaveIntent, trigger: string) => void }) {
   const router = useRouter();
@@ -159,6 +168,8 @@ export function TrialScreen({ onSave }: { onSave: (intent: SaveIntent, trigger: 
   const editRequest = useGuestStore((s) => s.editRequest);
   const dispatch = useGuestStore((s) => s.dispatch);
   const startPath = useGuestStore((s) => s.startPath);
+  const entry = useGuestStore((s) => s.entry);
+  const tellPath = entry === "meeting" || entry === "empty";
   const replyFrom = useGuestStore((s) => s.replyFrom);
   const transitionPlayed = useGuestStore((s) => s.transitionPlayed);
   const sso = useSsoLogin();
@@ -167,7 +178,12 @@ export function TrialScreen({ onSave }: { onSave: (intent: SaveIntent, trigger: 
   const [connecting, setConnecting] = useState<CalendarProvider | null>(null);
   const [reading, setReading] = useState<string | null>(null);
   const [flashSeen, setFlashSeen] = useState(0);
-  const [open, setOpen] = useState(() => useGuestStore.getState().startPath !== "empty");
+  // Open of gesloten (zwevende knop rechtsonder) staat in de gast-state, ook na herladen.
+  const open = useGuestStore((s) => s.assistantOpen);
+  const setOpen = useGuestStore((s) => s.setAssistantOpen);
+  const closedHintShown = useGuestStore((s) => s.closedHintShown);
+  const uiRequest = useGuestStore((s) => s.uiRequest);
+  const handledUi = useRef(uiRequest?.at ?? 0);
   const [focusRequest, setFocusRequest] = useState(0);
   const focusInput = () => setFocusRequest((n) => n + 1);
 
@@ -354,14 +370,32 @@ export function TrialScreen({ onSave }: { onSave: (intent: SaveIntent, trigger: 
     send({ type: "calendar-field", fields: [field] }, field === "when" ? "Uit agenda halen" : "Deelnemers uit agenda");
   };
 
+  const showExample = () => {
+    track("assistant_entry_chosen", { ingang: "example" });
+    router.push("/voorbeeld?van=probeer");
+  };
+
+  // "ik doe het zelf" / "toon een voorbeeld" in de chat: eerst het korte antwoord, dan de actie.
+  useEffect(() => {
+    if (!uiRequest || uiRequest.at <= handledUi.current) return;
+    handledUi.current = uiRequest.at;
+    if (uiRequest.kind === "example") {
+      track("assistant_entry_chosen", { ingang: "example" });
+      router.push("/voorbeeld?van=probeer");
+      return;
+    }
+    // Geen cleanup: na ± 800 ms sluit de assistent, ook als het scherm intussen opnieuw rendert.
+    setTimeout(() => {
+      const g = useGuestStore.getState();
+      // Op het welkomstscherm: zelf verder zonder assistent is een lege meeting (C1d).
+      if (g.transitionPlayed) g.setAssistantOpen(false);
+      else startEmptyMeeting();
+    }, 800);
+  }, [uiRequest, router]);
+
   /** "Start met een lege meeting" (C1d): geen overgang, meteen de app met de assistent ingeklapt. */
   const startEmpty = () => {
-    if (busy) return;
-    track("assistant_entry_chosen", { ingang: "empty" });
-    useGuestStore.getState().startEmpty();
-    setOpen(false);
-    // De titel "Nieuwe vergadering" meteen in bewerkmodus, zodra het overleg er staat.
-    setTimeout(() => useGuestStore.setState((s) => ({ editRequest: s.editRequest + 1 })), 50);
+    if (!busy) startEmptyMeeting();
   };
 
   let controls: ReactNode = null;
@@ -384,6 +418,18 @@ export function TrialScreen({ onSave }: { onSave: (intent: SaveIntent, trigger: 
       break;
     case "provider":
       controls = <ProviderChoice busy={busy} connecting={connecting} onCalendar={connectCalendar} />;
+      break;
+    case "topics":
+      controls = (
+        <Button
+          variant="link"
+          size="sm"
+          className="min-h-11 self-start px-0 text-sm font-bold"
+          onClick={() => send({ type: "skip-topics" }, "Laat zo")}
+        >
+          Laat zo
+        </Button>
+      );
       break;
     case "when-who":
       controls = (
@@ -465,13 +511,43 @@ export function TrialScreen({ onSave }: { onSave: (intent: SaveIntent, trigger: 
               Iets aanpassen
             </Button>
           </div>
-          <p className="text-[13px] text-ink-3">
-            Zei je niet wanneer of met wie? Dan vraag ik het, ik vul niets zelf in. E-mailadressen zijn nog niet nodig.
-          </p>
+          {!tellPath && (
+            <p className="text-[13px] text-ink-3">
+              Zei je niet wanneer of met wie? Dan vraag ik het, ik vul niets zelf in. E-mailadressen zijn nog niet
+              nodig.
+            </p>
+          )}
         </>
       );
       break;
     case "notes":
+      // Vertelpad, bericht 2 (Stap 1): kies een bestand, spreek in, of plak of typ ze.
+      if (tellPath && actions.length === 0) {
+        controls = (
+          <>
+            <div className="flex flex-wrap gap-2">
+              <FilePicker onFile={readFile} disabled={busy}>
+                <FileUp className="size-4" aria-hidden />
+                Kies bestand
+              </FilePicker>
+              <Button variant="outline" size="sm" disabled={busy} onClick={listen}>
+                <Mic className="size-4" aria-hidden />
+                Inspreken
+              </Button>
+            </div>
+            <p className="text-[13px] text-ink-3">Of plak of typ ze hieronder.</p>
+            <Button
+              variant="link"
+              size="sm"
+              className="min-h-11 self-start px-0 text-sm font-bold"
+              onClick={() => send({ type: "no-actions" }, "Ik heb niets openstaan")}
+            >
+              Ik heb niets openstaan
+            </Button>
+          </>
+        );
+        break;
+      }
       // Na "Ik heb notities" is er nog geen overleg: dan enkel de dropzone in het bericht.
       controls = meeting.name && (
         <Button
@@ -561,7 +637,6 @@ export function TrialScreen({ onSave }: { onSave: (intent: SaveIntent, trigger: 
                 ? "Bijv. Karim belt, tegen woensdag"
                 : "Vraag of zeg iets";
 
-  const progress = step === "done" || welcome ? undefined : `${step} van 3`;
   const meetingNames = [...others.map((o) => o.meeting.name ?? "Overleg"), ...(meeting.name ? [meeting.name] : [])];
   // Het antwoord dat de overgang startte, komt pas na de afsluiter; intussen "Ik zet je overleg klaar…".
   // Al in de render (niet pas in het effect), zodat het antwoord geen enkel beeld te vroeg verschijnt.
@@ -621,7 +696,26 @@ export function TrialScreen({ onSave }: { onSave: (intent: SaveIntent, trigger: 
         <AssistantPanel
           layout="trial"
           subtitle="stelt voor, jij beslist"
-          progress={progress}
+          menu={
+            welcome
+              ? undefined
+              : [
+                  {
+                    label: "Bekijk een voorbeeldagenda",
+                    hint: "Je eigen overleg blijft bewaard",
+                    icon: LayoutList,
+                    onSelect: showExample,
+                  },
+                  {
+                    label: "Assistent sluiten",
+                    hint: "Je werkt zelf verder. Ik sta rechtsonder.",
+                    icon: PanelRightClose,
+                    onSelect: () => setOpen(false),
+                  },
+                ]
+          }
+          closedHint={!closedHintShown}
+          onClosedHintDone={useGuestStore.getState().setClosedHintShown}
           header={welcome ? <WelcomeHeader onLogin={() => onSave("login", "welkom")} /> : undefined}
           intro={
             intro ? (

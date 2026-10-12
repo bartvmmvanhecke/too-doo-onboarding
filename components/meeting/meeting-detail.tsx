@@ -36,38 +36,86 @@ function refocusGrip(id: string) {
   requestAnimationFrame(() => document.querySelector<HTMLElement>(`[data-grip="${id}"]`)?.focus());
 }
 
-function agendaMoves(meeting: Meeting, ops: MeetingOps): AgendaMoves {
+/** Waar een opgepakt agendapunt of thema stond, om met Escape terug te zetten. */
+const origins = new Map<string, { blockId: string; index: number }>();
+
+/**
+ * `announce` (Variant A): een aria-live melding na elke verplaatsing, en oppakken met het toetsenbord
+ * (spatie, pijltjes, spatie; Escape annuleert).
+ */
+function agendaMoves(meeting: Meeting, ops: MeetingOps, announce?: (text: string) => void): AgendaMoves {
   const { moveItem, moveBlock } = ops;
   const topics = meeting.blocks.filter((b) => b.kind === "topics");
   const locate = (itemId: string) => {
     const bi = topics.findIndex((b) => b.items.some((i) => i.id === itemId));
     return { bi, ii: bi < 0 ? -1 : topics[bi].items.findIndex((i) => i.id === itemId) };
   };
+  const itemTitle = (itemId: string) => topics.flatMap((b) => b.items).find((i) => i.id === itemId)?.text ?? "";
+  const blockTitle = (blockId: string) => meeting.blocks.find((b) => b.id === blockId)?.title ?? "";
+  const toItem = (itemId: string, blockId: string, index: number) => {
+    moveItem(meeting.id, itemId, blockId, index);
+    announce?.(`${itemTitle(itemId)} verplaatst naar ${blockTitle(blockId)}, positie ${index + 1}`);
+  };
+  const toBlock = (blockId: string, index: number) => {
+    moveBlock(meeting.id, blockId, index);
+    announce?.(`${blockTitle(blockId)} verplaatst naar positie ${index + 1}`);
+  };
   return {
     moveItemBy: (itemId, delta) => {
       const { bi, ii } = locate(itemId);
       if (bi < 0) return;
       const target = ii + delta;
-      if (target >= 0 && target < topics[bi].items.length) moveItem(meeting.id, itemId, topics[bi].id, target);
+      if (target >= 0 && target < topics[bi].items.length) toItem(itemId, topics[bi].id, target);
       // Over de rand: naar het einde van het vorige of het begin van het volgende blok.
-      else if (delta < 0 && bi > 0) moveItem(meeting.id, itemId, topics[bi - 1].id, topics[bi - 1].items.length);
-      else if (delta > 0 && bi < topics.length - 1) moveItem(meeting.id, itemId, topics[bi + 1].id, 0);
+      else if (delta < 0 && bi > 0) toItem(itemId, topics[bi - 1].id, topics[bi - 1].items.length);
+      else if (delta > 0 && bi < topics.length - 1) toItem(itemId, topics[bi + 1].id, 0);
       refocusGrip(itemId);
     },
     dropItem: (itemId, blockId, index) => {
       const { bi, ii } = locate(itemId);
       const same = bi >= 0 && topics[bi].id === blockId;
-      moveItem(meeting.id, itemId, blockId, same && ii < index ? index - 1 : index);
+      toItem(itemId, blockId, same && ii < index ? index - 1 : index);
     },
     moveBlockBy: (blockId, delta) => {
       const i = meeting.blocks.findIndex((b) => b.id === blockId);
-      moveBlock(meeting.id, blockId, i + delta);
+      toBlock(blockId, i + delta);
       refocusGrip(blockId);
     },
     dropBlock: (blockId, index) => {
       const i = meeting.blocks.findIndex((b) => b.id === blockId);
-      moveBlock(meeting.id, blockId, i < index ? index - 1 : index);
+      toBlock(blockId, i < index ? index - 1 : index);
     },
+    pickUp: announce
+      ? (kind, id) => {
+          const title = kind === "item" ? itemTitle(id) : blockTitle(id);
+          return {
+            onPick: () => {
+              const { bi, ii } = locate(id);
+              origins.set(
+                id,
+                kind === "item"
+                  ? { blockId: topics[bi]?.id ?? "", index: ii }
+                  : { blockId: id, index: meeting.blocks.findIndex((b) => b.id === id) },
+              );
+              announce(
+                `${title} opgepakt. Pijltjes om te verplaatsen, spatie om neer te zetten, Escape om te annuleren.`,
+              );
+            },
+            onDrop: () => {
+              origins.delete(id);
+              announce(`${title} neergezet.`);
+            },
+            onCancel: () => {
+              const from = origins.get(id);
+              origins.delete(id);
+              if (from && kind === "item") moveItem(meeting.id, id, from.blockId, from.index);
+              if (from && kind === "block") moveBlock(meeting.id, id, from.index);
+              refocusGrip(id);
+              announce(`Verplaatsen van ${title} geannuleerd.`);
+            },
+          };
+        }
+      : undefined,
   };
 }
 
@@ -109,8 +157,8 @@ function AddBlockButton({ meeting }: { meeting: Meeting }) {
   );
 }
 
-/** Variant A: één inline regel "+ Agendapunt" in plaats van de knoppen om blokken en punten toe te voegen. */
-function AddAgendaRow({ onAdd }: { onAdd: (text: string) => void }) {
+/** Variant A: onderaan de agenda één knop "+ Thema" (een nieuw blok); agendapunten komen onder een thema. */
+function AddThemeRow({ onAdd }: { onAdd: (text: string) => void }) {
   const [adding, setAdding] = useState(false);
   const [text, setText] = useState("");
   if (!adding) {
@@ -122,15 +170,15 @@ function AddAgendaRow({ onAdd }: { onAdd: (text: string) => void }) {
         onClick={() => setAdding(true)}
       >
         <Plus className="size-5" strokeWidth={STROKE} aria-hidden />
-        Agendapunt
+        Thema
       </Button>
     );
   }
   return (
     <input
       type="text"
-      aria-label="Agendapunt toevoegen"
-      placeholder="Typ een agendapunt en druk Enter"
+      aria-label="Thema toevoegen"
+      placeholder="Typ een thema en druk Enter"
       autoFocus
       value={text}
       onChange={(e) => setText(e.target.value)}
@@ -226,7 +274,9 @@ export function MeetingDetail({
   const [bannerOpen, setBannerOpen] = useState(!!example);
   const [checklistOpen, setChecklistOpen] = useState(!!example);
 
-  const moves = agendaMoves(meeting, ops);
+  // Variant A: elke verplaatsing wordt gemeld voor schermlezers (aria-live).
+  const [announcement, setAnnouncement] = useState("");
+  const moves = agendaMoves(meeting, ops, trial ? setAnnouncement : undefined);
   const run = meeting.run;
   const owners = ownerOptions(people, meeting.participants, meeting.name, trial ? [] : extraPeople.map((p) => p.id));
   const items = allItems(meeting.blocks);
@@ -412,7 +462,12 @@ export function MeetingDetail({
             );
           })}
 
-          {trial ? <AddAgendaRow onAdd={trial.view.onAddAgendaItem} /> : <AddBlockButton meeting={meeting} />}
+          {trial ? <AddThemeRow onAdd={trial.view.onAddTheme} /> : <AddBlockButton meeting={meeting} />}
+          {trial && (
+            <p aria-live="polite" className="sr-only">
+              {announcement}
+            </p>
+          )}
 
           {/* Onderaan rechts, als laatste: verdwijnt zonder dat de inhoud erboven verspringt. */}
           {showChecklist && (

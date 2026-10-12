@@ -76,7 +76,7 @@ export function ExampleScreen() {
   return (
     <MeetingDetail
       meeting={meeting}
-      example={{ seed, back: fromTrial ? { label: "Terug naar je proefomgeving", href: "/probeer" } : undefined }}
+      example={{ seed, back: fromTrial ? { label: "Terug naar mijn overleg", href: "/probeer" } : undefined }}
     />
   );
 }

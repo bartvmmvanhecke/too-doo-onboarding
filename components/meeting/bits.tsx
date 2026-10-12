@@ -13,6 +13,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { PURPOSE_CLASS, PURPOSES, type Purpose } from "@/lib/agenda";
 import { parseDateInput } from "@/lib/date";
 import { findPerson } from "@/lib/store";
+import { create } from "zustand";
 import { cn } from "@/lib/utils";
 
 /** Lucide-iconen: 16px, lijndikte 1.6. */
@@ -32,12 +33,23 @@ export const iconButton =
 export const menuItem =
   "flex min-h-11 w-full cursor-pointer items-center gap-2.5 rounded-lg px-2.5 text-left text-sm text-ink hover:bg-row-hover focus-visible:bg-row-hover";
 
+/** Welke grip met het toetsenbord opgepakt is. */
+const useGrabbed = create<{ id: string | null }>(() => ({ id: null }));
+
+/** Oppakken met spatie: neerzetten met spatie, annuleren met Escape (Variant A). */
+export interface GripPickUp {
+  onPick: () => void;
+  onDrop: () => void;
+  onCancel: () => void;
+}
+
 export function Grip({
   label,
   onMove,
   onArm,
   focusKey,
   className,
+  pickUp,
 }: {
   label: string;
   /** Om de focus terug te zetten na het verplaatsen. */
@@ -47,9 +59,27 @@ export function Grip({
   /** Slepen kan pas als de grip vastgenomen wordt. */
   onArm: (armed: boolean) => void;
   className?: string;
+  /** Met toetsenbord eerst oppakken (spatie), dan pijltjes, spatie zet neer en Escape annuleert. */
+  pickUp?: GripPickUp;
 }) {
+  // Buiten de component: bij verplaatsen naar een ander blok wordt de grip opnieuw gemonteerd.
+  const grabbed = useGrabbed((s) => s.id === focusKey);
+  const setGrabbed = (on: boolean) => useGrabbed.setState({ id: on ? focusKey : null });
   const onKeyDown = (e: KeyboardEvent) => {
-    if (e.key === "ArrowUp" || e.key === "ArrowDown") {
+    if (pickUp && (e.key === " " || e.key === "Enter")) {
+      e.preventDefault();
+      if (grabbed) pickUp.onDrop();
+      else pickUp.onPick();
+      setGrabbed(!grabbed);
+      return;
+    }
+    if (pickUp && e.key === "Escape" && grabbed) {
+      e.preventDefault();
+      setGrabbed(false);
+      pickUp.onCancel();
+      return;
+    }
+    if ((e.key === "ArrowUp" || e.key === "ArrowDown") && (!pickUp || grabbed)) {
       e.preventDefault();
       onMove(e.key === "ArrowUp" ? -1 : 1);
     }
@@ -58,8 +88,9 @@ export function Grip({
     <button
       type="button"
       aria-label={label}
+      aria-pressed={pickUp ? grabbed : undefined}
       data-grip={focusKey}
-      title="Sleep, of gebruik de pijltjestoetsen"
+      title={pickUp ? "Sleep, of spatie en de pijltjestoetsen" : "Sleep, of gebruik de pijltjestoetsen"}
       onKeyDown={onKeyDown}
       onPointerDown={() => onArm(true)}
       onPointerUp={() => onArm(false)}

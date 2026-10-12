@@ -25,14 +25,12 @@ test.describe("Vier flows vanaf /prototype", () => {
     const errors = trackErrors(page);
     const shot = shooter(page, "flow-1");
     await page.goto("/");
-    // Variant B start via de flowkeuze-knop; de website-CTA gaat naar Variant A.
-    await page.getByRole("button", { name: /^Flowkeuze/ }).click();
-    await page.getByRole("menuitemradio", { name: /Variant B - Classic Onboarding/ }).click();
-    await expect(page).toHaveURL(/\/prototype$/);
+    // Variant B start via /prototype; de website-CTA gaat naar Variant A.
+    await page.goto("/prototype");
     await shot("prototype");
     await page.getByRole("button", { name: /Start flow 1:/ }).click();
     await expect(page).toHaveURL(/\/start$/);
-    await expect(page.getByRole("button", { name: "Flowkeuze (actief: variant B · Flow 1)" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Prototype-menu" })).toBeVisible();
     await shot("account");
     await page.getByRole("button", { name: "Doorgaan met Microsoft" }).click();
     await expect(page).toHaveURL(/\/overleg$/);
@@ -177,8 +175,7 @@ test.describe("Vier flows vanaf /prototype", () => {
     await page.getByLabel("Naam", { exact: true }).fill("Teamoverleg");
     await page.getByRole("button", { name: "Maak overleg aan" }).click();
     await expect(page).toHaveURL(/teamoverleg$/);
-    await page.getByRole("button", { name: /^Flowkeuze/ }).click();
-    await page.getByRole("menuitemradio", { name: /Variant B - Classic Onboarding/ }).click();
+    await page.goto("/prototype");
     await page.getByRole("button", { name: /Start flow 4:/ }).click();
     await page.goto("/app");
     await expect(page.getByRole("heading", { name: "Zet je eerste vaste overleg klaar" })).toBeVisible();

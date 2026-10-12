@@ -5,10 +5,8 @@ test.describe("Hoofdflow: Microsoft slaagt, reeksen gevonden", () => {
   test("hero → account → lijst → acties → overleg, met alle knoppen in het overleg", async ({ page }) => {
     const errors = trackErrors(page);
     await page.goto("/");
-    // Variant B start via de flowkeuze-knop; de website-CTA gaat naar Variant A.
-    await page.getByRole("button", { name: /^Flowkeuze/ }).click();
-    await page.getByRole("menuitemradio", { name: /Variant B - Classic Onboarding/ }).click();
-    await expect(page).toHaveURL(/\/prototype$/);
+    // Variant B start via /prototype; de website-CTA gaat naar Variant A.
+    await page.goto("/prototype");
     await page.getByRole("button", { name: /Start flow 1:/ }).click();
     await expect(page).toHaveURL(/\/start$/);
     await page.getByRole("button", { name: "Doorgaan met Microsoft" }).click();

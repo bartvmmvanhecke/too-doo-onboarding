@@ -32,41 +32,34 @@ a{color:#0B5FD8}a:hover{color:#08449C}
       <span style="flex: 1 1 300px">Proefomgeving: geen account nodig. Je werk blijft 7 dagen op dit toestel staan; bewaren kan op elk moment.</span>
       <a href="C5-Bewaren.dc.html" style="font-weight: 700">Ik heb al een account</a>
     </div>
-
-    <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap">
-      <h1 style="margin: 0; font-size: 30px; font-weight: 800">Je eerste overleg</h1>
-      <span style="font-size: 12px; font-weight: 800; letter-spacing: 0.4px; text-transform: uppercase; color: #3E4860; background: #E3E8F1; border-radius: 6px; padding: 4px 9px">Concept</span>
+    <div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-end; gap: 16px">
+      <div style="display: flex; flex-direction: column; gap: 8px; min-width: 0">
+        <span style="align-self: flex-start; display: inline-flex; align-items: center; gap: 6px; background: #EEF2F8; color: #3E4860; border-radius: 8px; padding: 4px 10px; font-size: 14px; font-weight: 700"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#3E4860" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"></rect><path d="M3 10h18M8 3v4M16 3v4"></path></svg>Concept</span>
+        <h1 style="margin: 0; font-size: 36px; line-height: 1.15; font-weight: 800; color: #8A95AB">Je eerste overleg</h1>
+        <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 12px; font-size: 14px">
+          <span style="color: #8A95AB">Wanneer? · Wie zit erbij?</span>
+          
+        </div>
+      </div>
+      <button type="button" disabled aria-disabled="true" style="font-family: inherit; display: inline-flex; align-items: center; gap: 8px; background: #C9D3E3; color: #5B6478; border: none; border-radius: 12px; padding: 0 22px; min-height: 50px; font-size: 16px; font-weight: 800; cursor: pointer"><svg width="16" height="16" viewBox="0 0 24 24" fill="#5B6478" aria-hidden="true"><path d="M7 5l12 7-12 7z"></path></svg>Start overleg</button>
     </div>
-
-    <section aria-label="Overleg in opbouw" style="background: #FFFFFF; border: 1px solid #E3E8F1; border-radius: 16px; padding: 22px 24px; display: flex; flex-direction: column; gap: 16px">
-      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px">
-        <div style="border: 1.5px dashed #B8C3D6; border-radius: 12px; padding: 14px; display: flex; flex-direction: column; gap: 4px">
-          <span style="font-size: 13px; font-weight: 700; color: #5B6478">Naam</span>
-          <span style="font-size: 16px; font-weight: 700; color: #5B6478">Welk overleg?</span>
-        </div>
-        <div style="border: 1.5px dashed #B8C3D6; border-radius: 12px; padding: 14px; display: flex; flex-direction: column; gap: 4px">
-          <span style="font-size: 13px; font-weight: 700; color: #5B6478">Wanneer</span>
-          <span style="font-size: 16px; font-weight: 700; color: #5B6478">Dag, uur, hoe vaak</span>
-        </div>
-        <div style="border: 1.5px dashed #B8C3D6; border-radius: 12px; padding: 14px; display: flex; flex-direction: column; gap: 4px">
-          <span style="font-size: 13px; font-weight: 700; color: #5B6478">Wie zit erbij</span>
-          <span style="font-size: 16px; font-weight: 700; color: #5B6478">Deelnemers</span>
-        </div>
-      </div>
-
-      <div style="display: flex; flex-direction: column; gap: 10px">
-        <span style="font-size: 15px; font-weight: 800">Agenda</span>
-        <div style="border: 1.5px dashed #B8C3D6; border-radius: 12px; padding: 16px; display: flex; flex-direction: column; gap: 6px">
-          <span style="font-size: 15px; font-weight: 800; color: #3E4860">Openstaande acties</span>
-          <span style="font-size: 14px; color: #5B6478">Wat vorige keer afgesproken werd en nog niet af is. Komt elk overleg vanzelf terug tot het af is.</span>
-          <span style="font-size: 13px; color: #3E4860; padding-top: 4px">Sleep notities van je vorig overleg op deze plek, of <a href="C3-Agent-acties.dc.html" style="font-weight: 700">kies een bestand</a>.</span>
-        </div>
-        <div style="border: 1.5px dashed #B8C3D6; border-radius: 12px; padding: 16px; font-size: 15px; font-weight: 800; color: #3E4860">Lopende zaken</div>
-        <div style="border: 1.5px dashed #B8C3D6; border-radius: 12px; padding: 16px; font-size: 15px; font-weight: 800; color: #3E4860">Varia</div>
-      </div>
-    </section>
-
-    <span style="font-size: 14px; color: #5B6478">Alles hier is meteen aanpasbaar. Liever zonder assistent? <a href="Stap2b-Overleg-Manueel.dc.html" style="font-weight: 700">Vul het zelf in</a> of <a href="Stap2d-Voorbeelddata.dc.html" style="font-weight: 700">bekijk eerst een voorbeeld</a>.</span>
+    <div style="display: flex; flex-direction: column; gap: 10px">
+      <h2 style="margin: 6px 0 4px; font-size: 24px; font-weight: 800">Agendapunten</h2>
+      
+      <section style="background: #FFFFFF; border: 1.5px dashed #B8C3D6; border-radius: 14px; padding: 14px 18px; display: flex; flex-direction: column; gap: 10px">
+        <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap"><svg width="14" height="20" viewBox="0 0 14 20" aria-hidden="true" style="flex-shrink: 0"><g fill="#B3BDCE"><circle cx="4" cy="4" r="1.6"></circle><circle cx="10" cy="4" r="1.6"></circle><circle cx="4" cy="10" r="1.6"></circle><circle cx="10" cy="10" r="1.6"></circle><circle cx="4" cy="16" r="1.6"></circle><circle cx="10" cy="16" r="1.6"></circle></g></svg><span style="font-size: 17px; font-weight: 800; color: #16213A">Openstaande acties</span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#5B6478" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-label="Komt elk overleg terug"><path d="M21 12a9 9 0 1 1-3-6.7L21 8M21 3v5h-5"></path></svg><span style="font-size: 13px; color: #3E4860"></span><span style="flex: 1"></span></div>
+        <span style="font-size: 14px; color: #5B6478">Wat vorige keer afgesproken werd en nog niet af is. Komt elk overleg vanzelf terug tot het af is.</span><span style="font-size: 13px; color: #3E4860">Sleep notities van je vorig overleg op deze plek, of <a href="C3-Agent-acties.dc.html" style="font-weight: 700">kies een bestand</a>.</span>
+      </section>
+      <section style="background: #FFFFFF; border: 1.5px dashed #B8C3D6; border-radius: 14px; padding: 14px 18px; display: flex; flex-direction: column; gap: 10px">
+        <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap"><svg width="14" height="20" viewBox="0 0 14 20" aria-hidden="true" style="flex-shrink: 0"><g fill="#B3BDCE"><circle cx="4" cy="4" r="1.6"></circle><circle cx="10" cy="4" r="1.6"></circle><circle cx="4" cy="10" r="1.6"></circle><circle cx="10" cy="10" r="1.6"></circle><circle cx="4" cy="16" r="1.6"></circle><circle cx="10" cy="16" r="1.6"></circle></g></svg><span style="font-size: 17px; font-weight: 800; color: #5B6478">Lopende zaken</span><span style="flex: 1"></span></div>
+        
+      </section>
+      <section style="background: #FFFFFF; border: 1.5px dashed #B8C3D6; border-radius: 14px; padding: 14px 18px; display: flex; flex-direction: column; gap: 10px">
+        <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap"><svg width="14" height="20" viewBox="0 0 14 20" aria-hidden="true" style="flex-shrink: 0"><g fill="#B3BDCE"><circle cx="4" cy="4" r="1.6"></circle><circle cx="10" cy="4" r="1.6"></circle><circle cx="4" cy="10" r="1.6"></circle><circle cx="10" cy="10" r="1.6"></circle><circle cx="4" cy="16" r="1.6"></circle><circle cx="10" cy="16" r="1.6"></circle></g></svg><span style="font-size: 17px; font-weight: 800; color: #5B6478">Varia</span><span style="flex: 1"></span></div>
+        
+      </section>
+      <button type="button" style="align-self: flex-start; font-family: inherit; display: inline-flex; align-items: center; gap: 8px; background: none; border: none; color: #0B5FD8; font-size: 15px; font-weight: 700; padding: 6px 0; cursor: pointer"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#0B5FD8" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg>Agendapunt</button>
+    </div>
   </main>
 
   <aside aria-label="Assistent" style="flex: 1 1 380px; max-width: 440px; min-height: 900px; background: #FFFFFF; border-left: 1px solid #E3E8F1; box-sizing: border-box; display: flex; flex-direction: column">

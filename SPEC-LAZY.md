@@ -59,7 +59,13 @@ Mockups: `design/variant-a-lazy/` (C0 t/m C6). Zoals eerder: lees de HTML en inl
 
 Drie kolommen, zie C1–C4:
 1. **Zijbalk**: zoals de app (Dashboard, Vergaderingen, Acties, Beslissingen). Onderaan "Nog niet bewaard · Je werk staat op dit toestel" en vanaf C4 een knop "Bewaar je overleg".
-2. **Hoofdvlak**: het echte overleg in opbouw. Label "Concept" tot het klaar is. Lege velden gestippeld (C1). Alles is rechtstreeks aanpasbaar: klikken op een veld maakt het bewerkbaar.
+2. **Hoofdvlak**: het echte overleg in opbouw, **in de vorm van het bestaande detailscherm van een overleg** (update 12 okt). Hergebruik de bestaande componenten van het detailscherm; bouw geen apart onboardingscherm.
+   - **Zelfde skelet, minder lagen.** Zichtbaar zoals altijd: statuslabel ("Concept", na stap 3 "Gepland"), titel, datumregel met avatars van de deelnemers, knop "Start overleg" rechtsboven (uitgeschakeld tot stap 3), "Agendapunten" als blokkaarten met sleepgreep, en het blok "Openstaande acties" met terugkeer-icoon.
+   - **Verborgen tot er inhoud is** (zelfde plek zodra ze verschijnen): het infopaneel (vestiging, type, lokaal, prep score), de tabs (Beslissingen, Notities, Acties, Deelnemers), het tijdsbudget, de tellers per agendapunt (beslissingen, acties, notities, documenten), type-labels (Bespreken, Informeren) en "Open acties overslaan". De knoppen "Blok / Item / Pauze toevoegen" worden één inline regel "+ Agendapunt".
+   - **Openstaande acties** staat bij het eerste overleg **opengeklapt** met de acties als rijen (vinkje, tekst, eigenaar, datum). Later gedraagt het blok zich zoals vandaag (ingeklapt met "N openstaande acties, M te laat").
+   - Wat de assistent invult, licht 2 s op **in de titel, de datumregel en de avatars zelf** (blauwe markering); agendapunten die een voorstel zijn, krijgen het label "voorstel" tot de gebruiker bevestigt. Geen apart veldenraster.
+   - Lege toestand (C1): titel "Je eerste overleg" en datumregel "Wanneer? · Wie zit erbij?" in gedempte kleur, blokken gestippeld. Alles is rechtstreeks aanpasbaar: klikken op titel, datumregel of avatars maakt ze bewerkbaar.
+   - Gebruik overal de bestaande benamingen van het product (Nederlandse versie), bv. altijd "Openstaande acties".
 3. **Assistentpaneel** rechts (380–440 px): kop "Assistent · stelt voor, jij beslist", voortgang "1 van 3" / "2 van 3" / "3 van 3", berichten, invoer onderaan met tekstvak, microfoonknop en verzendknop. Inklapbaar (knop `>`); ingeklapt blijft een smalle knop "Assistent" zichtbaar.
 
 Bovenaan het hoofdvlak een **neutrale** balk (geen geel): "Proefomgeving: geen account nodig. Je werk blijft 7 dagen op dit toestel staan; bewaren kan op elk moment." met link "Ik heb al een account" (opent het bewaar-modal in login-modus).

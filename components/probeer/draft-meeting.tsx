@@ -4,6 +4,7 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { CircleCheck, Play, Plus, X } from "lucide-react";
 import { Avatar } from "@/components/avatar";
+import { FilePicker, useFileDrop } from "@/components/probeer/entry-blocks";
 import { OwnerPicker } from "@/components/probeer/owner-picker";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,7 +12,7 @@ import { participantsText, scheduleText, weekdayName, whenText } from "@/lib/ass
 import type { GuestAction, GuestMeeting } from "@/lib/assistant/types";
 import { formatShortDate, parseDateInput, toISO } from "@/lib/date";
 import { findDate } from "@/lib/extract";
-import { useGuestStore } from "@/lib/guest-store";
+import { useGuestStore, type GuestAccount } from "@/lib/guest-store";
 import { DURATION_PRESETS, RECURRENCE_OPTIONS, type Recurrence } from "@/lib/meeting";
 import { formatTime, parseTime } from "@/lib/time";
 import { cn, lowerFirst } from "@/lib/utils";
@@ -314,11 +315,16 @@ function ActionsBlock({
   flash,
   adding,
   onAddingDone,
+  onNotesFile,
+  busy,
 }: {
   ready: boolean;
   flash: boolean;
   adding: boolean;
   onAddingDone: () => void;
+  /** Notities slepen op dit blok (of een bestand kiezen) werkt zoals in de assistent. */
+  onNotesFile: (file: File) => void;
+  busy: boolean;
 }) {
   const actions = useGuestStore((s) => s.actions);
   const people = useGuestStore((s) => s.meeting.participants);
@@ -328,17 +334,32 @@ function ActionsBlock({
   useEffect(() => {
     if (adding) addRef.current?.focus();
   }, [adding]);
+  const drop = useFileDrop(onNotesFile, !ready && !busy);
 
   if (actions.length === 0 && !adding) {
     return (
       <section
         aria-label="Openstaande acties"
-        className="flex flex-col gap-1.5 rounded-xl border-[1.5px] border-dashed border-line p-4"
+        data-dropzone="openstaande-acties"
+        {...drop.handlers}
+        className={cn(
+          "flex flex-col gap-1.5 rounded-xl border-[1.5px] border-dashed p-4",
+          drop.over ? "border-brand bg-brand-selected" : "border-line",
+        )}
       >
         <h2 className="text-[15px] font-extrabold text-ink-2">Openstaande acties</h2>
         <p className="text-sm text-ink-3">
           Wat vorige keer afgesproken werd en nog niet af is. Komt elk overleg vanzelf terug tot het af is.
         </p>
+        {!ready && (
+          <p className="flex flex-wrap items-center text-sm text-ink-3">
+            Sleep notities van je vorig overleg op deze plek, of
+            <FilePicker variant="link" onFile={onNotesFile} disabled={busy} className="min-h-0 pr-0 pl-1 text-sm">
+              kies een bestand
+            </FilePicker>
+            .
+          </p>
+        )}
       </section>
     );
   }
@@ -439,6 +460,11 @@ function TopicsBlock({ meeting, flash }: { meeting: GuestMeeting; flash: boolean
       )}
     >
       <h2 className={cn("text-[15px] font-extrabold", empty && "text-ink-2")}>Lopende zaken</h2>
+      {proposal && meeting.source && (
+        <p className="text-[13px] text-ink-3">
+          Uit de uitnodiging in {meeting.source === "outlook" ? "Outlook" : "Google"}
+        </p>
+      )}
       {!empty && (
         <ol className="flex flex-col">
           {meeting.topics.map((t, i) => (
@@ -505,8 +531,15 @@ export function DraftMeeting({
   onSave,
   onExample,
   onEditDone,
+  account,
+  busy,
+  onNotesFile,
 }: {
   flash: Set<string>;
+  /** Na "Uit mijn agenda": verbonden, het werk wordt automatisch bewaard. */
+  account: GuestAccount | null;
+  busy: boolean;
+  onNotesFile: (file: File) => void;
   /** Telt op bij "Iets aanpassen" of "Vul het zelf in": zet de velden in bewerkmodus. */
   editRequest: number;
   onSave: (intent: "login" | "start") => void;
@@ -542,18 +575,31 @@ export function DraftMeeting({
 
   return (
     <div className="flex flex-col gap-[18px]">
-      <div className="flex flex-wrap items-center gap-x-3.5 gap-y-2 rounded-[10px] bg-trial-bar px-4 py-2.5 text-sm text-ink-2">
-        <span className="flex-[1_1_300px]">
-          Proefomgeving: geen account nodig. Je werk blijft 7 dagen op dit toestel staan; bewaren kan op elk moment.
-        </span>
-        <button
-          type="button"
-          onClick={() => onSave("login")}
-          className="min-h-11 cursor-pointer font-bold text-brand underline-offset-4 hover:text-brand-hover hover:underline"
+      {account ? (
+        <div
+          role="status"
+          className="flex items-center gap-3 rounded-[10px] bg-success-bg px-4 py-2.5 text-sm font-semibold text-success-ink"
         >
-          Ik heb al een account
-        </button>
-      </div>
+          <CircleCheck className="size-5 shrink-0 text-success" aria-hidden />
+          <span>
+            Verbonden met {account.provider === "outlook" ? "Outlook" : "Google"} als {account.email}. Je werk wordt
+            vanaf nu automatisch bewaard.
+          </span>
+        </div>
+      ) : (
+        <div className="flex flex-wrap items-center gap-x-3.5 gap-y-2 rounded-[10px] bg-trial-bar px-4 py-2.5 text-sm text-ink-2">
+          <span className="flex-[1_1_300px]">
+            Proefomgeving: geen account nodig. Je werk blijft 7 dagen op dit toestel staan; bewaren kan op elk moment.
+          </span>
+          <button
+            type="button"
+            onClick={() => onSave("login")}
+            className="min-h-11 cursor-pointer font-bold text-brand underline-offset-4 hover:text-brand-hover hover:underline"
+          >
+            Ik heb al een account
+          </button>
+        </div>
+      )}
 
       {ready && (
         <div
@@ -581,6 +627,11 @@ export function DraftMeeting({
             {!ready && (
               <span className="rounded-md bg-line-soft px-2 py-1 text-xs font-extrabold tracking-[0.4px] text-ink-2 uppercase">
                 Concept
+              </span>
+            )}
+            {!ready && meeting.source && (
+              <span className="rounded-md bg-brand-soft px-2 py-1 text-xs font-extrabold text-brand">
+                uit {meeting.source === "outlook" ? "Outlook" : "Google"}
               </span>
             )}
           </div>
@@ -674,6 +725,8 @@ export function DraftMeeting({
           flash={flash.has("actions")}
           adding={adding}
           onAddingDone={() => setAdding(false)}
+          onNotesFile={onNotesFile}
+          busy={busy}
         />
         <TopicsBlock meeting={meeting} flash={flash.has("topics")} />
         <section

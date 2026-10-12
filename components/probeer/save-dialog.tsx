@@ -6,16 +6,16 @@ import { toast } from "sonner";
 import { GoogleMark, MicrosoftMark } from "@/components/brand";
 import { Callout } from "@/components/callout";
 import { CodeInput } from "@/components/probeer/code-input";
+import { saveGuestToApp, ssoUser } from "@/components/probeer/save-guest";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { mailOwners, weekdayName, whenShort } from "@/lib/assistant/format";
 import { useGuestStore } from "@/lib/guest-store";
-import { bundleToMeeting, guestBundles, guestPeople } from "@/lib/guest-transfer";
 import { companyFromEmail, isEmail, namesFromEmail } from "@/lib/people";
 import { useSsoLogin } from "@/lib/simulate";
-import { useStore, type SaveIntent, type User } from "@/lib/store";
+import type { SaveIntent, User } from "@/lib/store";
 import { track } from "@/lib/track";
 import { joinNl } from "@/lib/utils";
 
@@ -116,24 +116,14 @@ function SaveForm({
   const [busy, setBusy] = useState(false);
   const emailRef = useRef<HTMLInputElement>(null);
 
-  const finish = (user: User) => {
-    const g = useGuestStore.getState();
-    const bundles = guestBundles(g);
-    const ids = useStore.getState().importGuest(user, guestPeople(bundles), bundles.map(bundleToMeeting), intent);
-    track("signup_completed", { methode: user.method, intent });
-    onSaved(ids[0] ?? null, intent);
-  };
+  const finish = (user: User) => onSaved(saveGuestToApp(user, intent), intent);
 
   const sso = async (provider: "microsoft" | "google") => {
     track("signup_method_selected", { methode: provider });
     setError(null);
     const outcome = await start(provider);
     track("sso_result", { provider, resultaat: outcome });
-    if (outcome === "success") {
-      const user = useStore.getState().user;
-      if (user) finish(user);
-      return;
-    }
+    if (outcome === "success") return finish(ssoUser(provider));
     setBlocked(true);
     setError("Inloggen met Microsoft lukt niet bij je bedrijf. Gebruik je werk-e-mail.");
     requestAnimationFrame(() => emailRef.current?.focus());

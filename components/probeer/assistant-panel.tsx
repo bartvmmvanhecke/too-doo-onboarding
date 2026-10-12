@@ -172,7 +172,8 @@ export function AssistantPanel({
   onOpenChange: (open: boolean) => void;
 }) {
   const endRef = useRef<HTMLDivElement>(null);
-  const lastAssistant = messages.findLastIndex((m) => m.from === "assistant");
+  // Een kaart toont altijd de huidige state, dus enkel bij het laatste bericht met die kaart.
+  const lastWithCard = (card: Message["card"]) => messages.findLastIndex((m) => m.card === card);
 
   useEffect(() => {
     endRef.current?.scrollIntoView({ block: "end", behavior: "smooth" });
@@ -226,7 +227,7 @@ export function AssistantPanel({
             <Fragment key={m.id}>
               <Bubble from={m.from}>
                 <RichText text={m.text} />
-                {m.card && renderCard?.(m.card, i === lastAssistant)}
+                {m.card && renderCard?.(m.card, i === lastWithCard(m.card))}
               </Bubble>
             </Fragment>
           ))}

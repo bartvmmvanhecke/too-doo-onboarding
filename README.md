@@ -5,11 +5,12 @@ Functionele specificatie: [`SPEC.md`](SPEC.md) (inclusief §8, de beslissingen t
 [`SPEC-FLOWS.md`](SPEC-FLOWS.md) (flowkeuze en flow 3), en [`SPEC-LAZY.md`](SPEC-LAZY.md) (Variant A · Lazy
 Registration). Mockups: [`design/`](design/) en [`design/variant-a-lazy/`](design/variant-a-lazy/).
 
-Twee onboardingvarianten naast elkaar. Kies ze met de **flowkeuze-knop** rechtsboven op elk scherm:
+Twee onboardingvarianten naast elkaar. De **prototype-knop** rechtsboven op elk scherm heeft een menu met
+"Herstart demo" (wist alle state en opent de website).
 
 - **Variant A · Lazy Registration**: de website `/` → "Probeer Too-doo gratis" → **`/probeer`**. Meteen in de app,
   zonder account; een gesimuleerde assistent zet het eerste overleg klaar. Het account komt pas bij bewaren.
-- **Variant B · Classic Onboarding**: **`/prototype`**, de vier flows en randgevallen (account eerst).
+- **Variant B · Classic Onboarding**: **`/prototype`** (via de URL), de vier flows en randgevallen (account eerst).
 
 Dit is een **prototype met nepdata**: geen echte login, Microsoft Graph, e-mail of backend. Externe stappen worden
 gesimuleerd. De uitkomst kies je in de **demo-balk** (knop "Demo" rechtsonder).
@@ -60,7 +61,7 @@ components/
   app/                   AppShell (zijbalk), Checklist, AddMeetingsDialog, InviteDialog
   b/                     variant B: WeekGrid, ProposalRow, OwnerPicker, MailPreview, StatTile
   probeer/               Variant A: TrialScreen, DraftMeeting, AssistantPanel, SaveDialog, AfterSaveAssistant
-  prototype/             PrototypeNav, de flowkeuze-knop met menu (alleen prototype)
+  prototype/             PrototypeNav, de prototype-knop met menu (alleen prototype)
   demo/                  DemoBar (alleen prototype)
   ui/                    shadcn/ui-basis (button, input, label, dialog, sonner)
 lib/
@@ -73,7 +74,8 @@ lib/
   extract.ts             gesimuleerde extractie van acties uit notities (geen AI)
   variant-b.ts           aanbevolen start, standaardselectie, samenvatting, mailgegevens
   assistant/             Variant A: gesimuleerde assistent (parser, antwoorden), met unit tests
-  guest-store.ts         Variant A: gast-state "toodoo-guest", 7 dagen geldig
+  guest-store.ts         Variant A: gast-state "toodoo-guest", 7 dagen geldig, en de dispatch naar de assistent
+  notes-file.ts          Variant A: notities uit .txt/.md/.eml, .docx (mammoth) en .pdf (pdfjs-dist)
   guest-transfer.ts      Variant A: gast-state → vergaderingen in de app-store bij bewaren
   track.ts               meetpunten (nu naar de console, later PostHog)
 e2e/                     Playwright-tests

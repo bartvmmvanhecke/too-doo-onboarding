@@ -10,6 +10,8 @@ import {
   type AssistantInput,
   type AssistantReply,
   type AssistantState,
+  type CalendarProvider,
+  type CalendarResult,
   type GuestAction,
   type GuestDecision,
   type GuestMeeting,
@@ -108,7 +110,9 @@ function applyParsed(d: Draft, p: ParsedMeeting, opts: { topics: boolean }) {
 /** De eerstvolgende vraag over het overleg, of het voorstel (stap 1) / het klaarzetten (na de acties). */
 function askNext(d: Draft, lead?: string) {
   const m = d.state.meeting;
+  // De open vraag wordt nooit opnieuw gesteld: staat ze al open, dan verandert er niets.
   const ask = (pending: Pending, question: string) => {
+    if (d.state.pending.kind === pending.kind) return;
     setPending(d, pending);
     d.messages.push(say(lead ? `${lead} ${question}` : question));
   };
@@ -120,6 +124,7 @@ function askNext(d: Draft, lead?: string) {
     return ask({ kind: "participants" }, QUESTIONS.participants);
   // Via notities kwamen de acties eerst: dan staat het overleg meteen klaar.
   if (d.state.step === 2) return ready(d);
+  if (d.state.pending.kind === "confirm-meeting") return;
   setPending(d, { kind: "confirm-meeting" });
   d.messages.push(say(QUESTIONS.summary, "summary"));
 }
@@ -144,6 +149,8 @@ const hasOwner = (a: GuestAction) => !!a.ownerId;
 function nextOwnerQuestion(d: Draft, afterAnswer: boolean) {
   const open = d.state.actions.find((a) => a.confirmed && !a.ownerId && !a.ownerLater);
   if (open) {
+    const p = d.state.pending;
+    if (p.kind === "owner" && p.actionId === open.id) return;
     setPending(d, { kind: "owner", actionId: open.id });
     d.messages.push(say(ownerQuestion(open.text)));
     return;
@@ -223,7 +230,7 @@ function answerOwner(d: Draft, actionId: string, text: string, ref: Date) {
     }
   }
   if (!ownerId && !later && !date) {
-    d.messages.push(say("Wie doet het? Kies hieronder of typ een voornaam."));
+    d.messages.push(say("Kies hieronder wie het doet, of typ een voornaam."));
     return;
   }
   d.state = {
@@ -333,14 +340,14 @@ function onText(d: Draft, text: string, ref: Date): void {
     }
     case "name": {
       const name = parseNameReply(text);
-      if (!name) return void d.messages.push(say(QUESTIONS.name));
+      if (!name) return void d.messages.push(say("Typ alleen de naam, bijvoorbeeld Productieoverleg."));
       patchMeeting(d, { name });
       d.flash = ["name"];
       return askNext(d);
     }
     case "day": {
       const weekday = parseWeekday(text);
-      if (!weekday) return void d.messages.push(say("Welke dag? Kies hieronder of typ bijvoorbeeld ‘dinsdag’."));
+      if (!weekday) return void d.messages.push(say("Kies hieronder een dag, of typ bijvoorbeeld ‘dinsdag’."));
       const time = parseTimeIn(text);
       patchMeeting(d, { weekday, ...(time !== null ? { time } : {}) });
       const recurrence = parseRecurrence(text);
@@ -350,21 +357,22 @@ function onText(d: Draft, text: string, ref: Date): void {
     }
     case "time": {
       const time = parseTimeIn(text);
-      if (time === null) return void d.messages.push(say("Hoe laat? Bijvoorbeeld 9u of 14:30."));
+      if (time === null) return void d.messages.push(say("Typ een uur, bijvoorbeeld 9u of 14:30."));
       patchMeeting(d, { time });
       d.flash = ["when"];
       return askNext(d);
     }
     case "recurrence": {
       const recurrence = parseRecurrence(text);
-      if (!recurrence) return void d.messages.push(say("Elke week, om de 2 weken, maandelijks of eenmalig?"));
+      if (!recurrence)
+        return void d.messages.push(say("Kies hieronder hoe vaak: elke week, om de 2 weken, maandelijks of eenmalig."));
       patchMeeting(d, { recurrence });
       d.flash = ["when"];
       return askNext(d);
     }
     case "participants": {
       const names = parseNames(text.replace(/^met\s+/i, ""));
-      if (!names.length) return void d.messages.push(say("Welke voornamen? Bijvoorbeeld: Jan, Sofie en Karim."));
+      if (!names.length) return void d.messages.push(say("Typ voornamen, bijvoorbeeld: Jan, Sofie en Karim."));
       patchMeeting(d, { participants: addPeople(d.state.meeting.participants, names) });
       d.flash = ["participants"];
       return askNext(d);
@@ -376,7 +384,7 @@ function onText(d: Draft, text: string, ref: Date): void {
       }
       applyParsed(d, p, { topics: true });
       setPending(d, { kind: "confirm-meeting" });
-      return void d.messages.push(say("Aangepast. Klopt het zo?", "summary"));
+      return void d.messages.push(say("Aangepast. Hieronder staat de nieuwe versie.", "summary"));
     }
     case "notes":
     case "place-actions":
@@ -419,6 +427,80 @@ function onChip(d: Draft, value: string, ref: Date) {
   }
 }
 
+const PROVIDER_LABEL = { outlook: "Outlook", google: "Google" } as const;
+const CALM = "Geen probleem: vertel het me of gebruik notities.";
+
+/** "Uit mijn agenda": vaste overleggen kiezen (C1b), of een rustige melding; de andere ingangen blijven. */
+function onCalendar(d: Draft, provider: CalendarProvider, result: CalendarResult) {
+  switch (result.kind) {
+    case "series":
+      d.state = { ...d.state, entry: "calendar" };
+      setPending(d, { kind: "pick-meeting", provider, options: result.options });
+      d.messages.push(
+        say(
+          `Ik vond **${plural(result.options.length, "vast overleg", "vaste overleggen")}**. Welk wil je eerst opvolgen?`,
+        ),
+      );
+      return;
+    case "none":
+      d.state = { ...d.state, entry: "calendar" };
+      setPending(d, { kind: "pick-meeting", provider, options: result.options });
+      d.messages.push(
+        say(
+          result.options.length
+            ? "Ik vond geen vaste overleggen in je agenda. Wel deze losse afspraken in de komende 2 weken; kies er een, of vertel het me."
+            : "Ik vond geen vaste overleggen in je agenda. Vertel het me gewoon.",
+        ),
+      );
+      return;
+    case "admin":
+      return void d.messages.push(say(`Je bedrijf moet dit eerst goedkeuren. ${CALM}`));
+    case "cancelled":
+      return void d.messages.push(say(`Het koppelen is geannuleerd. ${CALM}`));
+    case "blocked":
+      return void d.messages.push(say(`Inloggen met Microsoft lukt niet bij je bedrijf. ${CALM}`));
+  }
+}
+
+/** "Dit overleg opvolgen": het hoofdvlak krijgt het overleg uit de agenda als voorstel, daarna de acties. */
+function pickMeeting(d: Draft, id: string) {
+  const p = d.state.pending;
+  if (p.kind !== "pick-meeting") return;
+  const o = p.options.find((x) => x.id === id);
+  if (!o) return;
+  patchMeeting(d, {
+    name: o.name,
+    recurrence: o.recurrence,
+    weekday: o.weekday,
+    time: o.time,
+    duration: o.duration,
+    durationProposed: false,
+    participants: o.participants,
+    topics: o.topics.map((text) => ({ id: uid("t-"), text })),
+    proposed: true,
+    source: p.provider,
+  });
+  d.flash = ["name", "when", "participants", "topics"];
+  d.events.push(["meeting_parsed", { bron: "agenda", velden: ["name", "weekday", "time", "participants"] }]);
+  d.messages.push(say(`Links staat je ${lowerFirst(o.name)} uit ${PROVIDER_LABEL[p.provider]}, als voorstel.`));
+  askNotes(d);
+}
+
+/** Notities uit een bestand: toon welk bestand, daarna de bestaande extractie. */
+function onNotesFile(d: Draft, file: { name: string; text: string; sample: boolean; image: boolean }, ref: Date) {
+  if (d.state.step === 3 || d.state.step === "done") {
+    return void d.messages.push(say("Je overleg staat al klaar. Voeg acties toe met ‘+ Actie’."));
+  }
+  if (d.state.step === 1) d.state = { ...d.state, entry: "notes", step: 2 };
+  const note = !file.sample
+    ? ""
+    : file.image
+      ? " Tekst uit een foto lezen kan het prototype nog niet; ik gebruik de voorbeeldnotities."
+      : " De tekst kon ik er niet uit halen; ik gebruik de voorbeeldnotities.";
+  d.messages.push(say(`Ik las **${file.name}**.${note}`));
+  extract(d, file.text, ref);
+}
+
 /** Een leeg overleg: niets gezegd, duur 60 min als voorstel. */
 export function emptyMeeting(): GuestMeeting {
   return {
@@ -432,12 +514,22 @@ export function emptyMeeting(): GuestMeeting {
     participantsSkipped: false,
     topics: [],
     proposed: true,
+    source: null,
   };
 }
 
 export function respond(state: AssistantState, input: AssistantInput, ref: Date = today()): AssistantReply {
   const d = draft(state);
   switch (input.type) {
+    case "calendar":
+      onCalendar(d, input.provider, input.result);
+      break;
+    case "pick-meeting":
+      pickMeeting(d, input.id);
+      break;
+    case "notes-file":
+      onNotesFile(d, input, ref);
+      break;
     case "entry":
       if (input.entry === "notes") {
         d.state = { ...d.state, entry: "notes" };
@@ -465,8 +557,9 @@ export function respond(state: AssistantState, input: AssistantInput, ref: Date 
       break;
     case "edited": {
       const k = d.state.pending.kind;
-      if (k === "confirm-meeting") d.messages.push(say("Aangepast. Klopt het zo?", "summary"));
-      else if (["entry", "sentence", "name", "day", "time", "recurrence", "participants"].includes(k)) {
+      // Het voorstel staat al open: de kaart toont de aanpassing, er komt geen nieuwe vraag.
+      if (k === "confirm-meeting") break;
+      if (["entry", "sentence", "name", "day", "time", "recurrence", "participants"].includes(k)) {
         if (k === "entry") d.state = { ...d.state, entry: "meeting" };
         askNext(d);
       }

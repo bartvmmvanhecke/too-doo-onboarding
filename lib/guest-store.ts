@@ -7,8 +7,11 @@
  */
 import { create } from "zustand";
 import { createJSONStorage, persist, type StateStorage } from "zustand/middleware";
+import { respond } from "@/lib/assistant/engine";
 import type {
+  AssistantInput,
   AssistantState,
+  CalendarProvider,
   GuestAction,
   GuestDecision,
   GuestMeeting,
@@ -18,6 +21,7 @@ import type {
 } from "@/lib/assistant/types";
 import { emptyMeeting } from "@/lib/assistant/engine";
 import { guestPerson } from "@/lib/assistant/people";
+import { track } from "@/lib/track";
 import { uid } from "@/lib/utils";
 
 export const GUEST_STORAGE_KEY = "toodoo-guest";
@@ -26,20 +30,47 @@ export const GUEST_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 export const WELCOME_MESSAGES: Omit<Message, "id">[] = [
   {
     from: "assistant",
-    text: "Welkom. In twee minuten staat je eerste overleg klaar, met de acties die nog openstaan. Je hoeft niets aan te maken of te koppelen.",
+    text: "Welkom. In twee minuten staat je eerste overleg klaar, met de acties die nog openstaan. Geen account nodig.",
   },
-  { from: "assistant", text: "**Hoe wil je starten?**" },
+  { from: "assistant", text: "**Waarmee wil je starten?**" },
 ];
+
+/** Typ-indicator voor elk antwoord (600–900 ms). */
+export const TYPING_DELAY = 750;
+
+/** Na "Uit mijn agenda": koppelen = inloggen (SPEC-LAZY.md §4). */
+export interface GuestAccount {
+  provider: CalendarProvider;
+  firstName: string;
+  lastName: string;
+  email: string;
+}
 
 interface GuestData extends AssistantState {
   guestId: string;
   createdAt: number;
   conversation: Message[];
+  account: GuestAccount | null;
+}
+
+/** Enkel in het geheugen, nooit bewaard: een antwoord dat onderweg is en wat het hoofdvlak markeert. */
+interface GuestUi {
+  typing: boolean;
+  /** Velden die net ingevuld werden (2 s blauwe markering); `flashAt` maakt elke markering uniek. */
+  flash: string[];
+  flashAt: number;
+  /** Telt op bij "Iets aanpassen": de velden gaan in bewerkmodus. */
+  editRequest: number;
 }
 
 interface GuestActions {
-  /** Neemt het antwoord van de assistent over. */
-  applyReply: (state: AssistantState, messages: Omit<Message, "id">[]) => void;
+  /**
+   * Stuurt iets naar de assistent: één antwoord, na de typ-indicator. Zolang er een antwoord onderweg is,
+   * wordt een tweede invoer genegeerd. De timer leeft buiten React, zodat een component die verborgen
+   * (Activity) of dubbel gemonteerd (Strict Mode) wordt het antwoord niet kan verliezen of verdubbelen.
+   */
+  dispatch: (input: AssistantInput, userText?: string) => boolean;
+  setAccount: (account: GuestAccount | null) => void;
   addMessages: (messages: Omit<Message, "id">[]) => void;
   updateMeeting: (patch: Partial<GuestMeeting>) => void;
   addParticipant: (name: string) => GuestPerson;
@@ -54,7 +85,7 @@ interface GuestActions {
   reset: () => void;
 }
 
-export type GuestStore = GuestData & GuestActions;
+export type GuestStore = GuestData & GuestUi & GuestActions;
 
 const withIds = (messages: Omit<Message, "id">[]): Message[] => messages.map((m) => ({ ...m, id: uid("m-") }));
 
@@ -70,6 +101,24 @@ export function initialGuest(): GuestData {
     decisions: [],
     others: [],
     conversation: withIds(WELCOME_MESSAGES),
+    account: null,
+  };
+}
+
+const initialUi = (): GuestUi => ({ typing: false, flash: [], flashAt: 0, editRequest: 0 });
+
+/** Het antwoord dat onderweg is (één tegelijk). */
+let replyTimer: ReturnType<typeof setTimeout> | null = null;
+
+function assistantState(s: AssistantState): AssistantState {
+  return {
+    step: s.step,
+    entry: s.entry,
+    pending: s.pending,
+    meeting: s.meeting,
+    actions: s.actions,
+    decisions: s.decisions,
+    others: s.others,
   };
 }
 
@@ -86,9 +135,31 @@ export const useGuestStore = create<GuestStore>()(
       const meeting = (patch: Partial<GuestMeeting>) => set((s) => ({ meeting: { ...s.meeting, ...patch } }));
       return {
         ...initialGuest(),
+        ...initialUi(),
 
-        applyReply: (state, messages) =>
-          set((s) => ({ ...state, conversation: [...s.conversation, ...withIds(messages)] })),
+        dispatch: (input, userText) => {
+          if (get().typing) return false;
+          if (userText)
+            set((s) => ({ conversation: [...s.conversation, ...withIds([{ from: "user", text: userText }])] }));
+          if (input.type === "text")
+            track("assistant_message_sent", { stap: String(get().step), lengte: input.text.length });
+          set({ typing: true });
+          replyTimer = setTimeout(() => {
+            replyTimer = null;
+            const s = get();
+            const reply = respond(assistantState(s), input);
+            set({
+              ...reply.state,
+              conversation: [...s.conversation, ...withIds(reply.messages)],
+              typing: false,
+              ...(reply.flash.length ? { flash: reply.flash, flashAt: Date.now() } : {}),
+              editRequest: reply.edit ? s.editRequest + 1 : s.editRequest,
+            });
+            for (const [event, props] of reply.events) track(event, props);
+          }, TYPING_DELAY);
+          return true;
+        },
+        setAccount: (account) => set({ account }),
         addMessages: (messages) => set((s) => ({ conversation: [...s.conversation, ...withIds(messages)] })),
         updateMeeting: meeting,
         addParticipant: (name) => {
@@ -121,12 +192,24 @@ export const useGuestStore = create<GuestStore>()(
         removeAction: (id) => set((s) => ({ actions: s.actions.filter((a) => a.id !== id) })),
         updateDecision: (id, patch) =>
           set((s) => ({ decisions: s.decisions.map((d) => (d.id === id ? { ...d, ...patch } : d)) })),
-        reset: () => set(initialGuest()),
+        reset: () => {
+          if (replyTimer) clearTimeout(replyTimer);
+          replyTimer = null;
+          set({ ...initialGuest(), ...initialUi() });
+        },
       };
     },
     {
       name: GUEST_STORAGE_KEY,
-      version: 1,
+      // Versie 2: nieuwe ingangen (agenda, bestand). Oudere state begint opnieuw.
+      version: 2,
+      migrate: () => initialGuest(),
+      // Wat enkel in het geheugen hoort (antwoord onderweg, markering), wordt nooit bewaard.
+      partialize: (s) => {
+        const { typing, flash, flashAt, editRequest, ...rest } = s;
+        void [typing, flash, flashAt, editRequest];
+        return rest;
+      },
       storage: createJSONStorage(() => (typeof window === "undefined" ? noopStorage : window.localStorage)),
       // Ouder dan 7 dagen (of onleesbaar): leeg starten.
       merge: (persisted, current) => {

@@ -75,6 +75,11 @@ const CASES: { name: string; path: string; setup?: (page: import("@playwright/te
       await page.getByRole("button", { name: "Start vergadering" }).click();
       await page.getByRole("button", { name: "Volgend punt" }).click();
       await page.locator("[aria-current=step]").waitFor();
+      // De header hergebruikt knoppen; meet na de kleurtransitie naar de lopende vergadering.
+      await expect(page.getByRole("button", { name: "Beëindigen", exact: true })).toHaveCSS(
+        "color",
+        "rgb(255, 255, 255)",
+      );
     },
   },
   { name: "prototype", path: "/prototype" },

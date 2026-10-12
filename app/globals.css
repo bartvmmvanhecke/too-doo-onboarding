@@ -38,9 +38,11 @@
   --danger: #a3271d;
   --danger-bg: #fce6e3;
 
-  /* Variant A: voorstel van de assistent (blauwe rand), proefomgevingsbalk. */
+  /* Variant A: voorstel van de assistent (blauwe rand), statusbanner van de proefomgeving. */
   --proposal-line: #8db6f0;
-  --trial-bar: #e9eef6;
+  --trial-bg: #f6f3fe;
+  --trial-line: #c5b4f3;
+  --trial-accent: #8b5cf6;
 
   --nav-from: #123a80;
   --nav-to: #0c2a5e;
@@ -186,7 +188,9 @@
   --color-tour: var(--tour);
   --color-tour-accent: var(--tour-accent);
   --color-proposal-line: var(--proposal-line);
-  --color-trial-bar: var(--trial-bar);
+  --color-trial-bg: var(--trial-bg);
+  --color-trial-line: var(--trial-line);
+  --color-trial-accent: var(--trial-accent);
   --color-nav-from: var(--nav-from);
   --color-nav-to: var(--nav-to);
   --color-nav-ink: var(--nav-ink);

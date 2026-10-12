@@ -86,7 +86,7 @@ test.describe("Variant A · Lazy Registration", () => {
     await page.getByRole("main").getByRole("link", { name: "Probeer Too-doo gratis" }).click();
     await expect(page).toHaveURL(/\/probeer$/);
     await expect(page.getByRole("heading", { level: 1, name: "Je eerste overleg" })).toBeVisible();
-    await expect(page.getByText("Proefomgeving: geen account nodig.", { exact: false })).toBeVisible();
+    await expect(page.getByRole("region", { name: "Proefomgeving" })).toBeVisible();
     await expect(page.getByRole("button", { name: "Prototype-menu" })).toBeVisible();
     expect(await overlapsWithNav(page)).toEqual([]);
 
@@ -396,7 +396,7 @@ test.describe("Variant A · Lazy Registration", () => {
       page,
       "Je bedrijf moet dit eerst goedkeuren. Geen probleem: vertel het me of gebruik notities.",
     );
-    await expect(page.getByText("Proefomgeving: geen account nodig.", { exact: false })).toBeVisible();
+    await expect(page.getByRole("region", { name: "Proefomgeving" })).toBeVisible();
     await expect(assistant(page).getByRole("region", { name: "Notities van een vorig overleg" })).toBeVisible();
     await assistant(page)
       .getByRole("button", { name: /Vertel het me/ })

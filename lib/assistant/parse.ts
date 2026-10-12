@@ -253,9 +253,13 @@ const COMMAND_MAX = 80;
  * "koppel mijn agenda", "haal uit outlook", "ik heb notities", "notities uploaden": de assistent voert die
  * actie meteen uit, zoals het "+"-menu (SPEC-LAZY.md §4, Ingangen blijven bereikbaar).
  */
-export function parseIntent(text: string): "calendar" | "notes" | null {
+export function parseIntent(text: string): "calendar" | "notes" | "close" | "example" | null {
   const t = text.trim().toLowerCase();
   if (t.length > COMMAND_MAX) return null;
+  // De assistent sluiten of een voorbeeld tonen (SPEC-LAZY.md §4, Stap 0, C1f).
+  if (/^(ik doe het (wel )?zelf|ik doe (het )?verder zelf|sluit( maar| de assistent)?|laat maar)\b/.test(t))
+    return "close";
+  if (/\b(toon|laat)\b.*\bvoorbeeld\b|^voorbeeld( tonen)?$/.test(t)) return "example";
   if (
     /\bkoppel\w*\b.*\b(agenda|outlook|google)\b|\b(agenda|outlook|google)\b.*\bkoppelen\b/.test(t) ||
     /\b(haal|halen)\b.*\buit\s+(mijn\s+|de\s+|je\s+)?(agenda|outlook|google)\b/.test(t)

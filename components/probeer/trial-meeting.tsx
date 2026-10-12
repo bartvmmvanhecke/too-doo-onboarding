@@ -11,7 +11,14 @@ import { ME } from "@/lib/assistant/types";
 import { formatShortDate, nextWeekday } from "@/lib/date";
 import { useGuestStore } from "@/lib/guest-store";
 import { USER_PERSON_ID } from "@/lib/mock-data";
-import { DEFAULT_BLOCK, isTopicBlock, trialMeeting, trialPeople, TRIAL_MEETING_ID } from "@/lib/trial-meeting";
+import {
+  DEFAULT_BLOCK,
+  hasAgendaItem,
+  isTopicBlock,
+  trialMeeting,
+  trialPeople,
+  TRIAL_MEETING_ID,
+} from "@/lib/trial-meeting";
 import { lowerFirst } from "@/lib/utils";
 
 const noop = () => {};
@@ -34,21 +41,24 @@ function trialOps(onStart: () => void): MeetingOps {
       if (isTopicBlock(blockId)) g().removeTopic(blockId);
     },
     moveBlock: (_, blockId, toIndex) => {
-      // Index 0 is "Openstaande acties"; de agendapunten volgen.
+      // "Openstaande acties" blijft bovenaan (index 0) en "Varia" onderaan; de thema's ertussen zijn versleepbaar.
       if (isTopicBlock(blockId)) g().moveTopic(blockId, toIndex - 1);
     },
     addBlock: () => "",
-    addAgendaItem: (_, __, text) => {
-      g().addTopic(text);
+    addAgendaItem: (_, blockId, text) => {
+      g().addItem(blockId, text);
       return "";
     },
     updateItem: (_, itemId, patch) => {
-      if (patch.text && decision(itemId)) g().updateDecision(itemId, { text: patch.text });
+      if (!patch.text) return;
+      if (decision(itemId)) g().updateDecision(itemId, { text: patch.text });
+      else g().updateItem(itemId, patch.text);
     },
     removeItem: (_, itemId) => {
       if (decision(itemId)) g().updateDecision(itemId, { confirmed: false });
+      else g().removeItem(itemId);
     },
-    moveItem: noop,
+    moveItem: (_, itemId, toBlockId, toIndex) => g().moveItem(itemId, toBlockId, toIndex),
     toggleAction: (_, actionId) => {
       const a = g().actions.find((x) => x.id === actionId);
       if (!a) return;
@@ -126,7 +136,8 @@ export function TrialMeeting({
     flash,
     proposedBlockIds: new Set(meeting.proposed ? meeting.topics.map((t) => t.id) : []),
     confirming,
-    canStart: ready,
+    // "Start overleg" pas als er minstens één agendapunt is (SPEC-LAZY.md §3).
+    canStart: hasAgendaItem(bundle),
     scheduleText: when
       ? [when, next && meeting.recurrence !== "once" ? `volgende ${next}` : next].filter(Boolean).join(" · ")
       : null,
@@ -154,7 +165,7 @@ export function TrialMeeting({
       </div>
     ),
     onFileDrop: busy || ready ? null : onNotesFile,
-    onAddAgendaItem: (text) => useGuestStore.getState().addTopic(text),
+    onAddTheme: (text) => useGuestStore.getState().addTopic(text),
     onFromCalendar: busy ? null : onFromCalendar,
     titleLayoutId,
     done,

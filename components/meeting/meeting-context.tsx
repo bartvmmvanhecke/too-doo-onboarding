@@ -36,8 +36,8 @@ export interface TrialView {
   emptyActions: ReactNode;
   /** Een bestand slepen op het blok "Openstaande acties". */
   onFileDrop: ((file: File) => void) | null;
-  /** De ene inline regel "+ Agendapunt". */
-  onAddAgendaItem: (text: string) => void;
+  /** Onderaan de agenda: "+ Thema" maakt een nieuw thema (blok). */
+  onAddTheme: (text: string) => void;
   /** "Uit agenda halen" / "Deelnemers uit agenda" in de datumregel, zolang dat veld leeg is (C1). */
   onFromCalendar: ((field: "when" | "participants") => void) | null;
   /** Overgang van welkom naar app (Stap 0): de titel is een gedeeld element met de agendakaart. */

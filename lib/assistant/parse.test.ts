@@ -88,7 +88,7 @@ describe("parseMeetingSentence", () => {
 
 /** Wat ontbreekt, wordt gevraagd; niets wordt verzonnen. */
 describe("respond", () => {
-  it("vult in wat er gezegd werd en stelt het voorstel voor", () => {
+  it("vult in wat er gezegd werd en zegt hoeveel thema's klaarstaan (C1)", () => {
     const r = respond(
       start(),
       {
@@ -101,29 +101,27 @@ describe("respond", () => {
     expect(r.state.meeting.duration).toBe(60);
     expect(r.state.meeting.durationProposed).toBe(true);
     expect(r.state.meeting.participants.map((p) => p.name)).toEqual(["Jan", "Sofie", "Pieter", "Karim"]);
-    expect(r.messages.at(-1)?.card).toBe("summary");
+    expect(r.messages.map((m) => m.text)).toEqual([
+      "Je productieoverleg staat klaar. Ik zette drie thema's klaar. **Klopt dit ongeveer?** Vul er gerust agendapunten onder aan.",
+    ]);
   });
 
-  it("teamoverleg vraagt naar dag en uur", () => {
+  it("teamoverleg: wanneer en wie worden niet gevraagd; zonder onderwerpen één verduidelijkende vraag", () => {
     let r = respond(start(), { type: "text", text: "teamoverleg met Els en Bram" }, REF);
-    expect(r.state.pending).toEqual({ kind: "day" });
-    expect(r.messages.at(-1)?.text).toContain("Wanneer gaat het door?");
-    r = respond(r.state, { type: "chip", value: "2" }, REF);
-    expect(r.state.pending).toEqual({ kind: "time" });
-    expect(r.state.meeting.weekday).toBe(2);
-    expect(r.state.meeting.time).toBeNull();
+    expect(r.state.pending).toEqual({ kind: "topics" });
+    expect(r.messages.map((m) => m.text)).toEqual([
+      "Je teamoverleg staat klaar als concept. **Waar willen jullie in die meeting vooral vooruitgang op boeken?**",
+    ]);
+    r = respond(r.state, { type: "text", text: "planning, veiligheid en klanten" }, REF);
+    expect(r.state.meeting.topics).toHaveLength(3);
+    expect(r.state.pending.kind).toBe("notes");
+    expect(r.state.meeting.weekday).toBeNull();
   });
 
-  it("veiligheidsoverleg vraagt naar dag, uur en deelnemers", () => {
-    let r = respond(start(), { type: "text", text: "Veiligheidsoverleg maandelijks" }, REF);
-    expect(r.state.pending.kind).toBe("day");
-    r = respond(r.state, { type: "text", text: "donderdag" }, REF);
-    expect(r.state.pending.kind).toBe("time");
-    r = respond(r.state, { type: "text", text: "10u" }, REF);
-    expect(r.state.pending.kind).toBe("participants");
-    expect(r.state.meeting.participants).toEqual([]);
-    r = respond(r.state, { type: "chip", value: "later" }, REF);
-    expect(r.state.pending.kind).toBe("confirm-meeting");
+  it("zonder naam: een generieke naam, nooit een vraag naar de naam", () => {
+    const r = respond(start(), { type: "text", text: "een meeting met mijn team" }, REF);
+    expect(r.state.meeting.name).toBe("Teamoverleg");
+    expect(r.messages.some((m) => m.text.includes("Hoe heet"))).toBe(false);
   });
 
   it("notities: acties op de agenda, ontbrekende eigenaar wordt een vraag", () => {

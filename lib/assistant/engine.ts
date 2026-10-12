@@ -29,6 +29,7 @@ import {
   parseMeetingUpdate,
   parseNameReply,
   parseIntent,
+  parseTopics,
   parseNames,
   parseRecurrence,
   parseTimeIn,
@@ -52,6 +53,10 @@ export const QUESTIONS = {
   sentence: "Waarover gaat je volgende overleg? Eén zin is genoeg. Wie en wanneer mag erbij, hoeft niet.",
   whenWho: "**Wanneer gaat het door en wie zit erbij?**",
   empty: "Zeg het als ik iets kan invullen.",
+  /** Bericht 2 op het vertelpad (Stap 1, C1): vervangt daar de eenmalige herinnering. */
+  notesTell: "**Heb je open punten of notities van de vorige keer?** Dan maak ik er acties van.",
+  close: "Oké, je werkt zelf verder. Je vindt me rechtsonder.",
+  example: "Ik toon je een voorbeeldagenda. Je eigen overleg blijft bewaard.",
   name: "Hoe heet dit overleg? Bijvoorbeeld Productieoverleg.",
   day: "Wanneer gaat het door?",
   time: "Hoe laat begint het?",
@@ -81,6 +86,7 @@ interface Draft {
   flash: string[];
   events: AssistantEvent[];
   edit?: boolean;
+  ui?: "close" | "example";
 }
 
 const draft = (state: AssistantState): Draft => ({ state, messages: [], flash: [], events: [] });
@@ -138,6 +144,8 @@ function askNext(d: Draft, lead?: string) {
   const m = d.state.meeting;
   const question = (pending: Pending, text: string) => void ask(d, pending, lead ? `${lead} ${text}` : text);
   if (!m.name) return question({ kind: "name" }, QUESTIONS.name);
+  // Vertelpad (Stap 1): wanneer en wie worden in de onboarding niet gevraagd; de datumregel heeft de links.
+  if (isTellPath(d.state)) return d.state.step === 2 ? ready(d) : tellReady(d);
   if (!m.weekday) return question({ kind: "day" }, QUESTIONS.day);
   if (m.time === null) return question({ kind: "time" }, QUESTIONS.time);
   if (!m.recurrence) return question({ kind: "recurrence" }, QUESTIONS.recurrence);
@@ -152,8 +160,42 @@ function askNext(d: Draft, lead?: string) {
  * Stap 2 · openstaande acties. De herinnering "Heb je notities van de vorige keer?" (C3) komt één keer,
  * zodra naam, wanneer en deelnemers ingevuld zijn en er nog geen acties zijn; daarna nooit meer.
  */
+/** Vertelpad (of een lege vergadering): de gebruiker beschreef het overleg zelf. */
+function isTellPath(s: AssistantState): boolean {
+  return s.entry === "meeting" || s.entry === "empty";
+}
+
+const COUNT = ["nul", "één", "twee", "drie", "vier", "vijf", "zes", "zeven", "acht", "negen", "tien"];
+
+/**
+ * Bericht 1 na het vertelpad (Stap 1, C1): "Je productieoverleg staat klaar. Ik zette drie thema's klaar.
+ * Klopt dit ongeveer?" Zonder herkende onderwerpen de ene verduidelijkende vraag.
+ */
+function tellReady(d: Draft) {
+  const m = d.state.meeting;
+  const name = lowerFirst(m.name ?? "overleg");
+  const n = m.topics.length;
+  if (n === 0)
+    return void ask(
+      d,
+      { kind: "topics" },
+      `Je ${name} staat klaar als concept. **Waar willen jullie in die meeting vooral vooruitgang op boeken?**`,
+    );
+  const themes = `${COUNT[n] ?? n} ${n === 1 ? "thema" : "thema's"}`;
+  ask(
+    d,
+    { kind: "confirm-meeting" },
+    `Je ${name} staat klaar. Ik zette ${themes} klaar. **Klopt dit ongeveer?** Vul er gerust agendapunten onder aan.`,
+  );
+}
+
 function askNotes(d: Draft) {
   const m = d.state.meeting;
+  // Vertelpad: bericht 2 vervangt de eenmalige herinnering.
+  if (isTellPath(d.state) && !d.state.actions.length) {
+    d.state = { ...d.state, step: 2, notesReminderShown: true };
+    return void ask(d, { kind: "notes" }, QUESTIONS.notesTell);
+  }
   const remind =
     !d.state.notesReminderShown && !!m.name && !!m.weekday && m.participants.length > 0 && !d.state.actions.length;
   d.state = { ...d.state, step: 2, notesReminderShown: d.state.notesReminderShown || remind };
@@ -368,6 +410,11 @@ function onText(d: Draft, text: string, ref: Date, plain = false): void {
   }
   if (!plain) {
     const intent = parseIntent(text);
+    if (intent === "close" || intent === "example") {
+      d.messages.push(say(intent === "close" ? QUESTIONS.close : QUESTIONS.example));
+      d.ui = intent;
+      return;
+    }
     if (intent) return onEntry(d, intent);
     const asksNotes = pending.kind === "notes" || pending.kind === "place-actions";
     if (!asksNotes && looksLikeNotes(text))
@@ -381,16 +428,23 @@ function onText(d: Draft, text: string, ref: Date, plain = false): void {
       const p = parseMeetingSentence(text);
       applyParsed(d, p, { topics: true });
       d.events.push(["meeting_parsed", { velden: foundFields(p) }]);
-      const m = d.state.meeting;
-      // C1: titel en agenda staan er; wanneer en wie in één vraag. Ontbreekt maar één van beide, dan enkel dat.
-      if (m.name && !m.weekday && m.time === null && !m.recurrence && m.participants.length === 0)
-        return void ask(
-          d,
-          { kind: "when-who" },
-          `Je ${lowerFirst(m.name)} staat klaar, met een voorstel van agenda. ${QUESTIONS.whenWho}`,
-        );
-      const complete = m.name && m.weekday && m.time !== null && m.recurrence && m.participants.length > 0;
-      return askNext(d, complete ? undefined : "Begrepen. Links staat al een voorstel van agenda.");
+      // De naam wordt nooit gevraagd: uit de zin, of anders een generieke naam (aanpasbaar in de titel).
+      // "een meeting met mijn team": "Meeting" is geen naam.
+      if (/^(een |de )?(meeting|overleg|vergadering)$/i.test(d.state.meeting.name ?? ""))
+        patchMeeting(d, { name: null });
+      if (!d.state.meeting.name) {
+        patchMeeting(d, { name: /\bteam/i.test(text) ? "Teamoverleg" : "Overleg" });
+        d.flash = [...new Set([...d.flash, "name"])];
+      }
+      return tellReady(d);
+    }
+    case "topics": {
+      const topics = parseTopics(text);
+      if (!topics.length)
+        return void d.messages.push(say("Noem gewoon een paar onderwerpen, gescheiden door komma's."));
+      patchMeeting(d, { topics: [...d.state.meeting.topics, ...topics.map((t) => ({ id: uid("t-"), text: t }))] });
+      d.flash = ["topics"];
+      return askNotes(d);
     }
     case "when-who": {
       const p = parseMeetingUpdate(text);
@@ -441,6 +495,11 @@ function onText(d: Draft, text: string, ref: Date, plain = false): void {
     case "confirm-meeting": {
       const p = parseMeetingUpdate(text);
       if (foundFields(p).length === 0) {
+        // Vertelpad: een vrij antwoord telt als bevestiging.
+        if (isTellPath(d.state)) {
+          patchMeeting(d, { proposed: false });
+          return askNotes(d);
+        }
         return void d.messages.push(say("Dat begreep ik niet helemaal. Pas het links aan, of klik op Klopt."));
       }
       applyParsed(d, p, { topics: true });
@@ -706,7 +765,16 @@ export function respond(state: AssistantState, input: AssistantInput, ref: Date 
       break;
     case "adjust":
       d.edit = true;
+      // Vertelpad: de agenda gaat in bewerkmodus en de assistent gaat toch door naar bericht 2.
+      if (isTellPath(d.state)) {
+        patchMeeting(d, { proposed: false });
+        askNotes(d);
+        break;
+      }
       d.messages.push(say("Klik links op wat niet klopt en pas het aan. Daarna kan je op Klopt klikken."));
+      break;
+    case "skip-topics":
+      if (d.state.pending.kind === "topics") askNotes(d);
       break;
     case "edited": {
       const k = d.state.pending.kind;

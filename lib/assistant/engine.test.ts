@@ -59,10 +59,12 @@ describe("elke vraag één keer", () => {
     const { said } = play([
       { type: "entry", entry: "meeting" },
       { type: "text", text: "teamoverleg met Els" },
-      { type: "text", text: "geen idee" },
-      { type: "text", text: "nog steeds geen idee" },
+      { type: "text", text: "???" },
+      { type: "text", text: "!!!" },
     ]);
-    expect(said.filter((t) => t.includes("Wanneer gaat het door?"))).toHaveLength(1);
+    expect(
+      said.filter((t) => t.includes("Waar willen jullie in die meeting vooral vooruitgang op boeken?")),
+    ).toHaveLength(1);
     expectNoRepeatedQuestion(said);
   });
 
@@ -194,7 +196,7 @@ describe("startkeuzes (C1): de details komen pas na de keuze", () => {
 });
 
 describe("ingangen blijven bereikbaar", () => {
-  const SENTENCE = "productieoverleg elke maandag om 8u met Jan en Sofie";
+  const SENTENCE = "productieoverleg elke maandag om 8u met Jan en Sofie: orders en planning";
 
   it("zinnen als 'koppel mijn agenda' en 'ik heb notities' voeren de actie meteen uit", () => {
     let r = respond(start(), { type: "text", text: "Koppel mijn agenda" }, REF);
@@ -239,7 +241,7 @@ describe("ingangen blijven bereikbaar", () => {
       { type: "entry", entry: "meeting" },
       { type: "text", text: "teamoverleg" },
     ]);
-    expect(state.pending.kind).toBe("when-who");
+    expect(state.pending.kind).toBe("topics");
     let r = respond(state, { type: "calendar-field", fields: ["when"] }, REF);
     expect(r.messages[0].text).toBe("Outlook of Google?");
     r = respond(
@@ -251,23 +253,29 @@ describe("ingangen blijven bereikbaar", () => {
     state = r.state;
     expect(state.meeting).toMatchObject({ name: "Teamoverleg", weekday: 1, time: 480, recurrence: "weekly" });
     expect(state.meeting.participants).toHaveLength(0);
-    expect(state.pending.kind).toBe("participants");
+    // Vertelpad: de assistent gaat verder met zijn open vraag, niet met wanneer of wie.
+    expect(state.pending.kind).toBe("topics");
     expect(r.flash).toEqual(["when"]);
   });
 
-  it("de herinnering over notities komt één keer, ook bij een tweede overleg niet opnieuw", () => {
-    const { said } = play([
-      { type: "text", text: SENTENCE },
-      { type: "confirm-meeting" },
-      { type: "no-actions" },
-      { type: "another-meeting" },
-      { type: "text", text: "teamoverleg elke dinsdag om 9u met Els" },
-      { type: "confirm-meeting" },
-    ]);
+  it("de herinnering over notities komt één keer (agendapad); het vertelpad vraagt het zelf", () => {
+    const pick = (): AssistantInput[] => [
+      { type: "entry", entry: "calendar" },
+      { type: "calendar", provider: "outlook", result: { kind: "series", options: seriesOptions() } },
+      { type: "pick-meeting", id: "productie" },
+    ];
     const reminder =
       "**Heb je notities van de vorige keer?** Plak ze hier, dan staan de openstaande acties meteen klaar.";
-    expect(said.filter((t) => t === reminder)).toHaveLength(1);
-    expect(said.at(-1)).toContain("Staat er nog iets open van de vorige keer?");
+    const first = play(pick());
+    expect(first.said.filter((t) => t === reminder)).toHaveLength(1);
+    expect(first.state.notesReminderShown).toBe(true);
+    // Nog eens via de agenda: geen herinnering meer, wel de gewone vraag.
+    const again = play(pick(), { ...start(), notesReminderShown: true });
+    expect(again.said.filter((t) => t === reminder)).toHaveLength(0);
+    expect(again.said.at(-1)).toContain("Staat er nog iets open van de vorige keer?");
+    // Vertelpad: bericht 2 in plaats van de herinnering.
+    const tell = play([{ type: "text", text: SENTENCE }, { type: "confirm-meeting" }]);
+    expect(tell.said.at(-1)).toBe("**Heb je open punten of notities van de vorige keer?** Dan maak ik er acties van.");
   });
 
   it("geen dubbele vragen over alle ingangen heen", () => {
@@ -286,15 +294,24 @@ describe("ingangen blijven bereikbaar", () => {
 });
 
 describe("welkom (Stap 0) en eerste vraag (C1)", () => {
-  it("na de zin: wanneer en wie in één vraag; daarna enkel wat ontbreekt", () => {
+  it("na de zin: hoeveel thema's klaarstaan, Klopt → bericht 2; wanneer en wie niet gevraagd", () => {
     let r = respond(start(), { type: "text", text: "Ons productieoverleg: orders, problemen en planning" }, REF);
     expect(r.messages.map((m) => m.text)).toEqual([
-      "Je productieoverleg staat klaar, met een voorstel van agenda. **Wanneer gaat het door en wie zit erbij?**",
+      "Je productieoverleg staat klaar. Ik zette drie thema's klaar. **Klopt dit ongeveer?** Vul er gerust agendapunten onder aan.",
     ]);
-    expect(r.state.pending.kind).toBe("when-who");
-    r = respond(r.state, { type: "text", text: "elke maandag om 8u" }, REF);
-    expect(r.state.meeting).toMatchObject({ weekday: 1, time: 480, recurrence: "weekly" });
-    expect(r.messages.map((m) => m.text)).toEqual(["Wie zit er meestal bij? Voornamen volstaan."]);
+    r = respond(r.state, { type: "text", text: "ja prima" }, REF);
+    expect(r.state.pending.kind).toBe("notes");
+    r = respond(r.state, { type: "no-actions" }, REF);
+    expect(r.state.step).toBe(3);
+    expect(r.state.meeting.weekday).toBeNull();
+  });
+
+  it("sluiten of een voorbeeld vragen in de chat", () => {
+    let r = respond(start(), { type: "text", text: "ik doe het zelf" }, REF);
+    expect(r.ui).toBe("close");
+    expect(r.messages[0].text).toBe("Oké, je werkt zelf verder. Je vindt me rechtsonder.");
+    r = respond(start(), { type: "text", text: "toon een voorbeeld" }, REF);
+    expect(r.ui).toBe("example");
   });
 
   it("een lege vergadering (C1d): standaardagenda, titel in bewerkmodus, geen herinnering", () => {

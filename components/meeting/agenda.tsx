@@ -7,6 +7,7 @@ import {
   DurationEditor,
   DurationPicker,
   Grip,
+  type GripPickUp,
   icon,
   iconButton,
   InlineText,
@@ -44,6 +45,8 @@ export interface AgendaMoves {
   dropItem: (itemId: string, blockId: string, index: number) => void;
   moveBlockBy: (blockId: string, delta: -1 | 1) => void;
   dropBlock: (blockId: string, index: number) => void;
+  /** Variant A: met het toetsenbord eerst oppakken (spatie), met een aria-live melding. */
+  pickUp?: (kind: "item" | "block", id: string) => GripPickUp | undefined;
 }
 
 function dropBefore(e: DragEvent<HTMLElement>): boolean {
@@ -139,6 +142,7 @@ export function AgendaItemRow({
         label={`Verplaats ${item.text}`}
         onMove={(d) => moves.moveItemBy(item.id, d)}
         onArm={setArmed}
+        pickUp={moves.pickUp?.("item", item.id)}
       />
       {status && <ItemStatus status={status} />}
       <InlineText
@@ -340,6 +344,8 @@ export function BlockCard({
   badge,
   hideMenu,
   onFileDrop,
+  onItemDrop,
+  hideGrip,
 }: {
   block: AgendaBlock;
   index: number;
@@ -364,16 +370,26 @@ export function BlockCard({
   hideMenu?: boolean;
   /** Variant A: een bestand slepen op dit blok. */
   onFileDrop?: (file: File) => void;
+  /** Een agendapunt dat op dit blok (en niet op een rij) neergezet wordt, komt achteraan. */
+  onItemDrop?: (itemId: string) => void;
+  /** Variant A: "Openstaande acties" blijft bovenaan en is niet versleepbaar. */
+  hideGrip?: boolean;
 }) {
   const { meeting } = useMeeting();
   const { updateBlock } = useMeetingOps();
   const [armed, setArmed] = useState(false);
   const [renaming, setRenaming] = useState(false);
   const [dropAt, setDropAt] = useState<"before" | "after" | null>(null);
+  // Een agendapunt wordt over dit blok gesleept: het blok licht op (en een leeg blok toont een drop-zone).
+  const [itemOver, setItemOver] = useState(false);
 
   return (
     <section
       aria-label={block.title}
+      data-item-over={itemOver || undefined}
+      onDragEnter={(e) => {
+        if (onItemDrop && e.dataTransfer.types.includes(ITEM_TYPE)) setItemOver(true);
+      }}
       draggable={armed}
       onDragStart={(e) => {
         e.dataTransfer.setData(BLOCK_TYPE, block.id);
@@ -382,16 +398,26 @@ export function BlockCard({
       onDragEnd={() => setArmed(false)}
       onDragOver={(e) => {
         if (onFileDrop && e.dataTransfer.types.includes("Files")) return e.preventDefault();
+        if (onItemDrop && e.dataTransfer.types.includes(ITEM_TYPE)) return e.preventDefault();
         if (!e.dataTransfer.types.includes(BLOCK_TYPE)) return;
         e.preventDefault();
         setDropAt(dropBefore(e) ? "before" : "after");
       }}
-      onDragLeave={() => setDropAt(null)}
+      onDragLeave={(e) => {
+        setDropAt(null);
+        if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setItemOver(false);
+      }}
       onDrop={(e) => {
+        setItemOver(false);
         const file = onFileDrop && e.dataTransfer.files?.[0];
         if (file) {
           e.preventDefault();
           return onFileDrop(file);
+        }
+        const itemId = onItemDrop && e.dataTransfer.getData(ITEM_TYPE);
+        if (itemId) {
+          e.preventDefault();
+          return onItemDrop(itemId);
         }
         const id = e.dataTransfer.getData(BLOCK_TYPE);
         setDropAt(null);
@@ -401,7 +427,8 @@ export function BlockCard({
       }}
       className={cn(
         card,
-        "flex flex-col px-3 py-1.5 sm:px-4",
+        "group/block flex flex-col px-3 py-1.5 sm:px-4",
+        "data-[item-over]:ring-2 data-[item-over]:ring-proposal-line",
         tinted && "bg-row-hover",
         tone === "dashed" && "border-[1.5px] border-dashed border-line bg-white",
         tone === "proposal" && "border-2 border-proposal-line bg-brand-selected",
@@ -410,12 +437,17 @@ export function BlockCard({
       )}
     >
       <div className="group flex min-h-14 items-center gap-1">
-        <Grip
-          focusKey={block.id}
-          label={`Verplaats blok ${block.title}`}
-          onMove={(d) => moves.moveBlockBy(block.id, d)}
-          onArm={setArmed}
-        />
+        {hideGrip ? (
+          <span aria-hidden className="w-4" />
+        ) : (
+          <Grip
+            focusKey={block.id}
+            label={`Verplaats blok ${block.title}`}
+            onMove={(d) => moves.moveBlockBy(block.id, d)}
+            onArm={setArmed}
+            pickUp={moves.pickUp?.("block", block.id)}
+          />
+        )}
         <div className="flex min-w-0 flex-1 flex-col py-1">
           <div className="flex min-w-0 flex-wrap items-center gap-x-1">
             <h2
@@ -531,6 +563,7 @@ export function TopicsBlock({
         )
       }
       meta={block.subtitle && <p className="px-1 text-[13px] text-ink-3">{block.subtitle}</p>}
+      onItemDrop={(itemId) => moves.dropItem(itemId, block.id, block.items.length)}
     >
       {presenter && <span className="sr-only">Presentator: {presenter.name}</span>}
       {block.items.length > 0 && !trial && (
@@ -550,18 +583,7 @@ export function TopicsBlock({
           ))}
         </div>
       )}
-      <ul
-        className="flex flex-col gap-2"
-        onDragOver={(e) => {
-          if (e.dataTransfer.types.includes(ITEM_TYPE)) e.preventDefault();
-        }}
-        onDrop={(e) => {
-          const id = e.dataTransfer.getData(ITEM_TYPE);
-          if (!id) return;
-          e.preventDefault();
-          moves.dropItem(id, block.id, block.items.length);
-        }}
-      >
+      <ul className="flex flex-col gap-2">
         {block.items.map((item, i) =>
           current && item.id === current.id ? (
             <CurrentItemCard key={item.id} item={item} />
@@ -577,7 +599,16 @@ export function TopicsBlock({
           ),
         )}
       </ul>
-      {trial ? null : showInput ? (
+      {block.items.length === 0 && (
+        // Leeg thema tijdens het slepen van een agendapunt: hier kan het neergezet worden.
+        <div
+          aria-hidden
+          className="mt-1 hidden min-h-12 items-center justify-center rounded-[12px] border-2 border-dashed border-proposal-line bg-brand-selected text-[13px] font-semibold text-brand group-data-[item-over]/block:flex"
+        >
+          Zet het agendapunt hier neer
+        </div>
+      )}
+      {showInput ? (
         <>
           <div className="relative mt-2">
             <input

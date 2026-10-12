@@ -4,12 +4,13 @@
  * teruggeschreven naar de gast-state.
  */
 import { newBlock, newItem, type AgendaBlock } from "@/lib/agenda";
-import { ME, type GuestBundle } from "@/lib/assistant/types";
+import { ME, type GuestBundle, type GuestDecision, type GuestItem, type GuestMeeting } from "@/lib/assistant/types";
 import { formatShortDate, nextWeekday, toISO } from "@/lib/date";
 import { deriveMeetingType } from "@/lib/meeting";
 import { AVATAR_COLORS, USER_PERSON_ID, type Person } from "@/lib/mock-data";
 import { initialsFrom } from "@/lib/people";
 import type { Action, Meeting } from "@/lib/store";
+import { uid } from "@/lib/utils";
 
 export const TRIAL_MEETING_ID = "proefomgeving";
 const ACTIONS_BLOCK = "proef-acties";
@@ -20,24 +21,110 @@ const VARIA_BLOCK = "proef-varia";
 const DECISION_BLOCK = /beslis|knelpunt|probleem|problemen/i;
 
 /**
- * De agenda: "Openstaande acties", elk agendapunt als eigen blok (of "Lopende zaken" als er nog geen zijn),
- * en "Varia". Beslissingen staan als punt in een blok, met het doel "beslissen".
+ * De agenda: "Openstaande acties", de thema's met hun agendapunten (of "Lopende zaken" als er nog geen thema's
+ * zijn) en "Varia". Beslissingen staan als agendapunt met het doel "beslissen", bovenaan in hun thema.
  */
 export function guestBlocks(b: GuestBundle, opts: { stableIds: boolean }): AgendaBlock[] {
-  const decisions = b.decisions.filter((d) => d.confirmed && d.text.trim());
+  const stable = (id: string) => (opts.stableIds ? { id } : {});
+  const items = (list: GuestItem[] | undefined) =>
+    (list ?? []).filter((i) => i.text.trim()).map((i) => newItem(i.text.trim(), stable(i.id)));
   const topics = b.meeting.topics.filter((t) => t.text.trim());
   const blocks: AgendaBlock[] = topics.length
-    ? topics.map((t) => newBlock("topics", { ...(opts.stableIds ? { id: t.id } : {}), title: t.text.trim() }))
-    : [newBlock("topics", { ...(opts.stableIds ? { id: DEFAULT_BLOCK } : {}), title: "Lopende zaken" })];
-  const target = blocks.find((x) => DECISION_BLOCK.test(x.title)) ?? blocks[0];
-  target.items = decisions.map((d) =>
-    newItem(d.text.trim(), { ...(opts.stableIds ? { id: d.id } : {}), purposes: ["decide"] }),
+    ? topics.map((t) => ({ ...newBlock("topics", { ...stable(t.id), title: t.text.trim() }), items: items(t.items) }))
+    : [newBlock("topics", { ...stable(DEFAULT_BLOCK), title: "Lopende zaken" })];
+  const varia = {
+    ...newBlock("topics", { ...stable(VARIA_BLOCK), title: "Varia" }),
+    items: items(b.meeting.variaItems),
+  };
+  const all = [...blocks, varia];
+  const ids = topics.length ? topics.map((t) => t.id) : [DEFAULT_BLOCK];
+  for (const d of [...b.decisions].reverse()) {
+    if (!d.confirmed || !d.text.trim()) continue;
+    const at = decisionBlockIndex(d, ids, blocks);
+    all[at].items = [newItem(d.text.trim(), { ...stable(d.id), purposes: ["decide"] }), ...all[at].items];
+  }
+  return [newBlock("actions", stable(ACTIONS_BLOCK)), ...all];
+}
+
+/** Waar een beslissing staat: het thema waarheen ze versleept werd, anders het thema over beslissingen of het eerste. */
+function decisionBlockIndex(d: GuestDecision, ids: string[], blocks: AgendaBlock[]): number {
+  if (d.topicId === VARIA_BLOCK) return blocks.length;
+  const i = d.topicId ? ids.indexOf(d.topicId) : -1;
+  if (i >= 0) return i;
+  const rule = blocks.findIndex((x) => DECISION_BLOCK.test(x.title));
+  return rule >= 0 ? rule : 0;
+}
+
+/* ---------- Agendapunten onder een thema (SPEC-LAZY.md §3, "Agendapunten aanmaken en verslepen") ---------- */
+
+type Lists = Pick<GuestBundle, "meeting" | "decisions">;
+
+/** "Lopende zaken" is een standaardblok zolang er geen thema's zijn; een agendapunt erin maakt het een thema. */
+function materialize(m: GuestMeeting, blockId: string): { meeting: GuestMeeting; blockId: string } {
+  if (blockId !== DEFAULT_BLOCK || m.topics.length) return { meeting: m, blockId };
+  const id = uid("t-");
+  return { meeting: { ...m, topics: [{ id, text: "Lopende zaken", items: [] }] }, blockId: id };
+}
+
+function withList(m: GuestMeeting, blockId: string, fn: (items: GuestItem[]) => GuestItem[]): GuestMeeting {
+  if (blockId === VARIA_BLOCK) return { ...m, variaItems: fn(m.variaItems ?? []) };
+  return { ...m, topics: m.topics.map((t) => (t.id === blockId ? { ...t, items: fn(t.items ?? []) } : t)) };
+}
+
+export function addGuestItem(m: GuestMeeting, blockId: string, text: string): GuestMeeting {
+  const target = materialize(m, blockId);
+  return withList(target.meeting, target.blockId, (items) => [...items, { id: uid("i-"), text }]);
+}
+
+const allLists = (m: GuestMeeting) => [VARIA_BLOCK, ...m.topics.map((t) => t.id)];
+
+export function updateGuestItem(m: GuestMeeting, itemId: string, text: string): GuestMeeting {
+  return allLists(m).reduce(
+    (acc, id) => withList(acc, id, (items) => items.map((i) => (i.id === itemId ? { ...i, text } : i))),
+    m,
   );
-  return [
-    newBlock("actions", opts.stableIds ? { id: ACTIONS_BLOCK } : {}),
-    ...blocks,
-    newBlock("topics", { ...(opts.stableIds ? { id: VARIA_BLOCK } : {}), title: "Varia" }),
-  ];
+}
+
+export function removeGuestItem(m: GuestMeeting, itemId: string): GuestMeeting {
+  return allLists(m).reduce((acc, id) => withList(acc, id, (items) => items.filter((i) => i.id !== itemId)), m);
+}
+
+/**
+ * Verplaatst een agendapunt (of beslissing) naar `index` in het thema `toBlockId`, binnen hetzelfde thema of
+ * naar een ander. Beslissingen blijven bovenaan in hun thema.
+ */
+export function moveGuestItem(b: Lists, itemId: string, toBlockId: string, index: number): Lists {
+  const target = materialize(b.meeting, toBlockId);
+  const decision = b.decisions.find((d) => d.id === itemId);
+  if (decision) {
+    return {
+      meeting: target.meeting,
+      decisions: b.decisions.map((d) => (d.id === itemId ? { ...d, topicId: target.blockId } : d)),
+    };
+  }
+  const item = allLists(target.meeting)
+    .flatMap((id) =>
+      id === VARIA_BLOCK
+        ? (target.meeting.variaItems ?? [])
+        : (target.meeting.topics.find((t) => t.id === id)?.items ?? []),
+    )
+    .find((i) => i.id === itemId);
+  if (!item) return b;
+  const removed = removeGuestItem(target.meeting, itemId);
+  // De index telt de beslissingen bovenaan het thema mee.
+  const shown = guestBlocks({ meeting: removed, actions: [], decisions: b.decisions }, { stableIds: true });
+  const decisionsAbove =
+    shown.find((x) => x.id === target.blockId)?.items.filter((i) => i.purposes.includes("decide")).length ?? 0;
+  const meeting = withList(removed, target.blockId, (items) => {
+    const at = Math.max(0, Math.min(index - decisionsAbove, items.length));
+    return [...items.slice(0, at), item, ...items.slice(at)];
+  });
+  return { meeting, decisions: b.decisions };
+}
+
+/** Is er minstens één agendapunt (thema's zonder punten en openstaande acties tellen niet)? */
+export function hasAgendaItem(b: GuestBundle): boolean {
+  return guestBlocks(b, { stableIds: true }).some((x) => x.kind === "topics" && x.items.length > 0);
 }
 
 /** Deelnemers als personen; de gebruiker zelf heet "Ikzelf" tot er een account is. */

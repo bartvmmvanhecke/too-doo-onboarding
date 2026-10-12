@@ -42,6 +42,11 @@ async function connectOutlook(page: Page) {
   await assistant(page).getByRole("group", { name: "Agenda kiezen" }).getByRole("button", { name: "Outlook" }).click();
 }
 
+/** Bericht 1 en 2 na het vertelpad (Stap 1, C1). */
+const TELL_READY =
+  "Je productieoverleg staat klaar. Ik zette drie thema's klaar. Klopt dit ongeveer? Vul er gerust agendapunten onder aan.";
+const NOTES_TELL = "Heb je open punten of notities van de vorige keer? Dan maak ik er acties van.";
+
 const REMINDER = "Heb je notities van de vorige keer? Plak ze hier, dan staan de openstaande acties meteen klaar.";
 
 async function say(page: Page, text: string) {
@@ -60,19 +65,18 @@ async function buildMeeting(page: Page) {
   await start(page, "Vertel het me");
   await expectAssistant(page, "Waarover gaat je volgende overleg? Eén zin is genoeg.");
   await say(page, SENTENCE);
-  await expectAssistant(page, /Begrepen\. Links staat een voorstel van agenda/);
+  await expectAssistant(page, TELL_READY);
   // Het detailscherm: titel, datumregel en agendapunten als blokken met "voorstel".
   await expect(page.getByRole("heading", { level: 1, name: "Productieoverleg" })).toBeVisible();
   await expect(page.getByRole("button", { name: /^Wanneer: Elke maandag · 08:00–09:00/ })).toBeVisible();
   await expect(page.getByRole("button", { name: /^Deelnemers: Jan, Sofie, Pieter, Karim/ })).toBeVisible();
   await expect(page.getByRole("region", { name: "Knelpunten en beslissingen" })).toContainText("voorstel");
+  // Nog geen agendapunt: "Start overleg" is uitgeschakeld.
   await expect(page.getByRole("button", { name: "Start overleg" })).toBeDisabled();
-  await expect(assistant(page).getByText("Jan, Sofie, Pieter, Karim en jij")).toBeVisible();
-  await expect(assistant(page).getByText("1 van 3")).toBeVisible();
+  await expect(assistant(page).getByText("1 van 3")).toHaveCount(0);
 
   await assistant(page).getByRole("button", { name: "Klopt" }).click();
-  await expectAssistant(page, REMINDER);
-  await expect(assistant(page).getByText("2 van 3")).toBeVisible();
+  await expectAssistant(page, NOTES_TELL);
   await say(page, NOTES);
   await expectAssistant(
     page,
@@ -97,7 +101,6 @@ async function buildMeeting(page: Page) {
     page.getByRole("status").filter({ hasText: "Je productieoverleg van maandag staat klaar." }),
   ).toBeVisible();
   await expect(page.getByText("Concept", { exact: true })).toHaveCount(0);
-  await expect(assistant(page).getByText("3 van 3")).toBeVisible();
   await expectAssistant(page, /Zal ik Jan, Sofie en Karim hun actie nu al mailen\?/);
   await expect(assistant(page).getByRole("group", { name: "Voorbeeldmail voor Jan" })).toContainText(
     "Jan heeft geen account nodig.",
@@ -273,16 +276,10 @@ test.describe("Variant A · Lazy Registration", () => {
     const errors = trackErrors(page);
     await page.goto("/probeer");
     await setDemo(page, { login: "Bedrijf blokkeert" });
-    await say(page, "teamoverleg met Els en Bram");
-    await expectAssistant(page, /Wanneer gaat het door\?/);
-    await assistant(page).getByRole("group", { name: "Dag kiezen" }).getByRole("button", { name: "di" }).click();
-    await assistant(page).getByRole("group", { name: "Uur kiezen" }).getByRole("button", { name: "09:00" }).click();
-    await assistant(page)
-      .getByRole("group", { name: "Hoe vaak" })
-      .getByRole("button", { name: "Om de 2 weken" })
-      .click();
-    await expect(assistant(page).getByText("Els, Bram en jij")).toBeVisible();
+    await say(page, "teamoverleg om de 2 weken op dinsdag om 9u met Els en Bram: planning en veiligheid");
+    await expectAssistant(page, /Je teamoverleg staat klaar\. Ik zette twee thema's klaar\./);
     await assistant(page).getByRole("button", { name: "Klopt" }).click();
+    await expectAssistant(page, NOTES_TELL);
     await assistant(page).getByRole("button", { name: "Ik heb niets openstaan" }).click();
     await expect(page.getByRole("status").filter({ hasText: "Je teamoverleg van dinsdag staat klaar." })).toBeVisible();
 
@@ -315,7 +312,7 @@ test.describe("Variant A · Lazy Registration", () => {
   test("herladen en terugkomen behouden de gast-state; ouder dan 7 dagen start leeg", async ({ page, context }) => {
     await page.goto("/probeer");
     await say(page, "Veiligheidsoverleg maandelijks");
-    await expectAssistant(page, /Wanneer gaat het door\?/);
+    await expectAssistant(page, /Waar willen jullie in die meeting vooral vooruitgang op boeken\?/);
     await page.reload();
     await expect(page.getByRole("heading", { level: 1, name: "Veiligheidsoverleg" })).toBeVisible();
     await expect(log(page).getByText(/Welkom terug/)).toHaveCount(0);
@@ -338,31 +335,33 @@ test.describe("Variant A · Lazy Registration", () => {
     await expect(log(old).getByText(/Welkom terug/)).toHaveCount(0);
   });
 
-  test("Iets aanpassen zet de velden in bewerkmodus; zelf aanpassen werkt meteen", async ({ page }) => {
+  test("Iets aanpassen zet de titel in bewerkmodus en gaat door naar de notities; zelf aanpassen werkt meteen", async ({
+    page,
+  }) => {
     await page.goto("/probeer");
-    await say(page, "managementoverleg om de 2 weken op dinsdag 14u30, anderhalf uur");
-    await expectAssistant(page, "Wie zit er meestal bij? Voornamen volstaan.");
-    await assistant(page).getByRole("group", { name: "Deelnemers" }).getByRole("button", { name: "Later" }).click();
+    await say(page, "managementoverleg om de 2 weken op dinsdag 14u30, anderhalf uur: budget en personeel");
+    await expectAssistant(page, /Je managementoverleg staat klaar\. Ik zette twee thema's klaar\./);
     await assistant(page).getByRole("button", { name: "Iets aanpassen" }).click();
-    // De titel staat in bewerkmodus; datumregel en avatars openen hun bewerker.
+    // De titel staat in bewerkmodus; de assistent gaat toch door naar bericht 2.
     const name = page.getByLabel("Naam van het overleg aanpassen");
     await expect(name).toBeFocused();
     await name.fill("MT-overleg");
     await name.press("Enter");
+    await expectAssistant(page, NOTES_TELL);
     await page.getByRole("button", { name: /^Wanneer: / }).click();
     await page.getByLabel("Duur").selectOption("60");
     await page.keyboard.press("Escape");
-    // Geen nieuwe vraag: de samenvatting bij "Klopt dit?" toont de aanpassing.
-    await expect(log(page).getByText("Klopt dit?")).toHaveCount(1);
-    await expect(assistant(page).getByText("Om de 2 weken op dinsdag, 14:30–15:30")).toBeVisible();
+    await expect(page.getByRole("button", { name: /^Wanneer: Om de 2 weken op dinsdag · 14:30–15:30/ })).toBeVisible();
     await expect(page.getByRole("heading", { level: 1, name: "MT-overleg" })).toBeVisible();
+    // Geen extra vraag na het aanpassen.
+    await expect(log(page).getByText(NOTES_TELL)).toHaveCount(1);
   });
 
   test("Eerst een voorbeeld: /voorbeeld met een knop terug naar /probeer", async ({ page }) => {
     await page.goto("/probeer");
     await assistant(page).getByRole("link", { name: "Bekijk eerst een voorbeeld" }).click();
     await expect(page).toHaveURL(/\/voorbeeld\?van=probeer$/);
-    await page.getByRole("link", { name: "Terug naar je proefomgeving" }).first().click();
+    await page.getByRole("link", { name: "Terug naar mijn overleg" }).first().click();
     await expect(page).toHaveURL(/\/probeer$/);
   });
 
@@ -529,14 +528,12 @@ test.describe("Variant A · Lazy Registration", () => {
     await expectAssistant(page, SENTENCE_QUESTION);
 
     // Weg en terug terwijl een antwoord onderweg is (Activity verbergt de pagina): het antwoord komt één keer.
-    await say(page, "elke maandag om 9u met Els");
+    await say(page, "teamoverleg elke maandag om 9u met Els: planning");
     await page.goBack();
     await expect(page).toHaveURL(/\/$/);
     await page.getByRole("main").getByRole("link", { name: "Probeer Too-doo gratis" }).click();
-    await expectAssistant(page, "Hoe heet dit overleg? Bijvoorbeeld Productieoverleg.");
-    await say(page, "Teamoverleg");
+    await expectAssistant(page, /Je teamoverleg staat klaar\. Ik zette één thema klaar\./);
     await expectDocked(page);
-    await expectAssistant(page, /Klopt dit\?/);
 
     // Twee keer zelf iets aanpassen in de datumregel: de open vraag komt niet opnieuw.
     await page.getByRole("button", { name: /^Wanneer: / }).click();
@@ -548,8 +545,8 @@ test.describe("Variant A · Lazy Registration", () => {
     const said = await log(page).innerText();
     const count = (q: string) => said.split(q).length - 1;
     expect(count("Waarover gaat je volgende overleg?")).toBe(1);
-    expect(count("Hoe heet dit overleg?")).toBe(1);
-    expect(count("Klopt dit?")).toBe(1);
+    expect(count("Klopt dit ongeveer?")).toBe(1);
+    expect(count("Hoe heet dit overleg?")).toBe(0);
     expect(count("Welkom terug")).toBe(0);
     await expect(assistant(page).getByRole("status", { name: "De assistent typt" })).toHaveCount(0);
   });
@@ -567,13 +564,7 @@ test.describe("Variant A · Lazy Registration", () => {
     await expect(main.getByRole("button", { name: "Start overleg" })).toBeDisabled();
     await expect(main.getByRole("heading", { level: 2, name: "Agendapunten" })).toBeVisible();
     // Verborgen zolang er geen inhoud is: details, terugknop, tijdsbudget, tellers, type-labels, blokken toevoegen.
-    for (const name of [
-      /^Details$/,
-      /^Vergaderingen$/,
-      /Blok of pauze toevoegen/,
-      /^Agendapunt toevoegen aan/,
-      /Doel/,
-    ]) {
+    for (const name of [/^Details$/, /^Vergaderingen$/, /Blok of pauze toevoegen/, /Doel/]) {
       await expect(main.getByRole("button", { name })).toHaveCount(0);
     }
     await expect(main.getByRole("link", { name: /^Vergaderingen$/ })).toHaveCount(0);
@@ -586,11 +577,11 @@ test.describe("Variant A · Lazy Registration", () => {
     await expect(open).toContainText("Nog niets open. Acties die je tijdens de vergadering noteert");
     await expect(open).toContainText("kies een bestand");
 
-    // Eén inline regel "+ Agendapunt".
-    await expect(main.getByRole("button", { name: "Agendapunt", exact: true })).toHaveCount(1);
-    await main.getByRole("button", { name: "Agendapunt", exact: true }).click();
-    await main.getByLabel("Agendapunt toevoegen").fill("Budget 2027");
-    await main.getByLabel("Agendapunt toevoegen").press("Enter");
+    // Onderaan één knop "+ Thema" (nieuw blok).
+    await expect(main.getByRole("button", { name: "Thema", exact: true })).toHaveCount(1);
+    await main.getByRole("button", { name: "Thema", exact: true }).click();
+    await main.getByLabel("Thema toevoegen").fill("Budget 2027");
+    await main.getByLabel("Thema toevoegen").press("Enter");
     await expect(main.getByRole("region", { name: "Budget 2027" })).toBeVisible();
 
     // Wat de assistent invult, licht op in de titel, de datumregel en de avatars.
@@ -642,27 +633,36 @@ test.describe("Variant A · welkom en overgang", () => {
     await expectDocked(page);
     await expect(page.getByRole("main").getByRole("heading", { level: 1, name: "Productieoverleg" })).toBeVisible();
     await expect(page.getByRole("region", { name: "Wat too-doo doet" })).toHaveCount(0);
-    await expectAssistant(
-      page,
-      "Je productieoverleg staat klaar, met een voorstel van agenda. Wanneer gaat het door en wie zit erbij?",
-    );
-    await expect(assistant(page).getByRole("button", { name: "Haal het uit mijn agenda" })).toBeVisible();
-    await say(page, "elke maandag om 8u");
-    await expectAssistant(page, "Wie zit er meestal bij? Voornamen volstaan.");
+    await expectAssistant(page, TELL_READY);
+    await expect(assistant(page).getByRole("button", { name: "Klopt" })).toBeVisible();
+    await expect(assistant(page).getByRole("button", { name: "Iets aanpassen" })).toBeVisible();
+    // Een vrij antwoord telt als bevestiging; daarna bericht 2. Wanneer en wie worden niet gevraagd.
+    await say(page, "ja, dat klopt");
+    await expectAssistant(page, NOTES_TELL);
+    await expect(assistant(page).getByRole("button", { name: "Kies bestand" })).toBeVisible();
+    await expect(assistant(page).getByText("Of plak of typ ze hieronder.")).toBeVisible();
+    await assistant(page).getByRole("button", { name: "Ik heb niets openstaan" }).click();
+    await expectAssistant(page, /Klaar\. Je productieoverleg staat klaar\./);
+    await expect(log(page).getByText(/Wanneer gaat het door|Wie zit er meestal bij/)).toHaveCount(0);
     errors.assertNone();
   });
 
-  test("vertellen zonder herkende naam: na verzenden meteen de overgang, de naam wordt in de app gevraagd", async ({
-    page,
-  }) => {
+  test("vertellen zonder onderwerpen: meteen de overgang als concept, één verduidelijkende vraag", async ({ page }) => {
     await page.goto("/probeer");
     await start(page, "Vertel het me");
     await expectAssistant(page, SENTENCE_QUESTION);
     await say(page, "wekelijks overleg met Tina");
     await expectDocked(page);
-    await expect(page.getByRole("main").getByRole("heading", { level: 1, name: "Je eerste overleg" })).toBeVisible();
+    // De naam wordt nooit gevraagd: een generieke naam, aanpasbaar in de titel.
+    await expect(page.getByRole("main").getByRole("heading", { level: 1, name: "Overleg" })).toBeVisible();
     await expect(page.getByRole("main").getByRole("button", { name: /^Deelnemers: Tina/ })).toBeVisible();
-    await expectAssistant(page, "Hoe heet dit overleg? Bijvoorbeeld Productieoverleg.");
+    await expectAssistant(
+      page,
+      "Je overleg staat klaar als concept. Waar willen jullie in die meeting vooral vooruitgang op boeken?",
+    );
+    await say(page, "planning en veiligheid");
+    await expect(page.getByRole("region", { name: "Planning komende week" })).toBeVisible();
+    await expectAssistant(page, NOTES_TELL);
   });
 
   test("vrije tekst werkt ook zonder eerst te kiezen", async ({ page }) => {
@@ -858,7 +858,7 @@ test.describe("Variant A · ingangen", () => {
     const errors = trackErrors(page);
     await page.goto("/probeer");
     await say(page, SENTENCE);
-    await expectAssistant(page, /Klopt dit\?/);
+    await expectAssistant(page, TELL_READY);
     await say(page, NOTES);
     await expectAssistant(
       page,
@@ -877,7 +877,7 @@ test.describe("Variant A · ingangen", () => {
     await say(page, LONG_SENTENCE);
     await expectAssistant(page, /Dit lijken notities van een vorig overleg\./);
     await assistant(page).getByRole("button", { name: "Nee, gewoon bericht" }).click();
-    await expectAssistant(page, /Klopt dit\?/);
+    await expectDocked(page);
     await expect(page.getByRole("heading", { level: 1, name: "Productieoverleg" })).toBeVisible();
     await expect(page.getByRole("region", { name: "Openstaande acties" })).not.toContainText("voorstellen");
     errors.assertNone();
@@ -907,15 +907,15 @@ test.describe("Variant A · ingangen", () => {
     // Enkel dat veld: geen deelnemers verzonnen.
     await expect(main.getByRole("button", { name: "Uit agenda halen" })).toHaveCount(0);
     await expect(main.getByRole("button", { name: "Deelnemers uit agenda" })).toBeVisible();
-    // De assistent gaat verder met wat ontbreekt.
-    await expectAssistant(page, "Wie zit er meestal bij? Voornamen volstaan.");
+    // Wanneer en wie worden op het vertelpad niet gevraagd.
+    await expect(log(page).getByText("Wie zit er meestal bij?")).toHaveCount(0);
     errors.assertNone();
   });
 
-  test("de herinnering over notities verschijnt één keer, ook na herladen", async ({ page }) => {
+  test("de herinnering over notities verschijnt één keer, ook na herladen (agendapad)", async ({ page }) => {
     await page.goto("/probeer");
-    await say(page, SENTENCE);
-    await assistant(page).getByRole("button", { name: "Klopt" }).click();
+    await connectOutlook(page);
+    await assistant(page).getByRole("button", { name: "Dit overleg opvolgen" }).click();
     await expectAssistant(page, REMINDER);
     await expect(log(page).getByText(REMINDER)).toHaveCount(1);
     const stored = () =>
@@ -927,13 +927,12 @@ test.describe("Variant A · ingangen", () => {
     await assistant(page).getByRole("button", { name: "Ik heb niets openstaan" }).click();
     await expectAssistant(page, /Klaar\. Je productieoverleg staat klaar/);
 
-    // Een tweede overleg: de herinnering komt niet opnieuw.
-    await assistant(page).getByRole("button", { name: "Nog even rondkijken" }).click();
+    // Een tweede overleg: de herinnering komt niet opnieuw (het vertelpad vraagt het op zijn eigen manier).
     await assistant(page).getByRole("button", { name: "Nog een overleg toevoegen" }).click();
     await expectAssistant(page, /blijft staan\. Waarover gaat je volgende overleg\?/);
-    await say(page, "teamoverleg elke dinsdag om 9u met Els");
+    await say(page, "teamoverleg elke dinsdag om 9u met Els: planning");
     await assistant(page).getByRole("button", { name: "Klopt" }).click();
-    await expectAssistant(page, /Staat er nog iets open van de vorige keer\?/);
+    await expectAssistant(page, NOTES_TELL);
     await page.reload();
     await expect(log(page).getByText(REMINDER)).toHaveCount(1);
   });
@@ -972,5 +971,220 @@ test.describe("Variant A · ingangen", () => {
     expect(dup).toEqual([]);
     expect(questions).toContain("Outlook of Google?");
     await expect(assistant(page).getByRole("status", { name: "De assistent typt" })).toHaveCount(0);
+  });
+});
+
+/** SPEC-LAZY.md §3 (agendapunten, Start overleg) en §4 Stap 0 "Na de overgang (C1f, C1g)". */
+test.describe("Variant A · agenda en assistent sluiten", () => {
+  const SHORT = "Ons productieoverleg: orders, problemen en planning";
+  const ITEM_TYPE = "application/x-too-doo-item";
+
+  async function tellAndDock(page: Page) {
+    await page.goto("/probeer");
+    await start(page, "Vertel het me");
+    await expectAssistant(page, SENTENCE_QUESTION);
+    await say(page, SHORT);
+    await expectDocked(page);
+    await expectAssistant(page, TELL_READY);
+  }
+
+  async function addItem(page: Page, theme: string, text: string) {
+    const main = page.getByRole("main");
+    await main.getByRole("button", { name: `Agendapunt toevoegen aan ${theme}` }).click();
+    const field = main.getByLabel(`Agendapunt toevoegen aan ${theme}`);
+    await field.fill(text);
+    await field.press("Enter");
+    await field.press("Escape");
+  }
+
+  const items = (page: Page, theme: string) =>
+    page.getByRole("main").getByRole("region", { name: theme }).getByRole("listitem");
+
+  test("Start overleg: statuslabel erboven, bovenkant gelijk met de titel, grijs met tooltip tot er een agendapunt is", async ({
+    page,
+  }) => {
+    await tellAndDock(page);
+    const main = page.getByRole("main");
+    const button = main.getByRole("button", { name: "Start overleg" });
+    await expect(button).toBeDisabled();
+    // Thema's zonder punten en openstaande acties tellen niet; tooltip op de uitgeschakelde knop.
+    await button.locator("xpath=..").hover();
+    await expect(page.getByRole("tooltip")).toHaveText("Voeg eerst een agendapunt toe");
+
+    const status = (await main.getByText("Concept", { exact: true }).boundingBox())!;
+    const title = (await main.getByRole("heading", { level: 1 }).boundingBox())!;
+    const box = (await button.boundingBox())!;
+    expect(status.y + status.height).toBeLessThanOrEqual(title.y);
+    expect(Math.abs(box.y - title.y)).toBeLessThanOrEqual(6);
+
+    await addItem(page, "Lopende orders", "Order Peeters");
+    await expect(button).toBeEnabled();
+
+    // Onder 720 px staat de knop onder de datumregel.
+    await page.setViewportSize({ width: 640, height: 900 });
+    const line = (await main.getByRole("button", { name: /^Wanneer: / }).boundingBox())!;
+    expect((await button.boundingBox())!.y).toBeGreaterThan(line.y);
+  });
+
+  test("agendapunten onder elk thema, ook onder voorgestelde en nieuwe thema's; bewaard in de gast-state", async ({
+    page,
+  }) => {
+    await tellAndDock(page);
+    await addItem(page, "Lopende orders", "Order Peeters");
+    await addItem(page, "Varia", "Bedrijfsfeest");
+    const main = page.getByRole("main");
+    await main.getByRole("button", { name: "Thema", exact: true }).click();
+    await main.getByLabel("Thema toevoegen").fill("Veiligheid");
+    await main.getByLabel("Thema toevoegen").press("Enter");
+    await addItem(page, "Veiligheid", "Nieuwe brandblussers");
+    await expect(items(page, "Lopende orders")).toHaveText(["Order Peeters"]);
+    await expect(items(page, "Varia")).toHaveText(["Bedrijfsfeest"]);
+    await expect(items(page, "Veiligheid")).toHaveText(["Nieuwe brandblussers"]);
+
+    await page.reload();
+    await expect(items(page, "Lopende orders")).toHaveText(["Order Peeters"]);
+    await expect(items(page, "Veiligheid")).toHaveText(["Nieuwe brandblussers"]);
+  });
+
+  test("verslepen met het toetsenbord: spatie, pijltjes over themagrenzen, spatie; Escape annuleert; aria-live", async ({
+    page,
+  }) => {
+    await tellAndDock(page);
+    await addItem(page, "Lopende orders", "Order Peeters");
+    await addItem(page, "Lopende orders", "Order Janssens");
+    const live = page.locator("p[aria-live=polite]");
+
+    // Binnen het thema: Order Peeters één plaats omlaag.
+    const grip = page.getByRole("button", { name: "Verplaats Order Peeters" });
+    await grip.focus();
+    await page.keyboard.press("Space");
+    await expect(live).toContainText("Order Peeters opgepakt");
+    await page.keyboard.press("ArrowDown");
+    await expect(live).toHaveText("Order Peeters verplaatst naar Lopende orders, positie 2");
+    // Over de themagrens naar het volgende thema.
+    await page.keyboard.press("ArrowDown");
+    await expect(live).toHaveText("Order Peeters verplaatst naar Knelpunten en beslissingen, positie 1");
+    await page.keyboard.press("Space");
+    await expect(live).toHaveText("Order Peeters neergezet.");
+    await expect(items(page, "Lopende orders")).toHaveText(["Order Janssens"]);
+    await expect(items(page, "Knelpunten en beslissingen")).toHaveText(["Order Peeters"]);
+
+    // Escape zet terug.
+    const grip2 = page.getByRole("button", { name: "Verplaats Order Janssens" });
+    await grip2.focus();
+    await page.keyboard.press("Space");
+    await page.keyboard.press("ArrowDown");
+    await expect(items(page, "Knelpunten en beslissingen")).toHaveText(["Order Janssens", "Order Peeters"]);
+    await page.keyboard.press("Escape");
+    await expect(live).toHaveText("Verplaatsen van Order Janssens geannuleerd.");
+    await expect(items(page, "Lopende orders")).toHaveText(["Order Janssens"]);
+
+    // Bewaard in de gast-state.
+    const topics = await page.evaluate(
+      () => JSON.parse(localStorage.getItem("toodoo-guest")!).state.meeting.topics as { items?: { text: string }[] }[],
+    );
+    expect(topics[1].items?.map((i) => i.text)).toEqual(["Order Peeters"]);
+  });
+
+  test("thema's verslepen; Openstaande acties blijft bovenaan en heeft geen handvat", async ({ page }) => {
+    await tellAndDock(page);
+    const main = page.getByRole("main");
+    await expect(main.getByRole("button", { name: "Verplaats blok Openstaande acties" })).toHaveCount(0);
+    await main.getByRole("button", { name: "Verplaats blok Planning komende week" }).focus();
+    await page.keyboard.press("Space");
+    await page.keyboard.press("ArrowUp");
+    await page.keyboard.press("ArrowUp");
+    // Hoger dan het eerste thema kan niet: Openstaande acties blijft eerst.
+    await page.keyboard.press("ArrowUp");
+    await page.keyboard.press("Space");
+    const order = await main
+      .locator("#proefomgeving section[aria-label]")
+      .evaluateAll((els) => els.map((e) => e.getAttribute("aria-label")));
+    expect(order.slice(0, 4)).toEqual([
+      "Openstaande acties",
+      "Planning komende week",
+      "Lopende orders",
+      "Knelpunten en beslissingen",
+    ]);
+  });
+
+  test("verslepen met de muis naar een ander thema; een leeg thema toont een drop-zone", async ({ page }) => {
+    await tellAndDock(page);
+    await addItem(page, "Lopende orders", "Order Peeters");
+    const target = page.getByRole("main").getByRole("region", { name: "Planning komende week" });
+
+    // Tijdens het slepen: het doelthema licht op en toont, leeg, een drop-zone.
+    const id = await page.evaluate(
+      () => (JSON.parse(localStorage.getItem("toodoo-guest")!).state.meeting.topics[0].items as { id: string }[])[0].id,
+    );
+    const data = await page.evaluateHandle(
+      ([type, value]) => {
+        const dt = new DataTransfer();
+        dt.setData(type, value);
+        return dt;
+      },
+      [ITEM_TYPE, id],
+    );
+    await target.dispatchEvent("dragenter", { dataTransfer: data });
+    await expect(target).toHaveAttribute("data-item-over", "true");
+    await expect(target.getByText("Zet het agendapunt hier neer")).toBeVisible();
+    await target.dispatchEvent("dragover", { dataTransfer: data });
+    await target.dispatchEvent("drop", { dataTransfer: data });
+    await expect(items(page, "Planning komende week")).toHaveText(["Order Peeters"]);
+    await expect(items(page, "Lopende orders")).toHaveCount(0);
+    await expect(target).not.toHaveAttribute("data-item-over");
+  });
+
+  test("assistent sluiten: ×, ⋯-menu en de chat; zwevende knop rechtsonder, ook na herladen", async ({ page }) => {
+    await tellAndDock(page);
+    const panel = assistant(page);
+    await expect(panel.getByText("1 van 3")).toHaveCount(0);
+
+    // ⋯: voorbeeldagenda en sluiten.
+    await panel.getByRole("button", { name: "Meer opties" }).click();
+    await expect(page.getByRole("menu", { name: "Meer opties" }).getByRole("menuitem")).toHaveText([
+      /^Bekijk een voorbeeldagenda\s*Je eigen overleg blijft bewaard$/,
+      /^Assistent sluiten\s*Je werkt zelf verder\. Ik sta rechtsonder\.$/,
+    ]);
+    await page.getByRole("menuitem", { name: /Assistent sluiten/ }).click();
+    const fab = page.getByRole("button", { name: "Assistent openen" });
+    await expect(fab).toBeVisible();
+    await expect(panel).toHaveCount(0);
+    await expect(page.getByText("Ik ben hier als je me nodig hebt. Ons gesprek blijft bewaard.")).toBeVisible();
+    const box = (await fab.boundingBox())!;
+    const vp = page.viewportSize()!;
+    expect(vp.width - (box.x + box.width)).toBeGreaterThanOrEqual(20);
+    expect(vp.width - (box.x + box.width)).toBeLessThanOrEqual(30);
+    expect(box.height).toBeGreaterThanOrEqual(56);
+
+    // Gesloten blijft gesloten, ook na herladen; openen toont het gesprek waar het was.
+    await page.reload();
+    await expect(page.getByRole("button", { name: "Assistent openen" })).toBeVisible();
+    await page.getByRole("button", { name: "Assistent openen" }).click();
+    await expectAssistant(page, TELL_READY);
+
+    // × sluit ook.
+    await assistant(page).getByRole("button", { name: "Assistent sluiten" }).click();
+    await expect(page.getByRole("button", { name: "Assistent openen" })).toBeVisible();
+    await page.getByRole("button", { name: "Assistent openen" }).click();
+
+    // Via de chat.
+    await say(page, "ik doe het zelf");
+    await expectAssistant(page, "Oké, je werkt zelf verder. Je vindt me rechtsonder.");
+    await expect(page.getByRole("button", { name: "Assistent openen" })).toBeVisible();
+    expect(await page.evaluate(() => JSON.parse(localStorage.getItem("toodoo-guest")!).state.assistantOpen)).toBe(
+      false,
+    );
+  });
+
+  test("een voorbeeldagenda via ⋯ of de chat; terug naar mijn overleg", async ({ page }) => {
+    await tellAndDock(page);
+    await assistant(page).getByRole("button", { name: "Meer opties" }).click();
+    await page.getByRole("menuitem", { name: /Bekijk een voorbeeldagenda/ }).click();
+    await expect(page).toHaveURL(/\/voorbeeld\?van=probeer$/);
+    await page.getByRole("link", { name: "Terug naar mijn overleg" }).first().click();
+    await expect(page.getByRole("main").getByRole("heading", { level: 1, name: "Productieoverleg" })).toBeVisible();
+    await say(page, "toon een voorbeeld");
+    await expect(page).toHaveURL(/\/voorbeeld\?van=probeer$/);
   });
 });

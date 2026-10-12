@@ -13,9 +13,17 @@ export type GuestPerson = Pick<Person, "id" | "name" | "initials" | "color">;
 /** Eigenaar van een actie: een deelnemer, de gebruiker zelf ("me") of nog niemand. */
 export const ME = "me";
 
+/** Een agendapunt onder een thema. */
+export interface GuestItem {
+  id: string;
+  text: string;
+}
+
+/** Een thema (blok) van de agenda, met de agendapunten eronder. */
 export interface GuestTopic {
   id: string;
   text: string;
+  items?: GuestItem[];
 }
 
 /** Het overleg in opbouw. Null = (nog) niet gezegd. */
@@ -31,8 +39,10 @@ export interface GuestMeeting {
   participants: GuestPerson[];
   /** "Later" op de vraag naar deelnemers. */
   participantsSkipped: boolean;
-  /** Agendapunten in "Lopende zaken"; leeg = standaardblokken. */
+  /** Thema's van de agenda; leeg = standaardblokken (Lopende zaken). */
   topics: GuestTopic[];
+  /** Agendapunten onder het vaste thema "Varia" (altijd laatste). */
+  variaItems?: GuestItem[];
   /** Nog niet bevestigd met "Klopt". */
   proposed: boolean;
   /** Uit de agenda overgenomen (label "uit Outlook"). */
@@ -83,6 +93,8 @@ export interface GuestDecision {
   id: string;
   text: string;
   confirmed: boolean;
+  /** Versleept naar dit thema; anders het thema over knelpunten of beslissingen, of het eerste. */
+  topicId?: string | null;
 }
 
 export type GuestStep = 1 | 2 | 3 | "done";
@@ -102,6 +114,8 @@ export type Pending =
   | { kind: "sentence" }
   /** Na de zin (C1): "Wanneer gaat het door en wie zit erbij?" in één vraag. */
   | { kind: "when-who" }
+  /** Te vage zin (C1): "Waar willen jullie in die meeting vooral vooruitgang op boeken?" */
+  | { kind: "topics" }
   | { kind: "name" }
   | { kind: "day" }
   | { kind: "time" }
@@ -175,7 +189,9 @@ export type AssistantInput =
   | { type: "dismiss-proposal" }
   | { type: "another-meeting" }
   /** Antwoord op "Dit lijken notities…": verwerken of als gewoon bericht behandelen. */
-  | { type: "paste"; process: boolean };
+  | { type: "paste"; process: boolean }
+  /** "Laat zo" op de vraag naar onderwerpen. */
+  | { type: "skip-topics" };
 
 export type AssistantEvent = [
   name: "meeting_parsed" | "meeting_confirmed" | "actions_extracted" | "first_action_with_owner" | "meeting_ready",
@@ -190,4 +206,6 @@ export interface AssistantReply {
   events: AssistantEvent[];
   /** Iets aanpassen: zet de velden in het hoofdvlak in bewerkmodus. */
   edit?: boolean;
+  /** "ik doe het zelf" / "toon een voorbeeld": de assistent sluit, of het voorbeeld opent. */
+  ui?: "close" | "example";
 }

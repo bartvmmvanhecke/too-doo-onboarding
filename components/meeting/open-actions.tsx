@@ -156,6 +156,7 @@ export function OpenActionsBlock({
       expanded={expanded}
       onToggle={onToggle}
       bodyId={`block-${block.id}`}
+      hideGrip={!!trial}
       tone={trial ? (meeting.actions.length === 0 ? "dashed" : trial.confirming ? "proposal" : undefined) : undefined}
       hideMenu={!!trial}
       onFileDrop={trial && meeting.actions.length === 0 ? (trial.onFileDrop ?? undefined) : undefined}

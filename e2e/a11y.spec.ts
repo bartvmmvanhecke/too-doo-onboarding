@@ -80,6 +80,19 @@ const CASES: { name: string; path: string; setup?: (page: import("@playwright/te
   { name: "prototype", path: "/prototype" },
   { name: "variant A: welkomstscherm", path: "/probeer" },
   {
+    name: "variant A: ⋯-menu van de assistent",
+    path: "/probeer",
+    setup: async (page) => {
+      await page
+        .getByRole("textbox", { name: "Bericht aan de assistent" })
+        .fill("Ons productieoverleg: orders, problemen en planning");
+      await page.keyboard.press("Enter");
+      await page.getByRole("button", { name: "Klopt" }).waitFor();
+      await page.getByRole("button", { name: "Meer opties" }).click();
+      await page.getByRole("menu", { name: "Meer opties" }).waitFor();
+    },
+  },
+  {
     name: "variant A: lege meeting",
     path: "/probeer",
     setup: async (page) => {
@@ -116,10 +129,10 @@ const CASES: { name: string; path: string; setup?: (page: import("@playwright/te
     setup: async (page) => {
       await page
         .getByRole("textbox", { name: "Bericht aan de assistent" })
-        .fill("Ons productieoverleg, elke maandag om 8u met Jan, Sofie, Pieter en Karim");
+        .fill("Ons productieoverleg, elke maandag om 8u met Jan, Sofie, Pieter en Karim: orders en planning");
       await page.keyboard.press("Enter");
       await page.getByRole("button", { name: "Klopt" }).click();
-      await page.getByRole("button", { name: "Inspreken" }).click();
+      await page.getByRole("button", { name: "Inspreken" }).first().click();
       await page.getByRole("button", { name: "Zet ze op de agenda" }).click();
       await page.getByRole("button", { name: "Alleen bewaren" }).click();
       await page.getByRole("dialog").waitFor();

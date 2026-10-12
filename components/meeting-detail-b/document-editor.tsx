@@ -2,11 +2,15 @@
 import { useRef, useState, type KeyboardEvent } from "react";
 import { toast } from "sonner";
 import { Plus, GripVertical } from "lucide-react";
-import { newBlock, blockDuration, type AgendaBlock, type AgendaItem } from "@/lib/agenda";
-import { useStore, type Meeting } from "@/lib/store";
+import { newBlock, blockDuration, type AgendaBlock, type AgendaItem, type EntryKind } from "@/lib/agenda";
+import { LineFields } from "./line-fields";
+import { TokenInput, parseDuration } from "./inline-tokens";
+import { usePeople, useStore, type Meeting } from "@/lib/store";
 
-type Draft = { id: string; blockId: string; afterId?: string; text: string };
+type Draft = { id: string; blockId: string; afterId?: string; text: string; patch?: Partial<AgendaItem> };
 export function DocumentEditor({ meeting }: { meeting: Meeting }) {
+  const people = usePeople().filter((p) => meeting.participants.includes(p.id));
+  const [edits, setEdits] = useState<Record<string, string>>({});
   const [draft, setDraft] = useState<Draft | null>(null);
   const sequence = useRef(0);
   const refs = useRef(new Map<string, HTMLInputElement>());
@@ -35,7 +39,8 @@ export function DocumentEditor({ meeting }: { meeting: Meeting }) {
       empty(id);
       return null;
     }
-    const id = ops.addAgendaItem(meeting.id, blockId, draft.text.trim());
+    const id = ops.addAgendaItem(meeting.id, blockId, parseDuration(draft.text).text);
+    ops.updateItem(meeting.id, id, { ...draft.patch, ...(parseDuration(draft.text).duration !== undefined ? { duration: parseDuration(draft.text).duration } : {}) });
     const block = useStore.getState().meetings.find((m) => m.id === meeting.id)!.blocks.find((b) => b.id === blockId)!;
     if (draft.afterId) ops.moveItem(meeting.id, id, blockId, block.items.findIndex((i) => i.id === draft.afterId) + 1);
     setDraft(null);
@@ -58,29 +63,48 @@ export function DocumentEditor({ meeting }: { meeting: Meeting }) {
     ops.putMeeting({ ...snapshot, blocks: rest });
     toast("Blok verwijderd", { action: { label: "Ongedaan maken", onClick: () => ops.putMeeting({ ...useStore.getState().meetings.find((m) => m.id === meeting.id)!, blocks: snapshot.blocks }) } });
   }
+  function addAt(itemId: string, kind: EntryKind | "break") {
+    if (kind === "break") { ops.addBlock(meeting.id, "break"); return; }
+    ops.addEntry(meeting.id, itemId, { kind, text: kind === "note" ? "Nieuwe notitie" : kind === "action" ? "Nieuwe actie" : kind === "decision" ? "Nieuwe beslissing" : "Nieuw document", ownerId: null, date: "" });
+  }
+  function saveItem(item: AgendaItem, text: string) {
+    const parsed = parseDuration(text);
+    if (parsed.text.trim()) ops.updateItem(meeting.id, item.id, parsed);
+    else ops.removeItem(meeting.id, item.id);
+    setEdits((e) => { const next = { ...e }; delete next[item.id]; return next; });
+  }
   function draftRow(blockId: string, afterId?: string) {
     const active = draft?.blockId === blockId && draft.afterId === afterId;
     const id = active ? draft.id : `empty-${blockId}`;
-    return <div key={id} className="document-row flex items-center gap-2">
+    const text = active ? draft.text : "";
+    const temp: AgendaItem = { id, text, duration: null, ownerIds: [], purposes: [], entries: [], ...(active ? draft.patch : {}) };
+    const patch = (p: Partial<AgendaItem>) => setDraft((d) => d ? { ...d, patch: { ...d.patch, ...p } } : d);
+    const add = (kind: EntryKind | "break") => { const saved = saveDraft(); if (saved) addAt(saved.id, kind); };
+    return <div key={id} className="document-row flex flex-wrap items-center gap-1">
       <Plus size={14} className="text-ink-3 shrink-0" aria-hidden />
-      <input data-document-line ref={(el) => { if (el) refs.current.set(id, el); else refs.current.delete(id); }} aria-label="Nieuw agendapunt" className="flex-1 text-sm" placeholder="Typ een agendapunt…" value={active ? draft.text : ""} onFocus={() => { if (!active) { setDraft({ id, blockId, afterId, text: "" }); } }} onChange={(e) => setDraft({ id, blockId, afterId, text: e.target.value })} onBlur={() => { if (active && draft.text.trim()) saveDraft(); }} onKeyDown={(e) => {
-        if (arrows(e)) return;
-        if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); const saved = saveDraft(); if (saved) empty(saved.blockId, saved.id); }
-        if (e.key === "Backspace" && !draft?.text) { e.preventDefault(); setDraft(null); if (afterId) focus(afterId); else { const last = blocks.find((b) => b.id === blockId)?.items.at(-1); if (last) focus(last.id); } }
-      }} />
-      {!draft?.text && <span className="text-[10px] text-ink-3">Tab voor een notitie</span>}
+      <TokenInput id={id} text={text} label="Nieuw agendapunt" people={people} inputRef={(el) => { if (el) refs.current.set(id, el); else refs.current.delete(id); }} placeholder="Typ een agendapunt…" update={patch} add={add}
+        onFocus={() => { if (!active) setDraft({ id, blockId, afterId, text: "" }); }}
+        onChange={(text) => setDraft((d) => ({ ...d, id, blockId, afterId, text }))}
+        onBlur={() => { if (active && draft.text.trim()) saveDraft(); }}
+        onKeyDown={(e) => {
+          if (arrows(e)) return;
+          if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); const saved = saveDraft(); if (saved) empty(saved.blockId, saved.id); }
+          if (e.key === "Backspace" && !text) { e.preventDefault(); setDraft(null); if (afterId) focus(afterId); else { const last = blocks.find((b) => b.id === blockId)?.items.at(-1); if (last) focus(last.id); } }
+        }} />
+      {text ? <LineFields item={temp} people={people} update={patch} add={add} focus={() => focus(id)} /> : <span className="text-[10px] text-ink-3">Tab voor een notitie</span>}
     </div>;
   }
   function itemRow(item: AgendaItem, block: AgendaBlock) {
+    const text = edits[item.id] ?? item.text;
     return <div key={item.id}>
       <div className="document-row group flex flex-wrap items-center gap-1 text-sm">
         <button type="button" aria-label={`Verplaats ${item.text}`} className="document-reveal min-h-11 w-5"><GripVertical size={14} /></button><span aria-hidden>•</span>
-        <input data-document-line ref={(el) => { if (el) refs.current.set(item.id, el); else refs.current.delete(item.id); }} aria-label={`Agendapunt in ${block.title || "naamloos blok"}`} className="flex-1" defaultValue={item.text} onBlur={(e) => { if (e.target.value.trim()) ops.updateItem(meeting.id, item.id, { text: e.target.value }); else ops.removeItem(meeting.id, item.id); }} onKeyDown={(e) => {
+        <TokenInput id={item.id} text={text} label={`Agendapunt in ${block.title || "naamloos blok"}`} people={people} inputRef={(el) => { if (el) refs.current.set(item.id, el); else refs.current.delete(item.id); }} onChange={(text) => setEdits((e) => ({ ...e, [item.id]: text }))} update={(patch) => ops.updateItem(meeting.id, item.id, patch)} add={(kind) => addAt(item.id, kind)} onBlur={(text) => saveItem(item, text)} onKeyDown={(e) => {
           if (arrows(e)) return;
-          if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); if (e.currentTarget.value.trim()) { ops.updateItem(meeting.id, item.id, { text: e.currentTarget.value }); empty(block.id, item.id); } }
-          if (e.key === "Backspace" && !e.currentTarget.value) { e.preventDefault(); const index = block.items.indexOf(item); ops.removeItem(meeting.id, item.id); if (index > 0) focus(block.items[index - 1].id); }
+          if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); if (text.trim()) { saveItem(item, text); empty(block.id, item.id); } }
+          if (e.key === "Backspace" && !text) { e.preventDefault(); const index = block.items.indexOf(item); ops.removeItem(meeting.id, item.id); if (index > 0) focus(block.items[index - 1].id); }
         }} />
-        {item.duration && <span className="text-xs text-ink-3">{item.duration} min</span>}
+        {text && <LineFields item={item} people={people} update={(patch) => ops.updateItem(meeting.id, item.id, patch)} add={(kind) => addAt(item.id, kind)} focus={() => focus(item.id)} />}
         <span className="document-reveal text-[10px] text-ink-3">↵</span>
       </div>
       {draft?.blockId === block.id && draft.afterId === item.id && draftRow(block.id, item.id)}

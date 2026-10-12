@@ -3,12 +3,11 @@
 import { useState } from "react";
 import { DurationPicker, OwnersPicker, PurposePicker } from "@/components/meeting/bits";
 import { EntryPanel } from "@/components/meeting/entries";
-import { useMeeting } from "@/components/meeting/meeting-context";
+import { useMeeting, useMeetingOps } from "@/components/meeting/meeting-context";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { ENTRY_KINDS, type AgendaItem } from "@/lib/agenda";
-import { useStore } from "@/lib/store";
 
 const heading = "text-[13px] font-semibold text-ink-3";
 
@@ -25,7 +24,7 @@ export function ItemDialog({ item, onClose }: { item: AgendaItem | null; onClose
 
 function ItemDialogBody({ item, onClose }: { item: AgendaItem; onClose: () => void }) {
   const { meeting } = useMeeting();
-  const { updateItem, removeItem } = useStore.getState();
+  const { updateItem, removeItem } = useMeetingOps();
   const [title, setTitle] = useState(item.text);
   const update = (patch: Partial<AgendaItem>) => updateItem(meeting.id, item.id, patch);
 

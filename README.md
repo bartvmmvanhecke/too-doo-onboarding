@@ -60,7 +60,8 @@ components/
                          Field, BenefitList, ItEmailForm
   app/                   AppShell (zijbalk), Checklist, AddMeetingsDialog, InviteDialog
   b/                     variant B: WeekGrid, ProposalRow, OwnerPicker, MailPreview, StatTile
-  probeer/               Variant A: TrialScreen, DraftMeeting, AssistantPanel, SaveDialog, AfterSaveAssistant
+  probeer/               Variant A: TrialScreen, TrialMeeting (detailscherm-variant), AssistantPanel, SaveDialog,
+                         AfterSaveAssistant
   prototype/             PrototypeNav, de prototype-knop met menu (alleen prototype)
   demo/                  DemoBar (alleen prototype)
   ui/                    shadcn/ui-basis (button, input, label, dialog, sonner)
@@ -78,6 +79,7 @@ lib/
   notes-file.ts          Variant A: notities uit .txt/.md/.eml, .docx (mammoth) en .pdf (pdfjs-dist)
   guest-transfer.ts      Variant A: gast-state → vergaderingen in de app-store bij bewaren
   track.ts               meetpunten (nu naar de console, later PostHog)
+  trial-meeting.ts       Variant A: de gast-state als overleg voor het bestaande detailscherm
 e2e/                     Playwright-tests
 ```
 

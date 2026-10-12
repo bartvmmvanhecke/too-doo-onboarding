@@ -3,11 +3,11 @@
 import { useState } from "react";
 import { BlockCard, type AgendaMoves } from "@/components/meeting/agenda";
 import { OwnerButton } from "@/components/meeting/bits";
-import { useMeeting } from "@/components/meeting/meeting-context";
+import { useMeeting, useMeetingOps } from "@/components/meeting/meeting-context";
 import { Button } from "@/components/ui/button";
 import { daysLate, type AgendaBlock } from "@/lib/agenda";
 import { formatShortDate } from "@/lib/date";
-import { useStore, type Action } from "@/lib/store";
+import type { Action } from "@/lib/store";
 import { cn } from "@/lib/utils";
 
 const VISIBLE = 4;
@@ -28,16 +28,23 @@ function DeadlineChip({ deadline }: { deadline: string }) {
 }
 
 function ActionRow({ action }: { action: Action }) {
-  const { meeting } = useMeeting();
-  const { toggleAction, assignOwner } = useStore.getState();
+  const { meeting, trial } = useMeeting();
+  const { toggleAction, assignOwner } = useMeetingOps();
+  // Variant A, stap 2: de acties zijn voorstellen; aangevinkt = klopt (uitgevinkt valt weg).
+  const confirming = !!trial?.confirming;
   return (
-    <li className="group flex min-h-11 items-center gap-2 rounded-[10px] px-2 hover:bg-row-hover focus-within:bg-row-hover">
+    <li
+      className={cn(
+        "group flex min-h-11 items-center gap-2 rounded-[10px] px-2 hover:bg-row-hover focus-within:bg-row-hover",
+        confirming && !action.done && !action.ownerId && "bg-warning-bg hover:bg-warning-bg",
+      )}
+    >
       <label className="flex min-h-11 min-w-0 flex-1 cursor-pointer items-center gap-3">
         <input
           type="checkbox"
-          checked={action.done}
+          checked={confirming ? !action.done : action.done}
           onChange={() => toggleAction(meeting.id, action.id)}
-          aria-label={`${action.what} afvinken`}
+          aria-label={confirming ? `${action.what} bevestigen` : `${action.what} afvinken`}
           className="m-0 size-4 shrink-0 accent-brand"
         />
         <span className={cn("min-w-0 truncate text-sm font-medium", action.done && "text-ink-3 line-through")}>
@@ -60,7 +67,11 @@ function ActionRow({ action }: { action: Action }) {
           e-mailadres ontbreekt
         </span>
       )}
-      <OwnerButton ownerId={action.ownerId} onPick={(id) => assignOwner(meeting.id, action.id, id)} />
+      <OwnerButton
+        ownerId={action.ownerId}
+        onPick={(id) => assignOwner(meeting.id, action.id, id)}
+        emptyLabel={trial ? `Wie doet ${action.what}?` : undefined}
+      />
       <DeadlineChip deadline={action.deadline} />
     </li>
   );
@@ -84,8 +95,8 @@ export function OpenActionsBlock({
   adding: boolean;
   onAddingChange: (adding: boolean) => void;
 }) {
-  const { meeting } = useMeeting();
-  const addAction = useStore((s) => s.addAction);
+  const { meeting, trial } = useMeeting();
+  const { addAction } = useMeetingOps();
   const [showAll, setShowAll] = useState(false);
   const [text, setText] = useState("");
   const run = meeting.run;
@@ -109,6 +120,15 @@ export function OpenActionsBlock({
       </>
     ) : null;
 
+  // Variant A: "3 voorstellen · vink aan wat klopt" in stap 2, daarna "3 openstaande acties".
+  const n = meeting.actions.filter((a) => !a.done).length;
+  const trialAside =
+    trial &&
+    meeting.actions.length > 0 &&
+    (trial.confirming
+      ? `${n} ${n === 1 ? "voorstel" : "voorstellen"} · vink aan wat klopt`
+      : `${n} ${n === 1 ? "openstaande actie" : "openstaande acties"}`);
+
   return (
     <BlockCard
       block={block}
@@ -117,8 +137,13 @@ export function OpenActionsBlock({
       expanded={expanded}
       onToggle={onToggle}
       bodyId={`block-${block.id}`}
+      tone={trial ? (meeting.actions.length === 0 ? "dashed" : trial.confirming ? "proposal" : undefined) : undefined}
+      hideMenu={!!trial}
+      onFileDrop={trial && meeting.actions.length === 0 ? (trial.onFileDrop ?? undefined) : undefined}
       aside={
-        handled ? (
+        trial ? (
+          trialAside && <span className="px-1 text-[13px] whitespace-nowrap text-ink-3">{trialAside}</span>
+        ) : handled ? (
           <span className="px-1 text-[13px] whitespace-nowrap text-ink-3">
             {checked} afgevinkt · {open.length} {open.length === 1 ? "loopt" : "lopen"} verder
           </span>
@@ -126,14 +151,15 @@ export function OpenActionsBlock({
           counts && <span className="px-1 text-[13px] whitespace-nowrap text-ink-3">{counts}</span>
         )
       }
-      meta={!handled && <p className="px-1 text-[13px] text-ink-3">komen vanzelf terug tot ze af zijn</p>}
+      meta={!handled && !trial && <p className="px-1 text-[13px] text-ink-3">komen vanzelf terug tot ze af zijn</p>}
       summary={
         block.duration ? (
           <span className="px-1 text-[13px] whitespace-nowrap text-ink-3 tabular-nums">{block.duration} min</span>
         ) : null
       }
     >
-      {meeting.actions.length === 0 && !adding && (
+      {meeting.actions.length === 0 && !adding && trial?.emptyActions}
+      {meeting.actions.length === 0 && !adding && !trial && (
         <p className="px-2 py-1.5 text-sm text-ink-3">
           Nog niets open. Acties die je tijdens de vergadering noteert, komen hier vanzelf terug tot ze af zijn.
         </p>

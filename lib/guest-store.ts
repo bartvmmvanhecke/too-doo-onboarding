@@ -75,6 +75,8 @@ interface GuestActions {
   updateTopic: (id: string, text: string) => void;
   addTopic: (text: string) => void;
   removeTopic: (id: string) => void;
+  /** Verplaatst een agendapunt naar een andere plaats in de lijst. */
+  moveTopic: (id: string, index: number) => void;
   updateAction: (id: string, patch: Partial<GuestAction>) => void;
   addAction: (text: string) => void;
   removeAction: (id: string) => void;
@@ -177,6 +179,14 @@ export const useGuestStore = create<GuestStore>()(
         addTopic: (text) =>
           meeting({ topics: [...get().meeting.topics, { id: uid("t-"), text } satisfies GuestTopic] }),
         removeTopic: (id) => meeting({ topics: get().meeting.topics.filter((t) => t.id !== id) }),
+        moveTopic: (id, index) => {
+          const topics = get().meeting.topics;
+          const topic = topics.find((t) => t.id === id);
+          if (!topic) return;
+          const rest = topics.filter((t) => t.id !== id);
+          rest.splice(Math.max(0, Math.min(index, rest.length)), 0, topic);
+          meeting({ topics: rest });
+        },
         updateAction: (id, patch) =>
           set((s) => ({ actions: s.actions.map((a) => (a.id === id ? { ...a, ...patch } : a)) })),
         addAction: (text) =>

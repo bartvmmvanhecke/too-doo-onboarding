@@ -1,9 +1,11 @@
 "use client";
 
-import { useEffect, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { AssistantPanel, Chips } from "@/components/probeer/assistant-panel";
-import { DraftMeeting, StatusBanner } from "@/components/probeer/draft-meeting";
+import { AppUiProvider } from "@/components/app/app-ui";
+import { StatusBanner } from "@/components/probeer/trial-banner";
+import { TrialMeeting } from "@/components/probeer/trial-meeting";
 import { EntryBlocks, PickMeeting } from "@/components/probeer/entry-blocks";
 import { connectAccount } from "@/components/probeer/save-guest";
 import { TrialSidebar } from "@/components/probeer/trial-sidebar";
@@ -158,6 +160,9 @@ export function TrialScreen({ onSave }: { onSave: (intent: SaveIntent, trigger: 
   const flash = new Set(flashAt > flashSeen ? flashKeys : []);
 
   const busy = typing || listening || connecting !== null || reading !== null;
+  // Stabiel, zodat het detailscherm zijn opslagfuncties niet bij elke render opnieuw krijgt.
+  const onStart = useCallback(() => onSave("start", "start-overleg"), [onSave]);
+  const onEdited = useCallback(() => useGuestStore.getState().dispatch({ type: "edited" }), []);
   const send = dispatch;
   const sendText = (text: string) => {
     if (!busy) send({ type: "text", text }, text);
@@ -412,15 +417,17 @@ export function TrialScreen({ onSave }: { onSave: (intent: SaveIntent, trigger: 
           <StatusBanner account={account} onLogin={() => onSave("login", "ik-heb-al-een-account")} />
         </div>
         <div className="mx-auto w-full max-w-[860px]">
-          <DraftMeeting
-            flash={flash}
-            editRequest={editRequest}
-            busy={busy}
-            onNotesFile={readFile}
-            onSave={(intent) => onSave(intent, intent === "login" ? "ik-heb-al-een-account" : "start-overleg")}
-            onExample={() => track("assistant_entry_chosen", { ingang: "example" })}
-            onEditDone={() => send({ type: "edited" })}
-          />
+          {/* Het detailscherm gebruikt de UI-context van de app (modal "Andere overlegmomenten"). */}
+          <AppUiProvider>
+            <TrialMeeting
+              flash={flash}
+              editRequest={editRequest}
+              busy={busy}
+              onNotesFile={readFile}
+              onEdited={onEdited}
+              onStart={onStart}
+            />
+          </AppUiProvider>
         </div>
       </main>
       <AssistantPanel

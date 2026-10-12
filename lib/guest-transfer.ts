@@ -2,12 +2,13 @@
  * Bewaren in Variant A (SPEC-LAZY.md §2 en §6): de gast-state wordt vergaderingen in de app-store,
  * zodat de bestaande app-schermen (/app/overleg/:id, acties, checklist) werken. Niets opnieuw ingeven.
  */
-import { newBlock, newItem, todayISO } from "@/lib/agenda";
+import { todayISO } from "@/lib/agenda";
 import { ME, type GuestBundle } from "@/lib/assistant/types";
 import { formatShortDate, nextWeekday, toISO } from "@/lib/date";
 import { deriveMeetingType } from "@/lib/meeting";
 import { PEOPLE, USER_PERSON_ID, type Person } from "@/lib/mock-data";
 import type { Action, Meeting } from "@/lib/store";
+import { guestBlocks } from "@/lib/trial-meeting";
 import { uid } from "@/lib/utils";
 
 /** De overleggen van de gast: eerst de afgewerkte ("Nog een overleg toevoegen"), dan het huidige. */
@@ -42,15 +43,9 @@ export function bundleToMeeting(b: GuestBundle): Omit<Meeting, "id"> {
       what: a.text.trim(),
       ownerId: ownerFor(a.ownerId),
       deadline: a.deadline ? formatShortDate(a.deadline) : "",
-      done: false,
+      done: !!a.done,
       createdAt: todayISO(),
     }));
-  const items = [
-    ...m.topics.filter((t) => t.text.trim()).map((t) => newItem(t.text.trim())),
-    ...b.decisions
-      .filter((d) => d.confirmed && d.text.trim())
-      .map((d) => newItem(d.text.trim(), { purposes: ["decide"] })),
-  ];
   return {
     name,
     type: deriveMeetingType(name),
@@ -60,11 +55,7 @@ export function bundleToMeeting(b: GuestBundle): Omit<Meeting, "id"> {
     duration: m.duration,
     participants: [USER_PERSON_ID, ...m.participants.map((p) => p.id)],
     actions,
-    blocks: [
-      newBlock("actions"),
-      newBlock("topics", { title: "Lopende zaken", items }),
-      newBlock("topics", { title: "Varia", subtitle: "Wat onverwacht ter sprake komt" }),
-    ],
+    blocks: guestBlocks(b, { stableIds: false }),
     showWelcome: false,
     invited: false,
     held: false,

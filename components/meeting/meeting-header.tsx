@@ -1,28 +1,46 @@
 "use client";
 
+import { useState, type ReactNode } from "react";
 import Link from "next/link";
-import { ChevronLeft, Clock, Play, Plus, UserPlus } from "lucide-react";
+import { ChevronLeft, CircleDashed, Clock, Play, Plus, UserPlus } from "lucide-react";
 import { Avatar } from "@/components/avatar";
-import { icon, ProgressBar, STROKE } from "@/components/meeting/bits";
-import { useMeeting } from "@/components/meeting/meeting-context";
+import { icon, InlineText, ProgressBar, STROKE } from "@/components/meeting/bits";
+import { useMeeting, useMeetingOps, type TrialView } from "@/components/meeting/meeting-context";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { formatClock, plannedMinutes } from "@/lib/agenda";
 import { scheduleLine } from "@/lib/meeting";
 import { USER_PERSON_ID, type Person } from "@/lib/mock-data";
-import { findPerson, useStore, type Meeting } from "@/lib/store";
+import { findPerson, type Meeting } from "@/lib/store";
 import { cn } from "@/lib/utils";
 
 const metaButton =
   "inline-flex min-h-11 cursor-pointer items-center gap-1.5 rounded-[10px] px-2 text-[13px] font-medium text-ink-3 hover:bg-white hover:text-ink";
 
-/** Max. 3 avatars en +N; klikken toont de deelnemers. */
-function Participants({ people }: { people: Person[] }) {
+/** Max. 3 avatars en +N; klikken toont de deelnemers (Variant A: de deelnemers aanpassen). */
+function Participants({
+  people,
+  editor,
+  className,
+}: {
+  people: Person[];
+  /** Variant A: inhoud van de popover om deelnemers aan te passen. */
+  editor?: ReactNode;
+  className?: string;
+}) {
   const rest = people.length - 3;
   return (
     <Popover>
       <PopoverTrigger asChild>
-        <button type="button" aria-label={`${people.length} deelnemers tonen`} className={metaButton}>
+        <button
+          type="button"
+          aria-label={
+            editor
+              ? `Deelnemers: ${people.map((p) => p.name).join(", ")}. Aanpassen`
+              : `${people.length} deelnemers tonen`
+          }
+          className={cn(metaButton, className)}
+        >
           <span className="flex items-center">
             {people.slice(0, 3).map((p) => (
               <Avatar key={p.id} person={p} size={24} decorative className="-ml-1.5 ring-2 ring-app first:ml-0" />
@@ -33,14 +51,16 @@ function Participants({ people }: { people: Person[] }) {
       </PopoverTrigger>
       <PopoverContent align="start" className="app-theme w-64">
         <p className="px-2 pt-1 pb-1.5 text-xs font-semibold text-ink-3">Deelnemers</p>
-        <ul className="flex flex-col">
-          {people.map((p) => (
-            <li key={p.id} className="flex min-h-10 items-center gap-2.5 px-2 text-sm">
-              <Avatar person={p} size={24} decorative />
-              {p.name}
-            </li>
-          ))}
-        </ul>
+        {editor ?? (
+          <ul className="flex flex-col">
+            {people.map((p) => (
+              <li key={p.id} className="flex min-h-10 items-center gap-2.5 px-2 text-sm">
+                <Avatar person={p} size={24} decorative />
+                {p.name}
+              </li>
+            ))}
+          </ul>
+        )}
       </PopoverContent>
     </Popover>
   );
@@ -54,7 +74,7 @@ const DETAIL_FIELDS: { key: "location" | "type" | "room" | "description"; label:
 ];
 
 function Details({ meeting }: { meeting: Meeting }) {
-  const updateDetails = useStore((s) => s.updateDetails);
+  const { updateDetails } = useMeetingOps();
   return (
     <Popover>
       <PopoverTrigger asChild>
@@ -122,8 +142,8 @@ export function MeetingHeader({
   onAddAction: () => void;
   onInvite: () => void;
 }) {
-  const { meeting, people, now } = useMeeting();
-  const { startRun, nextStep, endRun } = useStore.getState();
+  const { meeting, people, now, trial } = useMeeting();
+  const { startRun, nextStep, endRun } = useMeetingOps();
   const run = meeting.run;
   const participants = meeting.participants.map((id) => findPerson(people, id)).filter((p): p is Person => !!p);
   const others = participants.filter((p) => p.id !== USER_PERSON_ID);
@@ -177,6 +197,8 @@ export function MeetingHeader({
     );
   }
 
+  if (trial) return <TrialHeader trial={trial} participants={participants} />;
+
   return (
     <header className="flex flex-col gap-1 pb-2">
       {back}
@@ -219,6 +241,115 @@ export function MeetingHeader({
           </Button>
         </p>
       )}
+    </header>
+  );
+}
+
+/** Wat de assistent net invulde, licht 2 s op (Variant A). */
+const flashed = "rounded-lg bg-brand-selected shadow-[0_0_0_2px_var(--proposal-line)]";
+
+/**
+ * Variant A (SPEC-LAZY.md §3): dezelfde kop, met statuslabel; titel, datumregel en avatars zijn
+ * rechtstreeks aanpasbaar. Geen terugknop, tijdsbudget of details zolang er geen inhoud is.
+ */
+function TrialHeader({ trial, participants }: { trial: TrialView; participants: Person[] }) {
+  const { meeting } = useMeeting();
+  const { startRun } = useMeetingOps();
+  const [renaming, setRenaming] = useState(false);
+  const [lastRequest, setLastRequest] = useState(trial.editRequest);
+  if (trial.editRequest !== lastRequest) {
+    setLastRequest(trial.editRequest);
+    setRenaming(true);
+  }
+  const muted = "text-ink-subtle";
+  // Kleine tekst: gedempt, maar met voldoende contrast (WCAG AA).
+  const mutedSmall = "text-ink-3";
+  return (
+    <header className="flex flex-col gap-1 pb-2">
+      <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-3">
+        <div className="flex min-w-0 flex-[1_1_360px] flex-col gap-2">
+          <span className="flex flex-wrap items-center gap-2">
+            <span className="inline-flex items-center gap-1.5 rounded-lg bg-line-faint px-2.5 py-1 text-[13px] font-semibold text-ink-2">
+              <CircleDashed className={icon} strokeWidth={STROKE} aria-hidden />
+              {trial.status}
+            </span>
+            {trial.source && (
+              <span className="rounded-lg bg-brand-soft px-2.5 py-1 text-[13px] font-semibold text-brand">
+                {trial.source}
+              </span>
+            )}
+          </span>
+          <h1
+            className={cn(
+              "-ml-1 flex min-w-0 text-[30px] leading-tight font-bold transition-shadow",
+              trial.empty && muted,
+              trial.flash.has("name") && flashed,
+            )}
+          >
+            <InlineText
+              value={meeting.name}
+              label="Naam van het overleg aanpassen"
+              editing={renaming || undefined}
+              onEditingChange={setRenaming}
+              onSave={trial.onRename}
+              inputClassName="text-[26px] font-bold"
+            />
+          </h1>
+          <div className="-ml-2 flex flex-wrap items-center gap-x-1 text-[13px] text-ink-3">
+            <Popover>
+              <PopoverTrigger asChild>
+                <button
+                  type="button"
+                  aria-label={`Wanneer: ${trial.scheduleText ?? "nog niet ingevuld"}. Aanpassen`}
+                  className={cn(
+                    metaButton,
+                    "transition-shadow",
+                    !trial.scheduleText && mutedSmall,
+                    trial.flash.has("when") && flashed,
+                  )}
+                >
+                  {trial.scheduleText ?? "Wanneer?"}
+                </button>
+              </PopoverTrigger>
+              <PopoverContent align="start" className="app-theme w-80 p-3">
+                {trial.scheduleEditor}
+              </PopoverContent>
+            </Popover>
+            <span aria-hidden className={muted}>
+              ·
+            </span>
+            {participants.length > 0 ? (
+              <Participants
+                people={participants}
+                editor={trial.participantsEditor}
+                className={cn("transition-shadow", trial.flash.has("participants") && flashed)}
+              />
+            ) : (
+              <Popover>
+                <PopoverTrigger asChild>
+                  <button type="button" aria-label="Wie zit erbij? Aanpassen" className={cn(metaButton, mutedSmall)}>
+                    Wie zit erbij?
+                  </button>
+                </PopoverTrigger>
+                <PopoverContent align="start" className="app-theme w-64">
+                  <p className="px-2 pt-1 pb-1.5 text-xs font-semibold text-ink-3">Deelnemers</p>
+                  {trial.participantsEditor}
+                </PopoverContent>
+              </Popover>
+            )}
+          </div>
+        </div>
+        <Button
+          size="sm"
+          className="font-semibold"
+          disabled={!trial.canStart}
+          aria-disabled={!trial.canStart}
+          onClick={() => startRun(meeting.id)}
+        >
+          <Play className={icon} strokeWidth={STROKE} aria-hidden />
+          Start overleg
+        </Button>
+      </div>
     </header>
   );
 }

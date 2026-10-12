@@ -75,6 +75,8 @@ export interface GuestAction {
   confirmed: boolean;
   /** "Later beslissen" op de vraag "Wie …?". */
   ownerLater: boolean;
+  /** Afgevinkt in het overleg in opbouw (na stap 3). */
+  done?: boolean;
 }
 
 export interface GuestDecision {

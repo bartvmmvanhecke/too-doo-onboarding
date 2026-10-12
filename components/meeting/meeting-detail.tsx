@@ -8,7 +8,14 @@ import { InviteDialog } from "@/components/app/invite-dialog";
 import { BreakBlock, TopicsBlock, type AgendaMoves } from "@/components/meeting/agenda";
 import { icon, menuItem, STROKE } from "@/components/meeting/bits";
 import { ItemDialog } from "@/components/meeting/item-dialog";
-import { MeetingProvider, useNow } from "@/components/meeting/meeting-context";
+import {
+  MeetingOpsProvider,
+  MeetingProvider,
+  useMeetingOps,
+  useNow,
+  type MeetingOps,
+  type TrialView,
+} from "@/components/meeting/meeting-context";
 import { MeetingHeader } from "@/components/meeting/meeting-header";
 import { OpenActionsBlock } from "@/components/meeting/open-actions";
 import { ExampleBanner } from "@/components/tour/example-banner";
@@ -29,8 +36,8 @@ function refocusGrip(id: string) {
   requestAnimationFrame(() => document.querySelector<HTMLElement>(`[data-grip="${id}"]`)?.focus());
 }
 
-function agendaMoves(meeting: Meeting): AgendaMoves {
-  const { moveItem, moveBlock } = useStore.getState();
+function agendaMoves(meeting: Meeting, ops: MeetingOps): AgendaMoves {
+  const { moveItem, moveBlock } = ops;
   const topics = meeting.blocks.filter((b) => b.kind === "topics");
   const locate = (itemId: string) => {
     const bi = topics.findIndex((b) => b.items.some((i) => i.id === itemId));
@@ -66,7 +73,7 @@ function agendaMoves(meeting: Meeting): AgendaMoves {
 
 /** "+ Blok of pauze toevoegen": één knop met een kleine keuze. */
 function AddBlockButton({ meeting }: { meeting: Meeting }) {
-  const addBlock = useStore((s) => s.addBlock);
+  const { addBlock } = useMeetingOps();
   const [open, setOpen] = useState(false);
   const hasActions = meeting.blocks.some((b) => b.kind === "actions");
   const add = (kind: AgendaBlock["kind"]) => {
@@ -99,6 +106,48 @@ function AddBlockButton({ meeting }: { meeting: Meeting }) {
         )}
       </PopoverContent>
     </Popover>
+  );
+}
+
+/** Variant A: één inline regel "+ Agendapunt" in plaats van de knoppen om blokken en punten toe te voegen. */
+function AddAgendaRow({ onAdd }: { onAdd: (text: string) => void }) {
+  const [adding, setAdding] = useState(false);
+  const [text, setText] = useState("");
+  if (!adding) {
+    return (
+      <Button
+        variant="ghost"
+        size="sm"
+        className="self-start px-2 text-[15px] font-semibold text-brand hover:text-brand"
+        onClick={() => setAdding(true)}
+      >
+        <Plus className="size-5" strokeWidth={STROKE} aria-hidden />
+        Agendapunt
+      </Button>
+    );
+  }
+  return (
+    <input
+      type="text"
+      aria-label="Agendapunt toevoegen"
+      placeholder="Typ een agendapunt en druk Enter"
+      autoFocus
+      value={text}
+      onChange={(e) => setText(e.target.value)}
+      onBlur={() => !text.trim() && setAdding(false)}
+      onKeyDown={(e) => {
+        if (e.key === "Escape") {
+          setText("");
+          setAdding(false);
+        }
+        if (e.key === "Enter" && text.trim()) {
+          e.preventDefault();
+          onAdd(text.trim());
+          setText("");
+        }
+      }}
+      className="min-h-11 w-full rounded-[10px] border border-dashed border-line bg-white px-3 text-sm text-ink outline-none focus-visible:border-solid focus-visible:border-brand"
+    />
   );
 }
 
@@ -148,14 +197,23 @@ function tourSteps(meeting: Meeting): TourStep[] {
 export function MeetingDetail({
   meeting,
   example,
+  trial,
 }: {
   meeting: Meeting;
   /** `back`: terugknop naar de proefomgeving van Variant A, in de voorbeeldbalk en de checklist. */
   example?: { seed: AgendaBlock[]; back?: { label: string; href: string } };
+  /**
+   * Variant A (SPEC-LAZY.md §3): het overleg in opbouw in de proefomgeving. Eigen opslag (`ops`) en
+   * deelnemers (`people`); lagen zonder inhoud zijn verborgen. Zonder `trial` verandert er niets.
+   */
+  trial?: { view: TrialView; ops: MeetingOps; people: Person[] };
 }) {
   const moreAdded = useStore((s) => s.moreMeetingsAdded);
   const extraPeople = useStore((s) => s.extraPeople);
-  const people = usePeople();
+  const appPeople = usePeople();
+  const people = trial?.people ?? appPeople;
+  const storeOps = useMeetingOps();
+  const ops = trial?.ops ?? storeOps;
   const { setAddMeetingsOpen } = useAppUi();
   const now = useNow(!!meeting.run);
 
@@ -168,14 +226,9 @@ export function MeetingDetail({
   const [bannerOpen, setBannerOpen] = useState(!!example);
   const [checklistOpen, setChecklistOpen] = useState(!!example);
 
-  const moves = agendaMoves(meeting);
+  const moves = agendaMoves(meeting, ops);
   const run = meeting.run;
-  const owners = ownerOptions(
-    people,
-    meeting.participants,
-    meeting.name,
-    extraPeople.map((p) => p.id),
-  );
+  const owners = ownerOptions(people, meeting.participants, meeting.name, trial ? [] : extraPeople.map((p) => p.id));
   const items = allItems(meeting.blocks);
   const firstTopics = meeting.blocks.find((b) => b.kind === "topics");
   const isFirst = !run && !meeting.held && meeting.actions.length === 0 && items.length === 0;
@@ -265,7 +318,7 @@ export function MeetingDetail({
       },
     );
   }
-  const showChecklist = !example && !run && checklist.some((c) => !c.done);
+  const showChecklist = !example && !trial && !run && checklist.some((c) => !c.done);
   const detailsItem: AgendaItem | null = items.find((i) => i.id === detailsId) ?? null;
 
   // Voorbeeld: de checklist volgt wat je echt doet op deze pagina.
@@ -291,7 +344,7 @@ export function MeetingDetail({
           id: "start",
           label: "Start de vergadering",
           done: !!run || meeting.held,
-          onSelect: () => useStore.getState().startRun(meeting.id),
+          onSelect: () => ops.startRun(meeting.id),
         },
         {
           id: "vastleggen",
@@ -302,89 +355,93 @@ export function MeetingDetail({
     : [];
 
   const startBlank = () => {
-    useStore.getState().putMeeting({ ...meeting, blocks: defaultBlocks() });
+    ops.putMeeting({ ...meeting, blocks: defaultBlocks() });
     setBannerOpen(false);
     setTouring(false);
   };
 
   return (
-    <MeetingProvider value={{ meeting, people, owners, now }}>
-      <TooltipProvider>
-        <MeetingHeader
-          hint={run ? null : hint}
-          onShowHint={showHint}
-          onAddAction={startAddingAction}
-          onInvite={() => setInviteOpen(true)}
-        />
-
-        {example && bannerOpen && !run && (
-          <ExampleBanner
-            meetingName={meeting.name}
-            onShowMe={() => setTouring(true)}
-            onStartBlank={startBlank}
-            onDismiss={() => setBannerOpen(false)}
-            back={example.back}
+    <MeetingOpsProvider value={trial?.ops ?? null}>
+      <MeetingProvider value={{ meeting, people, owners, now, trial: trial?.view }}>
+        <TooltipProvider>
+          <MeetingHeader
+            hint={run || trial ? null : hint}
+            onShowHint={showHint}
+            onAddAction={startAddingAction}
+            onInvite={() => setInviteOpen(true)}
           />
-        )}
 
-        {meeting.blocks.map((block, index) => {
-          if (block.kind === "break") return <BreakBlock key={block.id} block={block} index={index} moves={moves} />;
-          if (block.kind === "actions")
+          {example && bannerOpen && !run && (
+            <ExampleBanner
+              meetingName={meeting.name}
+              onShowMe={() => setTouring(true)}
+              onStartBlank={startBlank}
+              onDismiss={() => setBannerOpen(false)}
+              back={example.back}
+            />
+          )}
+
+          {trial && <h2 className="mt-1 text-[22px] font-bold">Agendapunten</h2>}
+
+          {meeting.blocks.map((block, index) => {
+            if (block.kind === "break") return <BreakBlock key={block.id} block={block} index={index} moves={moves} />;
+            if (block.kind === "actions")
+              return (
+                <OpenActionsBlock
+                  key={block.id}
+                  block={block}
+                  index={index}
+                  moves={moves}
+                  expanded={isExpanded(block)}
+                  onToggle={() => toggle(block)}
+                  adding={addingAction}
+                  onAddingChange={setAddingAction}
+                />
+              );
             return (
-              <OpenActionsBlock
+              <TopicsBlock
                 key={block.id}
                 block={block}
                 index={index}
                 moves={moves}
                 expanded={isExpanded(block)}
                 onToggle={() => toggle(block)}
-                adding={addingAction}
-                onAddingChange={setAddingAction}
+                focusInput={!trial && isFirst && block === firstTopics}
+                onOpenDetails={(item) => setDetailsId(item.id)}
               />
             );
-          return (
-            <TopicsBlock
-              key={block.id}
-              block={block}
-              index={index}
-              moves={moves}
-              expanded={isExpanded(block)}
-              onToggle={() => toggle(block)}
-              focusInput={isFirst && block === firstTopics}
-              onOpenDetails={(item) => setDetailsId(item.id)}
-            />
-          );
-        })}
+          })}
 
-        <AddBlockButton meeting={meeting} />
+          {trial ? <AddAgendaRow onAdd={trial.view.onAddAgendaItem} /> : <AddBlockButton meeting={meeting} />}
 
-        {/* Onderaan rechts, als laatste: verdwijnt zonder dat de inhoud erboven verspringt. */}
-        {showChecklist && (
-          <Checklist collapsible items={checklist} className="mt-4 w-full max-w-[340px] flex-none self-end" />
-        )}
+          {/* Onderaan rechts, als laatste: verdwijnt zonder dat de inhoud erboven verspringt. */}
+          {showChecklist && (
+            <Checklist collapsible items={checklist} className="mt-4 w-full max-w-[340px] flex-none self-end" />
+          )}
 
-        {example && touring && !run && <ProductTour steps={tourSteps(meeting)} onClose={() => setTouring(false)} />}
-        {example && checklistOpen && (
-          <>
-            {/* Ruimte onderaan zodat de zwevende checklist niets blijvend bedekt. */}
-            <div aria-hidden className="h-56" />
-            <GettingStarted
-              items={gettingStarted}
-              nextUp={example.back ?? { label: "Zet je eigen vergadering klaar", href: "/overleg" }}
-              onClose={() => setChecklistOpen(false)}
-            />
-          </>
-        )}
+          {example && touring && !run && <ProductTour steps={tourSteps(meeting)} onClose={() => setTouring(false)} />}
+          {example && checklistOpen && (
+            <>
+              {/* Ruimte onderaan zodat de zwevende checklist niets blijvend bedekt. */}
+              <div aria-hidden className="h-56" />
+              <GettingStarted
+                items={gettingStarted}
+                nextUp={example.back ?? { label: "Zet je eigen vergadering klaar", href: "/overleg" }}
+                onClose={() => setChecklistOpen(false)}
+              />
+            </>
+          )}
 
-        <ItemDialog item={detailsItem} onClose={() => setDetailsId(null)} />
-        <InviteDialog
-          open={inviteOpen}
-          onOpenChange={setInviteOpen}
-          people={invitees}
-          onInvited={() => useStore.getState().markInvited(meeting.id)}
-          onAddAction={startAddingAction}
-        />
-      </TooltipProvider>
-    </MeetingProvider>
+          <ItemDialog item={detailsItem} onClose={() => setDetailsId(null)} />
+          <InviteDialog
+            open={inviteOpen}
+            onOpenChange={setInviteOpen}
+            people={invitees}
+            onInvited={() => ops.markInvited(meeting.id)}
+            onAddAction={startAddingAction}
+          />
+        </TooltipProvider>
+      </MeetingProvider>
+    </MeetingOpsProvider>
   );
 }

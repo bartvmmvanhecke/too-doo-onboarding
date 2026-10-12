@@ -3,7 +3,7 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { AssistantPanel, Chips } from "@/components/probeer/assistant-panel";
-import { DraftMeeting } from "@/components/probeer/draft-meeting";
+import { DraftMeeting, StatusBanner } from "@/components/probeer/draft-meeting";
 import { EntryBlocks, PickMeeting } from "@/components/probeer/entry-blocks";
 import { connectAccount } from "@/components/probeer/save-guest";
 import { TrialSidebar } from "@/components/probeer/trial-sidebar";
@@ -407,11 +407,14 @@ export function TrialScreen({ onSave }: { onSave: (intent: SaveIntent, trigger: 
         onSave={() => onSave("save", "zijbalk")}
       />
       <main className={cn("min-w-0 flex-1 px-4 pt-5 sm:px-8 lg:pb-10", open ? "pb-[60dvh]" : "pb-16 lg:pr-24")}>
+        {/* De banner neemt de volle breedte: zo past hij op brede schermen op één regel. */}
+        <div className="mb-[18px]">
+          <StatusBanner account={account} onLogin={() => onSave("login", "ik-heb-al-een-account")} />
+        </div>
         <div className="mx-auto w-full max-w-[860px]">
           <DraftMeeting
             flash={flash}
             editRequest={editRequest}
-            account={account}
             busy={busy}
             onNotesFile={readFile}
             onSave={(intent) => onSave(intent, intent === "login" ? "ik-heb-al-een-account" : "start-overleg")}

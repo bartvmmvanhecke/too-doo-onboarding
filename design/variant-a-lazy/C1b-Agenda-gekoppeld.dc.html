@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<title>Variant C – agenda gekoppeld</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800&amp;display=swap">
+<style>
+body{margin:0;background:#F4F7FB}
+a{color:#0B5FD8}a:hover{color:#08449C}
+</style>
+</helmet>
+<div style="font-family: 'Nunito', system-ui, sans-serif; color: #16213A; background: #F4F7FB; min-height: 900px; display: flex; flex-wrap: wrap">
+  <nav aria-label="Hoofdmenu" style="flex: 1 1 200px; max-width: 220px; min-height: 900px; background: linear-gradient(180deg, #123A80 0%, #0C2A5E 100%); color: #FFFFFF; padding: 24px 14px; box-sizing: border-box; display: flex; flex-direction: column; gap: 4px">
+    <span style="font-size: 26px; font-weight: 800; padding: 0 10px 24px">too-doo</span>
+    <a href="#dashboard" style="color: #D5E2F7; text-decoration: none; font-size: 16px; font-weight: 600; padding: 11px 12px; border-radius: 10px">Dashboard</a>
+    <a href="#overleg" style="color: #FFFFFF; text-decoration: none; font-size: 16px; font-weight: 800; padding: 11px 12px; border-radius: 10px; background: rgba(255,255,255,0.14)">Vergaderingen</a>
+    <a href="#acties" style="color: #D5E2F7; text-decoration: none; font-size: 16px; font-weight: 600; padding: 11px 12px; border-radius: 10px">Acties</a>
+    <a href="#beslissingen" style="color: #D5E2F7; text-decoration: none; font-size: 16px; font-weight: 600; padding: 11px 12px; border-radius: 10px">Beslissingen</a>
+    <div style="margin-top: auto; padding: 14px 12px; border-top: 1px solid rgba(255,255,255,0.14); display: flex; flex-direction: column; gap: 4px">
+      <span style="font-size: 14px; font-weight: 800">Tom Claes</span>
+      <span style="font-size: 13px; color: #C7D6EE">Proefperiode · nog 30 dagen</span>
+    </div>
+  </nav>
+
+  <main style="flex: 999 1 520px; min-width: 0; padding: 22px 32px 40px; box-sizing: border-box; display: flex; flex-direction: column; gap: 18px">
+    <div role="status" style="display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; background: #E9EEF6; color: #3E4860; border-radius: 10px; padding: 10px 16px; font-size: 14px">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1E7A4C" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5"></path></svg>
+      <span style="flex: 1 1 300px">Verbonden met Outlook als tom.claes@metaalwerken.be. Je werk wordt vanaf nu automatisch bewaard.</span>
+    </div>
+
+    <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap">
+      <h1 style="margin: 0; font-size: 30px; font-weight: 800">Productieoverleg</h1>
+      <span style="font-size: 12px; font-weight: 800; letter-spacing: 0.4px; text-transform: uppercase; color: #3E4860; background: #E3E8F1; border-radius: 6px; padding: 4px 9px">Concept</span>
+      <span style="font-size: 12px; font-weight: 800; color: #0B5FD8; background: #E8F1FE; border-radius: 6px; padding: 4px 9px">uit Outlook</span>
+    </div>
+
+    <section aria-label="Overleg in opbouw" style="background: #FFFFFF; border: 1px solid #E3E8F1; border-radius: 16px; padding: 22px 24px; display: flex; flex-direction: column; gap: 16px">
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px">
+        <div style="border: 2px solid #8DB6F0; background: #F2F7FF; border-radius: 12px; padding: 13px; display: flex; flex-direction: column; gap: 4px">
+          <span style="font-size: 13px; font-weight: 700; color: #3E4860">Naam</span>
+          <span style="font-size: 16px; font-weight: 800">Productieoverleg</span>
+        </div>
+        <div style="border: 2px solid #8DB6F0; background: #F2F7FF; border-radius: 12px; padding: 13px; display: flex; flex-direction: column; gap: 4px">
+          <span style="font-size: 13px; font-weight: 700; color: #3E4860">Wanneer</span>
+          <span style="font-size: 16px; font-weight: 800">Elke maandag · 08:00–09:00</span>
+          <span style="font-size: 13px; color: #3E4860">volgende: ma 19 okt</span>
+        </div>
+        <div style="border: 2px solid #8DB6F0; background: #F2F7FF; border-radius: 12px; padding: 13px; display: flex; flex-direction: column; gap: 8px">
+          <span style="font-size: 13px; font-weight: 700; color: #3E4860">Wie zit erbij</span>
+          <span style="display: flex; gap: 4px; align-items: center">
+            <span style="width: 28px; height: 28px; border-radius: 50%; background: #F2C9A8; color: #6A3412; font-size: 11px; font-weight: 800; display: flex; align-items: center; justify-content: center">JV</span>
+            <span style="width: 28px; height: 28px; border-radius: 50%; background: #C9DDF6; color: #0F3B7A; font-size: 11px; font-weight: 800; display: flex; align-items: center; justify-content: center">SD</span>
+            <span style="width: 28px; height: 28px; border-radius: 50%; background: #D6EBD9; color: #1D4F2B; font-size: 11px; font-weight: 800; display: flex; align-items: center; justify-content: center">PM</span>
+            <span style="font-size: 13px; font-weight: 700; color: #3E4860; padding-left: 4px">+ 3</span>
+          </span>
+        </div>
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 10px">
+        <span style="font-size: 15px; font-weight: 800">Agenda</span>
+        <div style="border: 1.5px dashed #B8C3D6; border-radius: 12px; padding: 16px; display: flex; flex-direction: column; gap: 6px">
+          <span style="font-size: 15px; font-weight: 800; color: #3E4860">Openstaande acties</span>
+          <span style="font-size: 14px; color: #5B6478">Volgende vraag van de assistent.</span>
+          <span style="font-size: 13px; color: #3E4860; padding-top: 4px">Sleep notities van je vorig overleg op deze plek, of <a href="C3-Agent-acties.dc.html" style="font-weight: 700">kies een bestand</a>.</span>
+        </div>
+        <div style="border: 1px solid #E3E8F1; border-radius: 12px; padding: 16px; display: flex; flex-direction: column; gap: 6px">
+          <span style="font-size: 15px; font-weight: 800">Uit de uitnodiging in Outlook</span>
+          <span style="font-size: 14px; color: #3E4860">Orders · stilstanden · planning volgende week</span>
+          <span style="font-size: 12px; font-weight: 800; color: #0B5FD8">voorstel</span>
+        </div>
+        <div style="border: 1px solid #E3E8F1; border-radius: 12px; padding: 16px; font-size: 15px; font-weight: 800">Varia</div>
+      </div>
+    </section>
+  </main>
+
+  <aside aria-label="Assistent" style="flex: 1 1 380px; max-width: 440px; min-height: 900px; background: #FFFFFF; border-left: 1px solid #E3E8F1; box-sizing: border-box; display: flex; flex-direction: column">
+    <div style="display: flex; align-items: center; gap: 12px; padding: 16px 18px; border-bottom: 1px solid #E3E8F1">
+      <span style="width: 36px; height: 36px; border-radius: 50%; background: #0B5FD8; display: flex; align-items: center; justify-content: center; flex-shrink: 0"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"></path></svg></span>
+      <span style="flex: 1; display: flex; flex-direction: column"><span style="font-size: 16px; font-weight: 800">Assistent</span><span style="font-size: 13px; color: #5B6478">stelt voor, jij beslist</span></span>
+      <span style="font-size: 12px; font-weight: 800; color: #0B5FD8; background: #E8F1FE; border-radius: 6px; padding: 4px 8px">1 van 3</span>
+      <button type="button" aria-label="Assistent verbergen" style="background: none; border: none; width: 44px; height: 44px; cursor: pointer; display: flex; align-items: center; justify-content: center"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#3E4860" stroke-width="2.5" stroke-linecap="round"><path d="M9 6l6 6-6 6"></path></svg></button>
+    </div>
+
+    <div style="flex: 1; padding: 20px 18px; display: flex; flex-direction: column; gap: 14px">
+      <div style="align-self: flex-end; max-width: 88%; background: #0B5FD8; color: #FFFFFF; border-radius: 16px 16px 4px 16px; padding: 10px 14px; font-size: 14px">Uit mijn agenda · Outlook</div>
+      <div style="align-self: flex-start; width: 92%; background: #F4F7FB; border-radius: 16px 16px 16px 4px; padding: 14px 16px; display: flex; flex-direction: column; gap: 10px">
+        <span style="font-size: 15px; line-height: 1.5">Ik vond <b>4 vaste overleggen</b>. Welk wil je eerst opvolgen?</span>
+        <fieldset style="border: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px">
+          <legend style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0)">Kies een overleg</legend>
+          <label style="display: grid; grid-template-columns: 20px minmax(0, 1fr); gap: 10px; align-items: start; padding: 10px 12px; background: #FFFFFF; border: 2px solid #0B5FD8; border-radius: 10px; cursor: pointer">
+            <input type="radio" name="c1b-overleg" checked style="margin: 3px 0 0; accent-color: #0B5FD8">
+            <span style="display: flex; flex-direction: column; gap: 2px"><span style="font-size: 14px; font-weight: 800">Productieoverleg <span style="font-size: 11px; font-weight: 800; color: #1E7A4C; background: #E2F4EA; border-radius: 5px; padding: 2px 6px; margin-left: 4px">jij organiseert</span></span><span style="font-size: 13px; color: #3E4860">Elke maandag 08:00 · 6 deelnemers</span></span>
+          </label>
+          <label style="display: grid; grid-template-columns: 20px minmax(0, 1fr); gap: 10px; align-items: start; padding: 10px 12px; background: #FFFFFF; border: 1px solid #DCE3EE; border-radius: 10px; cursor: pointer">
+            <input type="radio" name="c1b-overleg" style="margin: 3px 0 0; accent-color: #0B5FD8">
+            <span style="display: flex; flex-direction: column; gap: 2px"><span style="font-size: 14px; font-weight: 800">Managementoverleg</span><span style="font-size: 13px; color: #3E4860">Om de 2 weken di 14:00 · 4 deelnemers</span></span>
+          </label>
+          <label style="display: grid; grid-template-columns: 20px minmax(0, 1fr); gap: 10px; align-items: start; padding: 10px 12px; background: #FFFFFF; border: 1px solid #DCE3EE; border-radius: 10px; cursor: pointer">
+            <input type="radio" name="c1b-overleg" style="margin: 3px 0 0; accent-color: #0B5FD8">
+            <span style="display: flex; flex-direction: column; gap: 2px"><span style="font-size: 14px; font-weight: 800">Veiligheidsoverleg</span><span style="font-size: 13px; color: #3E4860">Eerste do van de maand 10:00 · 8 deelnemers</span></span>
+          </label>
+          <label style="display: grid; grid-template-columns: 20px minmax(0, 1fr); gap: 10px; align-items: start; padding: 10px 12px; background: #FFFFFF; border: 1px solid #DCE3EE; border-radius: 10px; cursor: pointer">
+            <input type="radio" name="c1b-overleg" style="margin: 3px 0 0; accent-color: #0B5FD8">
+            <span style="display: flex; flex-direction: column; gap: 2px"><span style="font-size: 14px; font-weight: 800">Weekstart sales</span><span style="font-size: 13px; color: #3E4860">Elke maandag 09:30 · 3 deelnemers</span></span>
+          </label>
+        </fieldset>
+        <a href="C3-Agent-acties.dc.html" style="align-self: flex-start; display: inline-flex; align-items: center; min-height: 44px; padding: 0 18px; background: #0B5FD8; color: #FFFFFF; border-radius: 10px; font-size: 15px; font-weight: 700; text-decoration: none">Dit overleg opvolgen</a>
+        <span style="font-size: 13px; color: #3E4860">Staat het er niet tussen? <a href="C2-Agent-begrijpt.dc.html" style="font-weight: 700">Vertel het me</a>. De andere kan je later toevoegen.</span>
+      </div>
+    </div>
+
+    <div style="padding: 14px 18px 18px; border-top: 1px solid #E3E8F1; display: flex; gap: 8px; align-items: flex-end">
+      <label for="c1b-bericht" style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0)">Bericht aan de assistent</label>
+      <textarea id="c1b-bericht" rows="1" placeholder="Vraag of zeg iets" style="flex: 1; min-width: 0; font-family: inherit; font-size: 15px; padding: 12px; border: 1px solid #C9D3E3; border-radius: 12px; resize: none; color: #16213A"></textarea>
+      <button type="button" aria-label="Inspreken" style="width: 46px; height: 46px; border-radius: 12px; border: 1px solid #C9D3E3; background: #FFFFFF; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#16213A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="3" width="6" height="11" rx="3"></rect><path d="M5 11a7 7 0 0 0 14 0M12 18v3"></path></svg></button>
+      <button type="button" aria-label="Versturen" style="width: 46px; height: 46px; border-radius: 12px; border: none; background: #0B5FD8; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"></path></svg></button>
+    </div>
+  </aside>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+renderVals() {
+return {};
+}
+}
+</script>
+</body>
+</html>

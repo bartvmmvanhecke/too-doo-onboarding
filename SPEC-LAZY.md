@@ -11,7 +11,8 @@ Mockups: `design/variant-a-lazy/` (C0 t/m C6). Zoals eerder: lees de HTML en inl
 | Mockup | Inhoud |
 |---|---|
 | `C0-Flow.dc.html` | Overzicht van de flow, regels voor het accountmoment, meetpunten (referentie, niet bouwen) |
-| `C1-Meteen-in-app.dc.html` | Landen in de app, assistent biedt 3 ingangen |
+| `C1-Meteen-in-app.dc.html` | Landen in de app, assistent biedt 3 ingangen: agenda, notities (upload of plakken), vertellen |
+| `C1b-Agenda-gekoppeld.dc.html` | Na koppelen met Outlook: vaste overleggen kiezen |
 | `C2-Agent-begrijpt.dc.html` | Eén zin → overleg en agenda verschijnen live |
 | `C3-Agent-acties.dc.html` | Notities plakken → acties op de agenda, ontbrekende eigenaar wordt een vraag |
 | `C4-Overleg-klaar.dc.html` | Overleg klaar, voorstel om acties te mailen |
@@ -22,12 +23,13 @@ Mockups: `design/variant-a-lazy/` (C0 t/m C6). Zoals eerder: lees de HTML en inl
 
 ## 1. Twee varianten naast elkaar
 
-### 1.1 Flowkeuze-knop (rechtsboven, bestaat al)
-- Klik opent een klein menu (popover, toetsenbord bedienbaar, sluit met Esc) met twee items:
-  1. **Onboarding Flow Variant A - Lazy Registration** → reset de gast-state en opent `/` (de website). Ondertitel: "Proberen zonder account, account bij bewaren".
-  2. **Onboarding Flow Variant B - Classic Onboarding** → opent de bestaande flowkeuze `/prototype` (de 4 flows en randgevallen), ongewijzigd. Ondertitel: "Account eerst, dan eerste overleg".
-- Het actieve item krijgt een vinkje. Naast het icoon klein de actieve variant ("A" of "B · Flow 3").
-- Tooltip blijft "Flowkeuze". Positie, stijl en regel "overlapt niets" blijven zoals nu.
+### 1.1 Prototype-knop (rechtsboven, bestaat al) · update 12 okt
+- Alleen het lijst-icoon, zonder letter of tekst ernaast (geen "A" of "B · Flow 3" meer). `aria-label="Prototype-menu"`, tooltip "Prototype".
+- Klik opent een klein menu (popover, toetsenbord bedienbaar, sluit met Esc). Voorlopig met één item:
+  - **Herstart demo** (icoon: draaiende pijl, lucide `RotateCcw`) → wist alle state (gast-state, demo-state, app-store) en opent `/` (de website).
+- Bouw het menu als lijst van items, zodat er later makkelijk items bij kunnen.
+- De keuze tussen Variant A en Variant B verdwijnt voorlopig uit dit menu. Variant B blijft bereikbaar via de URL `/prototype` (ongewijzigd).
+- Positie, stijl en regel "overlapt niets" blijven zoals nu.
 
 ### 1.2 Naamgeving
 - Variant B = alles wat nu bestaat: routes `/start`, `/overleg*`, `/acties`, `/voorbeeld`, `/b/*`, `/prototype`, en de app-schermen.
@@ -74,12 +76,25 @@ Alles regelgebaseerd en deterministisch, in één module (`lib/assistant/`), zod
 
 Typ-indicator (3 puntjes, 600–900 ms) voor elk antwoord. Velden die net ingevuld werden, krijgen 2 s een blauwe markering (C2).
 
-### Stap 1 · Hoe wil je starten? (C1)
-Welkomstbericht + vraag met drie kaarten:
-- **Mijn volgende overleg** → vraagt "Waarover gaat je volgende overleg? Eén zin is genoeg." (stap 1 gaat verder, C2)
-- **Notities van een vorig overleg** → vraagt eerst naar notities (springt naar stap 2, C3). Naam van het overleg wordt daarna gevraagd als die niet uit de notities blijkt.
-- **Eerst een voorbeeld** → bestaande `/voorbeeld` (Stap2d), met de knop in de voorbeeldbalk terug naar `/probeer`.
-Vrije tekst in het invoerveld werkt ook en wordt behandeld als "Mijn volgende overleg".
+### Stap 1 · Waarmee wil je starten? (C1, C1b) · update 12 okt
+Welkomstbericht ("Welkom. In twee minuten staat je eerste overleg klaar, met de acties die nog openstaan. Geen account nodig.") + vraag "Waarmee wil je starten?" met **drie gelijkwaardige blokken** in het assistentpaneel, precies zoals C1:
+
+1. **Uit mijn agenda** – "Ik toon je vaste overleggen, jij kiest er één. Alleen lezen." Twee knoppen: **Outlook** en **Google**.
+   - Gesimuleerd met de bestaande demo-uitkomsten voor agendatoestemming (reeksen gevonden / geen reeksen / IT-goedkeuring nodig / geannuleerd) en Microsoft-login (slaagt / bedrijf blokkeert).
+   - Koppelen = inloggen. Bij succes: gebruiker wordt aangemaakt (Tom Claes, tom.claes@metaalwerken.be uit de mock-data), gast-state gaat over naar de app-store, banner wordt "Verbonden met Outlook als … Je werk wordt vanaf nu automatisch bewaard.", zijbalk toont naam + "Proefperiode · nog 30 dagen". Het bewaar-modal (sectie 6) wordt daarna niet meer getoond; "Ja, stuur ze" in stap 3 gaat meteen naar de e-mailadressen (sectie 7).
+   - **C1b**: de assistent toont de vaste overleggen als radiolijst (overleg dat de gebruiker organiseert met de meeste deelnemers bovenaan, label "jij organiseert"), knop "Dit overleg opvolgen", tekst "Staat het er niet tussen? Vertel het me." Het hoofdvlak vult naam, wanneer, deelnemers en een agendapunt uit de uitnodiging in als voorstel (label "uit Outlook"). Daarna stap 2 (openstaande acties).
+   - Geen reeksen → "Ik vond geen vaste overleggen in je agenda." + losse afspraken komende 2 weken als keuze, of "Vertel het me".
+   - IT-goedkeuring nodig, geannuleerd of login geblokkeerd → rustige melding in de assistent ("Je bedrijf moet dit eerst goedkeuren. Geen probleem: vertel het me of gebruik notities.") en de andere twee blokken blijven gewoon bruikbaar. Geen foutpagina.
+2. **Notities van een vorig overleg** – "Ik haal de acties en eigenaars eruit." Een **dropzone** (gestippeld): "Sleep een bestand hierheen · Word, PDF, e-mail of foto" met knop **Kies bestand**, en eronder de link **Of plak de tekst** (opent een tekstvak in de chat).
+   - Ondersteun .txt, .md, .docx, .pdf, .eml en afbeeldingen. In het prototype: .txt/.md/.eml echt inlezen; .docx en .pdf tekst eruit halen als dat met een kleine bibliotheek lukt (mammoth voor docx, pdfjs-dist voor pdf), anders de vaste voorbeeldtekst gebruiken. Afbeeldingen: toon de bestandsnaam en gebruik de vaste voorbeeldtekst (OCR is buiten scope). Toon altijd welk bestand verwerkt wordt.
+   - Ook slepen op het blok "Openstaande acties" in het hoofdvlak werkt (zelfde verwerking); dat blok toont de regel "Sleep notities van je vorig overleg op deze plek, of kies een bestand."
+   - Gaat naar stap 2 met de extractie. Naam van het overleg wordt gevraagd als die niet uit de notities blijkt.
+3. **Vertel het me** – "Eén zin over je volgende overleg; ik stel een agenda voor." → vraagt "Waarover gaat je volgende overleg? Eén zin is genoeg." (C2).
+
+Onder de blokken een tekstlink **Eerst een voorbeeld bekijken** → bestaande `/voorbeeld` (Stap2d), met de knop in de voorbeeldbalk terug naar `/probeer`.
+Vrije tekst in het invoerveld onderaan ("Of typ meteen") wordt behandeld als "Vertel het me".
+
+**Elke vraag van de assistent verschijnt precies één keer.** Een keuze maken of tekst sturen voegt één antwoord toe; dubbel renderen (bv. door React Strict Mode of een effect dat twee keer loopt) mag niet voorkomen.
 
 ### Zin begrijpen (C2)
 Parser op de zin van de gebruiker (Nederlands, hoofdletterongevoelig):

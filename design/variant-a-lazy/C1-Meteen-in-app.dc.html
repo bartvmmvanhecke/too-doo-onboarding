@@ -59,6 +59,7 @@ a{color:#0B5FD8}a:hover{color:#08449C}
         <div style="border: 1.5px dashed #B8C3D6; border-radius: 12px; padding: 16px; display: flex; flex-direction: column; gap: 6px">
           <span style="font-size: 15px; font-weight: 800; color: #3E4860">Openstaande acties</span>
           <span style="font-size: 14px; color: #5B6478">Wat vorige keer afgesproken werd en nog niet af is. Komt elk overleg vanzelf terug tot het af is.</span>
+          <span style="font-size: 13px; color: #3E4860; padding-top: 4px">Sleep notities van je vorig overleg op deze plek, of <a href="C3-Agent-acties.dc.html" style="font-weight: 700">kies een bestand</a>.</span>
         </div>
         <div style="border: 1.5px dashed #B8C3D6; border-radius: 12px; padding: 16px; font-size: 15px; font-weight: 800; color: #3E4860">Lopende zaken</div>
         <div style="border: 1.5px dashed #B8C3D6; border-radius: 12px; padding: 16px; font-size: 15px; font-weight: 800; color: #3E4860">Varia</div>
@@ -78,20 +79,37 @@ a{color:#0B5FD8}a:hover{color:#08449C}
 
     <div style="flex: 1; padding: 20px 18px; display: flex; flex-direction: column; gap: 14px">
       <div style="align-self: flex-start; max-width: 92%; background: #F4F7FB; border-radius: 16px 16px 16px 4px; padding: 14px 16px; font-size: 15px; line-height: 1.5">
-        Welkom. In twee minuten staat je eerste overleg klaar, met de acties die nog openstaan. Je hoeft niets aan te maken of te koppelen.
+        Welkom. In twee minuten staat je eerste overleg klaar, met de acties die nog openstaan. Geen account nodig.
       </div>
       <div style="align-self: flex-start; max-width: 92%; background: #F4F7FB; border-radius: 16px 16px 16px 4px; padding: 14px 16px; font-size: 15px; line-height: 1.5; font-weight: 700">
-        Hoe wil je starten?
+        Waarmee wil je starten?
       </div>
-      <div style="display: flex; flex-direction: column; gap: 8px">
-        <a href="C2-Agent-begrijpt.dc.html" style="display: flex; flex-direction: column; gap: 2px; padding: 12px 14px; border: 2px solid #0B5FD8; background: #F2F7FF; border-radius: 12px; text-decoration: none; color: #16213A"><span style="font-size: 15px; font-weight: 800">Mijn volgende overleg</span><span style="font-size: 13px; color: #3E4860">Zeg in één zin waarover het gaat; ik stel een agenda voor.</span></a>
-        <a href="C3-Agent-acties.dc.html" style="display: flex; flex-direction: column; gap: 2px; padding: 12px 14px; border: 1px solid #C9D3E3; background: #FFFFFF; border-radius: 12px; text-decoration: none; color: #16213A"><span style="font-size: 15px; font-weight: 800">Notities van een vorig overleg</span><span style="font-size: 13px; color: #3E4860">Plak ze; ik haal de acties en eigenaars eruit.</span></a>
-        <a href="Stap2d-Voorbeelddata.dc.html" style="display: flex; flex-direction: column; gap: 2px; padding: 12px 14px; border: 1px solid #C9D3E3; background: #FFFFFF; border-radius: 12px; text-decoration: none; color: #16213A"><span style="font-size: 15px; font-weight: 800">Eerst een voorbeeld</span><span style="font-size: 13px; color: #3E4860">Bekijk hoe een opgevolgd overleg eruitziet.</span></a>
+      <div style="display: flex; flex-direction: column; gap: 10px">
+        <section aria-label="Uit je agenda" style="display: flex; flex-direction: column; gap: 10px; padding: 14px; border: 1px solid #C9D3E3; background: #FFFFFF; border-radius: 12px">
+          <span style="display: flex; flex-direction: column; gap: 2px"><span style="font-size: 15px; font-weight: 800">Uit mijn agenda</span><span style="font-size: 13px; color: #3E4860">Ik toon je vaste overleggen, jij kiest er één. Alleen lezen.</span></span>
+          <span style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px">
+            <a href="C1b-Agenda-gekoppeld.dc.html" style="display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 44px; border: 1px solid #C9D3E3; border-radius: 10px; font-size: 14px; font-weight: 700; color: #16213A; text-decoration: none"><svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="2" width="9" height="9" fill="#F25022"></rect><rect x="13" y="2" width="9" height="9" fill="#7FBA00"></rect><rect x="2" y="13" width="9" height="9" fill="#00A4EF"></rect><rect x="13" y="13" width="9" height="9" fill="#FFB900"></rect></svg>Outlook</a>
+            <a href="C1b-Agenda-gekoppeld.dc.html" style="display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 44px; border: 1px solid #C9D3E3; border-radius: 10px; font-size: 14px; font-weight: 700; color: #16213A; text-decoration: none"><svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8" fill="none" stroke="#4285F4" stroke-width="3"></circle></svg>Google</a>
+          </span>
+        </section>
+
+        <section aria-label="Notities van een vorig overleg" style="display: flex; flex-direction: column; gap: 10px; padding: 14px; border: 1px solid #C9D3E3; background: #FFFFFF; border-radius: 12px">
+          <span style="display: flex; flex-direction: column; gap: 2px"><span style="font-size: 15px; font-weight: 800">Notities van een vorig overleg</span><span style="font-size: 13px; color: #3E4860">Ik haal de acties en eigenaars eruit.</span></span>
+          <div style="border: 1.5px dashed #A9B4C8; background: #FBFCFE; border-radius: 10px; padding: 12px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#3E4860" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 16V4M7 9l5-5 5 5M4 16v3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-3"></path></svg>
+            <span style="flex: 1 1 140px; font-size: 13px; color: #3E4860; line-height: 1.4">Sleep een bestand hierheen<br>Word, PDF, e-mail of foto</span>
+            <a href="C3-Agent-acties.dc.html" style="display: inline-flex; align-items: center; min-height: 40px; padding: 0 12px; border: 1px solid #C9D3E3; border-radius: 10px; font-size: 14px; font-weight: 700; color: #16213A; text-decoration: none; background: #FFFFFF">Kies bestand</a>
+          </div>
+          <a href="C3-Agent-acties.dc.html" style="font-size: 14px; font-weight: 700">Of plak de tekst</a>
+        </section>
+
+        <a href="C2-Agent-begrijpt.dc.html" style="display: flex; flex-direction: column; gap: 2px; padding: 12px 14px; border: 1px solid #C9D3E3; background: #FFFFFF; border-radius: 12px; text-decoration: none; color: #16213A"><span style="font-size: 15px; font-weight: 800">Vertel het me</span><span style="font-size: 13px; color: #3E4860">Eén zin over je volgende overleg; ik stel een agenda voor.</span></a>
       </div>
+      <a href="Stap2d-Voorbeelddata.dc.html" style="font-size: 14px; font-weight: 700; color: #3E4860">Eerst een voorbeeld bekijken</a>
     </div>
 
     <div style="padding: 14px 18px 18px; border-top: 1px solid #E3E8F1; display: flex; flex-direction: column; gap: 8px">
-      <label for="c1-bericht" style="font-size: 13px; font-weight: 700; color: #3E4860">Of vertel het meteen</label>
+      <label for="c1-bericht" style="font-size: 13px; font-weight: 700; color: #3E4860">Of typ meteen</label>
       <div style="display: flex; gap: 8px; align-items: flex-end">
         <textarea id="c1-bericht" rows="2" placeholder="Bijv. ons wekelijks productieoverleg: orders, problemen en planning" style="flex: 1; min-width: 0; font-family: inherit; font-size: 15px; line-height: 1.45; padding: 11px 12px; border: 1px solid #C9D3E3; border-radius: 12px; resize: none; color: #16213A"></textarea>
         <button type="button" aria-label="Inspreken" style="width: 46px; height: 46px; border-radius: 12px; border: 1px solid #C9D3E3; background: #FFFFFF; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#16213A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="3" width="6" height="11" rx="3"></rect><path d="M5 11a7 7 0 0 0 14 0M12 18v3"></path></svg></button>

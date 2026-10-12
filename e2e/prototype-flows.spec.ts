@@ -82,7 +82,7 @@ test.describe("Vier flows vanaf /prototype", () => {
     errors.assertNone();
   });
 
-  test("flow 3: Outlook, overlegstructuur en acties uit notities (variant B)", async ({ page }) => {
+  test("flow 3: overlegstructuur en acties uit notities", async ({ page }) => {
     const errors = trackErrors(page);
     const shot = shooter(page, "flow-3");
     await page.goto("/b");
@@ -221,7 +221,7 @@ test.describe("Vier randgevallen vanaf /prototype", () => {
   });
 });
 
-test.describe("Variant B in detail", () => {
+test.describe("Flow 3 in detail", () => {
   test("/b/structuur: minstens één overleg, knoptekst volgt het aantal", async ({ page }) => {
     await startFlow(page, /Start flow 3:/);
     await page.goto("/b/structuur");

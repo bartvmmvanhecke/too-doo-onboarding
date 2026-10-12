@@ -17,7 +17,6 @@ export interface Flow extends FlowPreset {
   title: string;
   text: string;
   steps: string[];
-  variant: "A" | "B";
 }
 
 export const FLOWS: Flow[] = [
@@ -26,7 +25,6 @@ export const FLOWS: Flow[] = [
     title: "Outlook, overleg kiezen en aanvullen",
     text: "Inloggen met Microsoft, je vaste overleg kiezen uit Outlook en de openstaande acties aanvullen.",
     steps: ["Account", "Microsoft", "Outlook", "Lijst", "Acties", "App"],
-    variant: "A",
     demo: { login: "success", calendar: "series" },
     start: "/start",
   },
@@ -35,16 +33,14 @@ export const FLOWS: Flow[] = [
     title: "E-mail en wachtwoord, overleg zelf samenstellen",
     text: "Account met werk-e-mail, geen agendakoppeling: het overleg en de acties vul je zelf in.",
     steps: ["Account", "E-mail", "Zelf invullen", "Acties", "App"],
-    variant: "A",
     demo: {},
     start: "/start",
   },
   {
     id: 3,
-    title: "Outlook, overlegstructuur en acties uit notities",
-    text: "Variant B: too-doo toont je overlegstructuur uit Outlook en haalt de acties uit je notities.",
+    title: "Overlegstructuur en acties uit notities",
+    text: "too-doo toont je overlegstructuur uit Outlook en haalt de acties uit je notities.",
     steps: ["Account", "Microsoft", "Structuur", "Acties uit notities", "Overzicht"],
-    variant: "B",
     demo: { login: "success", calendar: "series" },
     start: "/start",
   },
@@ -53,7 +49,6 @@ export const FLOWS: Flow[] = [
     title: "Inloggen en niets doen",
     text: "Inloggen met Microsoft en de onboarding overslaan: je landt in de lege app.",
     steps: ["Account", "Microsoft", "Ik doe dit later", "Lege app"],
-    variant: "A",
     demo: { login: "success" },
     start: "/start",
   },

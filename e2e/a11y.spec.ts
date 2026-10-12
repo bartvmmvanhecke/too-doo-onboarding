@@ -83,7 +83,7 @@ const CASES: { name: string; path: string; setup?: (page: import("@playwright/te
   { name: "reis", path: "/b/reis" },
   { name: "mail", path: "/b/mail" },
   {
-    name: "variant B: voorstellen uit notities",
+    name: "flow 3: voorstellen uit notities",
     path: "/prototype",
     setup: async (page) => {
       await page.getByRole("button", { name: /Start flow 3:/ }).click();
@@ -94,7 +94,7 @@ const CASES: { name: string; path: string; setup?: (page: import("@playwright/te
     },
   },
   {
-    name: "variant B: overzicht",
+    name: "flow 3: overzicht",
     path: "/prototype",
     setup: async (page) => {
       await page.getByRole("button", { name: /Start flow 3:/ }).click();

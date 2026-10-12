@@ -90,7 +90,7 @@ test.describe("flowkeuze-knop met de twee varianten", () => {
 
   test("ontbreekt op /prototype", async ({ page }) => {
     await page.goto("/prototype");
-    await expect(page.getByRole("heading", { name: "Kies een flow" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Variant B · Classic Onboarding" })).toBeVisible();
     await expect(page.getByRole("button", { name: /^Flowkeuze/ })).toHaveCount(0);
     await page.getByRole("link", { name: "Ga terug naar website" }).click();
     await expect(page).toHaveURL(/\/$/);

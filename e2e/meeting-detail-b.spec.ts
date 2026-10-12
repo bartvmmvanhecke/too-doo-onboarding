@@ -109,9 +109,13 @@ test("voorstellen behouden focus, bevestiging en weigering", async ({ page }) =>
   await expect(page.getByText("Voorstel: vrijdag")).toBeVisible();
   await page.getByRole("button", { name: "Geen actie" }).first().click();
   await expect(page.getByRole("button", { name: "Bevestig actie" })).toHaveCount(1);
-  await input.press("Control+Enter");
+  await page.keyboard.press("Control+Enter");
   await expect.poll(async () => (await state(page)).actions.length).toBe(1);
   expect((await state(page)).actions[0]).toMatchObject({ ownerId: "jp", deadline: "2026-10-23" });
+  await expect(page.getByRole("button", { name: "Bevestig actie" })).toHaveCount(0);
+  await page.reload();
+  await expect(page.getByRole("heading", { name: "Productie", level: 1 })).toBeVisible();
+  await page.waitForTimeout(1200);
   await expect(page.getByRole("button", { name: "Bevestig actie" })).toHaveCount(0);
 });
 test("plakken maakt punten en notities, voorbeelden komen terug na verwijderen", async ({ page }) => {
@@ -175,4 +179,31 @@ test("toegankelijk document en schermopbouw", async ({ page }) => {
   const result = await new AxeBuilder({ page }).include(".meeting-document").analyze();
   expect(result.violations).toEqual([]);
   await page.screenshot({ path: "/tmp/meeting-detail-b-preview.png", fullPage: true });
+});
+
+test("wijzigingen in de bronregel blijven bewaard na bevestiging", async ({ page }) => {
+  await seed(page, false);
+  const source = page.getByLabel("Agendapunt in Lopende zaken");
+  await source.fill("Jan maakt de offerte voor vrijdag");
+  await page.getByRole("button", { name: "Bevestig actie" }).click();
+  expect((await state(page)).blocks[0].items[0].text).toBe("Jan maakt de offerte voor vrijdag");
+  const { default: AxeBuilder } = await import("@axe-core/playwright");
+  await page.getByLabel("Nieuw agendapunt", { exact: true }).fill("Punt /be");
+  const result = await new AxeBuilder({ page }).include(".meeting-document").analyze();
+  expect(result.violations).toEqual([]);
+});
+
+test("variantkeuze en toevoegen van een notitie werken zonder focusverlies", async ({ page }) => {
+  await seed(page, false);
+  await page.getByRole("button", { name: "Prototype-menu" }).click();
+  await expect(page.getByRole("button", { name: "Variant A", exact: true })).toBeFocused();
+  await page.keyboard.press("ArrowRight");
+  await expect(page.getByRole("button", { name: "Variant B", exact: true })).toBeFocused();
+  await page.keyboard.press("Enter");
+  await expect(page.getByRole("menu", { name: "Prototype-menu" })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Prototype-menu" })).toBeFocused();
+  await page.getByLabel("Agendapunt in Lopende zaken").focus();
+  await page.getByRole("button", { name: "Toevoegen bij item-1" }).click();
+  await page.getByRole("option", { name: "Notitie", exact: true }).click();
+  await expect(page.getByLabel("Nieuwe ingesprongen regel")).toBeFocused();
 });

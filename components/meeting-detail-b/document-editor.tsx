@@ -1,5 +1,5 @@
 "use client";
-import { useRef, useState, useEffect, type KeyboardEvent } from "react";
+import { useRef, useState, useEffect, useLayoutEffect, type KeyboardEvent } from "react";
 import { toast } from "sonner";
 import { Plus, GripVertical } from "lucide-react";
 import { newBlock, blockDuration, type AgendaBlock, type AgendaItem, type EntryKind, type Entry } from "@/lib/agenda";
@@ -34,6 +34,7 @@ export function DocumentEditor({ meeting }: { meeting: Meeting }) {
   const [edits, setEdits] = useState<Record<string, string>>({});
   const [currentDraft, setDraft] = useState<Draft | null>(null);
   const draft = currentDraft;
+  const pendingFocus = useRef<string | null>(null);
   const committedDraft = useRef<string | null>(null);
   const sequence = useRef(0);
   const documentFile = useRef<HTMLInputElement>(null);
@@ -50,12 +51,22 @@ export function DocumentEditor({ meeting }: { meeting: Meeting }) {
   useEffect(() => {
     if (!content) refs.current.get("empty-")?.focus();
   }, [content]);
-  const focus = (id: string) =>
+  function applyFocus(id: string) {
+    const el = document.getElementById(id) as HTMLInputElement | null;
+    if (!el) return false;
+    el.focus();
+    el.setSelectionRange(el.value.length, el.value.length);
+    return true;
+  }
+  useLayoutEffect(() => {
+    if (pendingFocus.current && applyFocus(pendingFocus.current)) pendingFocus.current = null;
+  });
+  const focus = (id: string) => {
+    pendingFocus.current = id;
     requestAnimationFrame(() => {
-      const el = document.getElementById(id) as HTMLInputElement | null;
-      el?.focus();
-      el?.setSelectionRange(el.value.length, el.value.length);
+      if (pendingFocus.current === id && applyFocus(id)) pendingFocus.current = null;
     });
+  };
   function empty(blockId: string, afterId?: string, parentId?: string, kind?: EntryKind, afterEntryId?: string) {
     const id = `draft-${++sequence.current}`;
     setDraft({ id, blockId, afterId, parentId, kind, afterEntryId, text: "" });
@@ -63,7 +74,13 @@ export function DocumentEditor({ meeting }: { meeting: Meeting }) {
   }
   function saveDraft(sourceText?: string) {
     const draft = sourceText !== undefined && currentDraft ? { ...currentDraft, text: sourceText } : currentDraft;
-    if (!draft?.text.trim() || /^#\s*$/.test(draft.text.trim()) || /^\[\s?\]\s*$/.test(draft.text.trim())) return null;
+    if (
+      !draft?.text.trim() ||
+      committedDraft.current === draft.id ||
+      /^#\s*$/.test(draft.text.trim()) ||
+      /^\[\s?\]\s*$/.test(draft.text.trim())
+    )
+      return null;
     committedDraft.current = draft.id;
     let blockId = draft.blockId;
     if (!blockId) {
@@ -260,11 +277,21 @@ export function DocumentEditor({ meeting }: { meeting: Meeting }) {
         participants={people}
         meetingDate={meeting.date || ""}
         immediate={reviewed[sourceId] === text}
+        onResolved={() => {
+          if (draft?.id === sourceId) {
+            const saved = saveDraft();
+            if (saved) focus(("entryId" in saved ? saved.entryId : undefined) ?? saved.id);
+          } else if (itemId) {
+            if (sourceId === itemId) ops.updateItem(meeting.id, itemId, parseDuration(text));
+            else ops.updateEntry(meeting.id, itemId, sourceId, { text });
+          }
+        }}
         confirm={(suggestion) => {
           let target = itemId;
           if (!target || draft?.id === sourceId) {
             const saved = saveDraft();
             target = saved?.id ?? target;
+            if (saved) focus(("entryId" in saved ? saved.entryId : undefined) ?? saved.id);
           }
           if (target) confirmSuggestion(target, suggestion, note);
         }}
@@ -357,6 +384,7 @@ export function DocumentEditor({ meeting }: { meeting: Meeting }) {
                 if (e.shiftKey || (e.key === "Enter" && draft?.parentId)) {
                   e.preventDefault();
                   setDraft((d) => (d ? { ...d, parentId: undefined, kind: undefined } : d));
+                  focus(id);
                 } else if (parent) {
                   e.preventDefault();
                   setDraft((d) => (d ? { ...d, parentId: parent, afterId: parent, kind: "note" } : d));
@@ -522,7 +550,7 @@ export function DocumentEditor({ meeting }: { meeting: Meeting }) {
               people={people}
               update={(patch) => ops.updateItem(meeting.id, item.id, patch)}
               add={(kind) => addAt(item.id, kind)}
-              focus={() => focus(item.id)}
+              focus={() => focus(draft?.parentId === item.id ? draft.id : item.id)}
             />
           )}
           <span className="document-reveal text-[10px] text-ink-3">↵</span>

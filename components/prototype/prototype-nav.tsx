@@ -120,9 +120,20 @@ export function PrototypeNav() {
                 <div className="border-b border-line pb-2 mb-2">
                   <p className="px-2 text-xs text-ink-3">Meeting detail: variant A / B</p>
                   <div className="flex" role="group" aria-label="Meeting detail: variant A / B">
-                    {(["a", "b"] as const).map((variant) => (
+                    {(["a", "b"] as const).map((variant, index) => (
                       <button
                         key={variant}
+                        ref={(el) => {
+                          itemRefs.current[index] = el;
+                        }}
+                        tabIndex={-1}
+                        onKeyDown={(e) => {
+                          if (e.key === "ArrowLeft" || e.key === "ArrowRight") {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            itemRefs.current[1 - index]?.focus();
+                          }
+                        }}
                         type="button"
                         aria-pressed={variantB === (variant === "b")}
                         className="min-h-11 flex-1 rounded-lg text-sm font-semibold hover:bg-app aria-pressed:bg-brand-soft aria-pressed:text-brand"
@@ -145,7 +156,7 @@ export function PrototypeNav() {
                   <button
                     key={item.id}
                     ref={(el) => {
-                      itemRefs.current[i] = el;
+                      itemRefs.current[i + (showVariant ? 2 : 0)] = el;
                     }}
                     type="button"
                     role="menuitem"

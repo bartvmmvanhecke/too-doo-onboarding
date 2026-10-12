@@ -24,7 +24,6 @@ export function LinePicker({
   function select(option: Option) {
     option.select();
     setOpen(false);
-    onClose?.();
   }
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -148,15 +147,24 @@ export function LineFields({
         {ENTRY_KINDS.map((k) => {
           const n = item.entries.filter((e) => e.kind === k.kind).length;
           return n > 0 ? (
-            <button
-              type="button"
-              key={k.kind}
-              aria-label={`${n} ${k.plural}`}
-              className="min-h-11 text-[11px] text-ink-3"
-              onClick={() => document.querySelector<HTMLInputElement>(`[data-entry-parent="${item.id}"]`)?.focus()}
-            >
-              {k.label.slice(0, 1)} {n}
-            </button>
+            <Popover key={k.kind}>
+              <PopoverTrigger asChild>
+                <button type="button" aria-label={`${n} ${k.plural}`} className="min-h-11 text-[11px] text-ink-3">
+                  {k.label.slice(0, 1)} {n}
+                </button>
+              </PopoverTrigger>
+              <PopoverContent className="app-theme w-72">
+                <p className="px-2 py-1 text-xs font-semibold text-ink-3">{k.plural}</p>
+                {item.entries
+                  .filter((e) => e.kind === k.kind)
+                  .map((e) => (
+                    <p key={e.id} className="px-2 py-2 text-sm">
+                      {e.text}
+                      {e.date && <span className="ml-2 text-xs text-ink-3">{e.date}</span>}
+                    </p>
+                  ))}
+              </PopoverContent>
+            </Popover>
           ) : null;
         })}
         <span className="document-reveal">

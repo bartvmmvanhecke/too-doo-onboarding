@@ -18,7 +18,11 @@ export default defineConfig({
       use: { ...devices["Desktop Chrome"], viewport: { width: 1440, height: 900 } },
       testIgnore: /responsive\.spec\.ts/,
     },
-    { name: "mobiel", use: { ...devices["Pixel 7"] }, testMatch: /(responsive|prototype-nav)\.spec\.ts/ },
+    {
+      name: "mobiel",
+      use: { ...devices["Pixel 7"] },
+      testMatch: /(responsive|prototype-nav|meeting-detail-b)\.spec\.ts/,
+    },
   ],
   webServer: {
     command: `npx next start -p ${PORT}`,

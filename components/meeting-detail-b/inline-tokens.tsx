@@ -1,6 +1,6 @@
 "use client";
 import { Command, CommandList, CommandGroup, CommandItem, CommandEmpty } from "@/components/ui/command";
-import { useState, type KeyboardEvent } from "react";
+import { useState, useRef, useLayoutEffect, type KeyboardEvent } from "react";
 import { PURPOSES, ENTRY_KINDS, type AgendaItem, type EntryKind } from "@/lib/agenda";
 import type { Person } from "@/lib/mock-data";
 
@@ -45,6 +45,16 @@ export function TokenInput({
   onPaste?: React.ClipboardEventHandler<HTMLInputElement>;
   onFocus?: () => void;
 }) {
+  const pendingLine = useRef<string | null>(null);
+  useLayoutEffect(() => {
+    if (!pendingLine.current) return;
+    const next = document.getElementById(pendingLine.current) as HTMLInputElement | null;
+    if (next) {
+      next.focus();
+      next.setSelectionRange(0, 0);
+      pendingLine.current = null;
+    }
+  });
   const [active, setActive] = useState(0);
   const [closed, setClosed] = useState<string | null>(null);
   const match = text.match(/(?:^|\s)([@/])([^\s]*)$/);
@@ -136,11 +146,7 @@ export function TokenInput({
                 .reduce((n, line) => n + line.length + 1, 0);
               const at = prefix + (e.currentTarget.selectionStart ?? line.length);
               onChange(text.slice(0, at) + "\n" + text.slice(at));
-              requestAnimationFrame(() => {
-                const next = document.getElementById(`${id}-continuation-${lineIndex + 1}`) as HTMLInputElement | null;
-                next?.focus();
-                next?.setSelectionRange(0, 0);
-              });
+              pendingLine.current = `${id}-continuation-${lineIndex + 1}`;
               return;
             }
             onKeyDown(e);
@@ -150,9 +156,7 @@ export function TokenInput({
       {open && (
         <div
           data-line-menu
-          role="listbox"
           id={`tokens-${id}`}
-          aria-label="Invoerkeuzes"
           className="absolute left-0 top-full z-20 w-64 rounded-lg border border-line bg-white p-2 shadow-lg"
         >
           <Command
@@ -164,22 +168,17 @@ export function TokenInput({
               if (index >= 0) setActive(index);
             }}
           >
-            <CommandList>
+            <CommandList label="Invoerkeuzes">
               <CommandEmpty>Geen resultaten</CommandEmpty>
               {[...new Set(options.map((o) => o.group))].map((group) => (
                 <CommandGroup key={group} heading={group}>
                   {options
                     .filter((o) => o.group === group)
                     .map((o) => (
-                      <CommandItem
-                        key={o.label}
-                        id={`token-${id}-${options.indexOf(o)}`}
-                        value={o.label}
-                        onSelect={() => select(options.indexOf(o))}
-                        asChild
-                      >
+                      <CommandItem key={o.label} value={o.label} onSelect={() => select(options.indexOf(o))} asChild>
                         <button
                           type="button"
+                          id={`token-${id}-${options.indexOf(o)}`}
                           className="w-full text-left"
                           tabIndex={0}
                           onMouseDown={(e) => e.preventDefault()}

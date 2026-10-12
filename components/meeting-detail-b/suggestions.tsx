@@ -60,7 +60,7 @@ export function SuggestionCards({
   }
   useEffect(() => {
     const listener = (e: globalThis.KeyboardEvent) => {
-      if (document.activeElement?.id !== sourceId || !suggestions.length) return;
+      if ((document.activeElement as HTMLElement | null)?.dataset.sourceId !== sourceId || !suggestions.length) return;
       if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
         e.preventDefault();
         e.stopImmediatePropagation();

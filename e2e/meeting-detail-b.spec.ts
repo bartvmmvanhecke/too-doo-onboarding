@@ -31,6 +31,7 @@ async function seed(page: Page, empty = true) {
         invited: true,
         held: false,
       };
+      raw.version = 4;
       raw.state.meetings = [meeting];
       raw.state.user = { firstName: "Jan", lastName: "Peeters", email: "jan@example.com", company: "Metaalwerken" };
       localStorage.setItem("too-doo-onboarding", JSON.stringify(raw));
@@ -47,7 +48,7 @@ test("deelbare variant, gedeelde data en menu alleen op detail", async ({ page }
   const errors = trackErrors(page);
   await seed(page);
   await expect(page.getByText("Typ, plak", { exact: false })).toBeVisible();
-  const input = page.getByRole("textbox", { name: "Nieuw agendapunt", exact: true });
+  const input = page.getByLabel("Nieuw agendapunt", { exact: true });
   await expect(input).toBeFocused();
   await input.fill("Nieuw punt 10m");
   await expect(page.getByText("Typ, plak", { exact: false })).toHaveCount(0);
@@ -66,7 +67,7 @@ test("deelbare variant, gedeelde data en menu alleen op detail", async ({ page }
 });
 test("toetsenbord: notities, checkboxactie, nieuw blok, eigenaar, doel en pauze", async ({ page }) => {
   await seed(page, false);
-  let input = page.getByRole("textbox", { name: "Nieuw agendapunt", exact: true });
+  let input = page.getByLabel("Nieuw agendapunt", { exact: true });
   await input.fill("Notitie");
   await input.press("Tab");
   input = page.getByRole("textbox", { name: "Nieuwe ingesprongen regel" });
@@ -75,11 +76,12 @@ test("toetsenbord: notities, checkboxactie, nieuw blok, eigenaar, doel en pauze"
   await input.press("Enter");
   expect((await state(page)).actions[0].what).toBe("Maak de offerte");
   await input.press("Enter");
-  input = page.getByRole("textbox", { name: "Nieuw agendapunt", exact: true }).first();
+  input = page.getByLabel("Nieuw agendapunt", { exact: true }).first();
   await input.fill("# Varia");
   await input.press("Enter");
   await expect(page.getByRole("textbox", { name: "Bloktitel" }).last()).toHaveValue("Varia");
-  input = page.getByRole("textbox", { name: "Nieuw agendapunt", exact: true }).last();
+  input = page.getByLabel("Nieuw agendapunt", { exact: true }).last();
+  input = page.locator("input[data-document-line]:focus");
   await input.fill("Offerte @Jan");
   await input.press("Enter");
   await input.press("End");
@@ -93,14 +95,14 @@ test("toetsenbord: notities, checkboxactie, nieuw blok, eigenaar, doel en pauze"
   const item = (await state(page)).blocks.at(-1).items[0];
   expect(item.ownerIds).toEqual(["jp"]);
   expect(item.purposes).toContain("decide");
-  input = page.getByRole("textbox", { name: "Nieuw agendapunt", exact: true }).last();
+  input = page.getByLabel("Nieuw agendapunt", { exact: true }).last();
   await input.fill("/pauze");
   await input.press("Enter");
   await expect(page.getByText("Pauze · 5 min", { exact: true })).toBeVisible();
 });
 test("voorstellen behouden focus, bevestiging en weigering", async ({ page }) => {
   await seed(page);
-  const input = page.getByRole("textbox", { name: "Nieuw agendapunt", exact: true });
+  const input = page.getByLabel("Nieuw agendapunt", { exact: true });
   await input.fill("Sofie belt de leverancier opnieuw. Jan maakt de nieuwe offerte voor vrijdag.");
   await expect(page.getByRole("button", { name: "Bevestig actie" })).toHaveCount(2);
   await expect(input).toBeFocused();
@@ -114,7 +116,7 @@ test("voorstellen behouden focus, bevestiging en weigering", async ({ page }) =>
 });
 test("plakken maakt punten en notities, voorbeelden komen terug na verwijderen", async ({ page }) => {
   await seed(page);
-  const input = page.getByRole("textbox", { name: "Nieuw agendapunt", exact: true });
+  const input = page.getByLabel("Nieuw agendapunt", { exact: true });
   await input.evaluate((el) => {
     const data = new DataTransfer();
     data.setData("text/plain", "- Eerste punt\n  Een notitie\n1. Tweede punt");
@@ -129,4 +131,48 @@ test("plakken maakt punten en notities, voorbeelden komen terug na verwijderen",
   await points.first().fill("");
   await points.first().press("Backspace");
   await expect(page.getByText("Typ, plak", { exact: false })).toBeVisible();
+});
+
+test("focus blijft na Tab en Shift+Enter bewaart een regeleinde in dezelfde titel", async ({ page }) => {
+  await seed(page, false);
+  const input = page.getByLabel("Nieuw agendapunt", { exact: true });
+  await input.fill("Een notitie");
+  await page.keyboard.press("Tab");
+  await expect(page.getByLabel("Nieuwe ingesprongen regel")).toBeFocused();
+  await page.keyboard.press("Enter");
+  await page.keyboard.press("Enter");
+  await expect(page.locator("input[data-document-line]:focus")).toHaveAttribute("aria-label", "Nieuw agendapunt");
+  await page.keyboard.type("Eerste titelregel");
+  await page.keyboard.press("Shift+Enter");
+  await expect(page.getByLabel("Nieuw agendapunt, vervolg 2")).toBeFocused();
+  await page.keyboard.type("Tweede titelregel");
+  await page.keyboard.press("Enter");
+  expect((await state(page)).blocks[0].items[1].text).toBe("Eerste titelregel\nTweede titelregel");
+});
+test("blok verwijderen verschuift punten en kan ongedaan gemaakt worden", async ({ page }) => {
+  await seed(page, false);
+  await page.getByLabel("Nieuw agendapunt", { exact: true }).fill("# Tweede blok");
+  await page.keyboard.press("Enter");
+  await page.keyboard.type("Tweede punt");
+  await page.keyboard.press("Enter");
+  const title = page.getByLabel("Bloktitel").last();
+  await title.fill("");
+  await title.press("Enter");
+  expect((await state(page)).blocks[0].items.map((i: { text: string }) => i.text)).toEqual([
+    "Leverancier",
+    "Tweede punt",
+  ]);
+  await page.getByRole("button", { name: "Ongedaan maken" }).click();
+  await expect(page.getByLabel("Bloktitel").last()).toHaveValue("Tweede blok");
+});
+test("toegankelijk document en schermopbouw", async ({ page }) => {
+  await seed(page, false);
+  await page
+    .getByLabel("Nieuw agendapunt", { exact: true })
+    .fill("Sofie belt de staal-leverancier opnieuw. Jan maakt de nieuwe offerte voor vrijdag.");
+  await expect(page.getByRole("button", { name: "Bevestig actie" })).toHaveCount(2);
+  const { default: AxeBuilder } = await import("@axe-core/playwright");
+  const result = await new AxeBuilder({ page }).include(".meeting-document").analyze();
+  expect(result.violations).toEqual([]);
+  await page.screenshot({ path: "/tmp/meeting-detail-b-preview.png", fullPage: true });
 });

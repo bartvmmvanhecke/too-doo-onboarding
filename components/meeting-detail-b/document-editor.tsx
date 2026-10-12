@@ -20,6 +20,7 @@ type Draft = {
   text: string;
   patch?: Partial<AgendaItem>;
   parentId?: string;
+  afterEntryId?: string;
   kind?: EntryKind;
   ownerId?: string | null;
   date?: string;
@@ -33,7 +34,10 @@ export function DocumentEditor({ meeting }: { meeting: Meeting }) {
   const [edits, setEdits] = useState<Record<string, string>>({});
   const [currentDraft, setDraft] = useState<Draft | null>(null);
   const draft = currentDraft;
+  const committedDraft = useRef<string | null>(null);
   const sequence = useRef(0);
+  const documentFile = useRef<HTMLInputElement>(null);
+  const documentParent = useRef<string | null>(null);
   const refs = useRef(new Map<string, HTMLInputElement>());
   const ops = useStore.getState();
   const content = meeting.blocks.some((b) => b.items.some((i) => i.text.trim()));
@@ -48,18 +52,19 @@ export function DocumentEditor({ meeting }: { meeting: Meeting }) {
   }, [content]);
   const focus = (id: string) =>
     requestAnimationFrame(() => {
-      const el = refs.current.get(id);
+      const el = document.getElementById(id) as HTMLInputElement | null;
       el?.focus();
       el?.setSelectionRange(el.value.length, el.value.length);
     });
-  function empty(blockId: string, afterId?: string, parentId?: string, kind?: EntryKind) {
+  function empty(blockId: string, afterId?: string, parentId?: string, kind?: EntryKind, afterEntryId?: string) {
     const id = `draft-${++sequence.current}`;
-    setDraft({ id, blockId, afterId, parentId, kind, text: "" });
+    setDraft({ id, blockId, afterId, parentId, kind, afterEntryId, text: "" });
     focus(id);
   }
   function saveDraft(sourceText?: string) {
     const draft = sourceText !== undefined && currentDraft ? { ...currentDraft, text: sourceText } : currentDraft;
-    if (!draft?.text.trim()) return null;
+    if (!draft?.text.trim() || /^#\s*$/.test(draft.text.trim()) || /^\[\s?\]\s*$/.test(draft.text.trim())) return null;
+    committedDraft.current = draft.id;
     let blockId = draft.blockId;
     if (!blockId) {
       const block = newBlock("topics", { title: "" });
@@ -79,6 +84,17 @@ export function DocumentEditor({ meeting }: { meeting: Meeting }) {
         ownerId: draft.ownerId ?? draft.patch?.ownerIds?.[0] ?? null,
         date: draft.date ?? "",
       });
+      if (draft.afterEntryId) {
+        const item = useStore
+          .getState()
+          .meetings.find((m) => m.id === meeting.id)!
+          .blocks.flatMap((b) => b.items)
+          .find((i) => i.id === draft.parentId)!;
+        const added = item.entries.find((e) => e.id === entryId)!;
+        const entries = item.entries.filter((e) => e.id !== entryId);
+        entries.splice(entries.findIndex((e) => e.id === draft.afterEntryId) + 1, 0, added);
+        ops.updateItem(meeting.id, item.id, { entries });
+      }
       setDraft(null);
       return { id: draft.parentId, blockId, entryId, kind: action ? ("action" as const) : (draft.kind ?? "note") };
     }
@@ -187,6 +203,11 @@ export function DocumentEditor({ meeting }: { meeting: Meeting }) {
     if (last) focus(last);
   }
   function addAt(itemId: string, kind: EntryKind | "break") {
+    if (kind === "document") {
+      documentParent.current = itemId;
+      documentFile.current?.click();
+      return;
+    }
     if (kind === "break") {
       const id = ops.addBlock(meeting.id, "break");
       const bi = meeting.blocks.findIndex((b) => b.items.some((i) => i.id === itemId));
@@ -252,7 +273,8 @@ export function DocumentEditor({ meeting }: { meeting: Meeting }) {
   }
   function draftRow(blockId: string, afterId?: string) {
     const active = draft?.blockId === blockId && draft.afterId === afterId;
-    const id = active ? draft.id : `empty-${blockId}`;
+    const baseId = `empty-${blockId}`;
+    const id = active ? draft.id : draft?.id === baseId ? `${baseId}-available` : baseId;
     const text = active ? draft.text : "";
     const temp: AgendaItem = {
       id,
@@ -304,11 +326,17 @@ export function DocumentEditor({ meeting }: { meeting: Meeting }) {
               }
             }}
             onFocus={() => {
-              if (!active) setDraft({ id, blockId, afterId, text: "" });
+              if (!active) {
+                committedDraft.current = null;
+                setDraft({ id, blockId, afterId, text: "" });
+              }
             }}
-            onChange={(text) => setDraft((d) => ({ ...(active ? d : {}), id, blockId, afterId, text }))}
+            onChange={(text) => {
+              if (committedDraft.current === id) committedDraft.current = null;
+              setDraft((d) => ({ ...(active ? d : {}), id, blockId, afterId, text }));
+            }}
             onBlur={() => {
-              if (active && draft.text.trim()) saveDraft();
+              if (active && draft.text.trim() && committedDraft.current !== id) saveDraft();
             }}
             onKeyDown={(e) => {
               if (arrows(e)) return;
@@ -321,6 +349,7 @@ export function DocumentEditor({ meeting }: { meeting: Meeting }) {
                     saved.id,
                     "entryId" in saved ? saved.id : undefined,
                     "kind" in saved ? saved.kind : undefined,
+                    "entryId" in saved ? saved.entryId : undefined,
                   );
               }
               if (e.key === "Tab" || (e.key === "Enter" && !text && active && draft.parentId)) {
@@ -331,6 +360,7 @@ export function DocumentEditor({ meeting }: { meeting: Meeting }) {
                 } else if (parent) {
                   e.preventDefault();
                   setDraft((d) => (d ? { ...d, parentId: parent, afterId: parent, kind: "note" } : d));
+                  focus(id);
                 }
               }
               if (e.key === "Backspace" && !text) {
@@ -498,8 +528,13 @@ export function DocumentEditor({ meeting }: { meeting: Meeting }) {
           <span className="document-reveal text-[10px] text-ink-3">↵</span>
         </div>
         {proposals(item.id, text, item.id)}
-        {item.entries.map((entry) => entryRow(entry, item, block))}
-        {draft?.blockId === block.id && draft.afterId === item.id && draftRow(block.id, item.id)}
+        {item.entries.map((entry) => (
+          <div key={entry.id}>
+            {entryRow(entry, item, block)}
+            {draft?.afterEntryId === entry.id && draftRow(block.id, item.id)}
+          </div>
+        ))}
+        {draft?.blockId === block.id && draft.afterId === item.id && !draft.afterEntryId && draftRow(block.id, item.id)}
       </div>
     );
   }
@@ -580,7 +615,7 @@ export function DocumentEditor({ meeting }: { meeting: Meeting }) {
               } else if (e.key === "Enter") {
                 e.preventDefault();
                 save();
-                empty(block.id, item.id, item.id, entry.kind);
+                empty(block.id, item.id, item.id, entry.kind, entry.id);
               }
               if (e.key === "Backspace" && !text) {
                 e.preventDefault();
@@ -605,6 +640,27 @@ export function DocumentEditor({ meeting }: { meeting: Meeting }) {
   }
   return (
     <div>
+      <input
+        ref={documentFile}
+        type="file"
+        className="sr-only"
+        tabIndex={-1}
+        aria-label="Document toevoegen"
+        onChange={(e) => {
+          const file = e.target.files?.[0];
+          const itemId = documentParent.current;
+          if (file && itemId)
+            ops.addEntry(meeting.id, itemId, {
+              kind: "document",
+              text: file.name,
+              size: file.size,
+              ownerId: null,
+              date: "",
+            });
+          e.target.value = "";
+          if (itemId) focus(itemId);
+        }}
+      />
       <p className="sr-only" aria-live="polite">
         {announcement}
       </p>

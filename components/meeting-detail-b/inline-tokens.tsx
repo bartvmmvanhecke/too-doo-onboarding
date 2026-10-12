@@ -1,4 +1,5 @@
 "use client";
+import { Command, CommandList, CommandGroup, CommandItem, CommandEmpty } from "@/components/ui/command";
 import { useState, type KeyboardEvent } from "react";
 import { PURPOSES, ENTRY_KINDS, type AgendaItem, type EntryKind } from "@/lib/agenda";
 import type { Person } from "@/lib/mock-data";
@@ -75,61 +76,77 @@ export function TokenInput({
     setActive(0);
   }
   return (
-    <div className="relative min-w-28 flex-1">
-      <input
-        ref={inputRef}
-        autoFocus={autoFocus}
-        data-document-line
-        id={id}
-        aria-label={label}
-        className="w-full text-sm"
-        placeholder={placeholder}
-        value={text.replaceAll("\n", " ↵ ")}
-        onPaste={onPaste}
-        onFocus={onFocus}
-        onChange={(e) => {
-          onChange(e.target.value.replaceAll(" ↵ ", "\n"));
-          setClosed(null);
-          setActive(0);
-        }}
-        onBlur={(e) => {
-          if (
-            !e.relatedTarget?.closest("[data-line-menu], .suggestion-card, [data-slot=popover-content]") &&
-            !(e.relatedTarget instanceof HTMLButtonElement && e.relatedTarget.closest(".document-row"))
-          )
-            onBlur?.(text);
-        }}
-        role={open ? "combobox" : undefined}
-        aria-expanded={open || undefined}
-        aria-controls={open ? `tokens-${id}` : undefined}
-        aria-activedescendant={open && options[active] ? `token-${id}-${active}` : undefined}
-        onKeyDown={(e) => {
-          if (open) {
-            if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+    <div className="relative min-w-28 flex-1" data-line-source={id}>
+      {text.split("\n").map((line, lineIndex) => (
+        <input
+          key={lineIndex}
+          ref={lineIndex === 0 ? inputRef : undefined}
+          autoFocus={autoFocus && lineIndex === 0}
+          data-document-line
+          id={lineIndex === 0 ? id : `${id}-continuation-${lineIndex}`}
+          data-source-id={id}
+          aria-label={lineIndex === 0 ? label : `${label}, vervolg ${lineIndex + 1}`}
+          className="w-full text-sm"
+          placeholder={placeholder}
+          value={line}
+          onPaste={onPaste}
+          onFocus={onFocus}
+          onChange={(e) => {
+            const lines = text.split("\n");
+            lines[lineIndex] = e.target.value;
+            onChange(lines.join("\n"));
+            setClosed(null);
+            setActive(0);
+          }}
+          onBlur={(e) => {
+            if (
+              e.relatedTarget?.closest("[data-line-source]")?.getAttribute("data-line-source") !== id &&
+              !e.relatedTarget?.closest("[data-line-menu], .suggestion-card, [data-slot=popover-content]") &&
+              !(e.relatedTarget instanceof HTMLButtonElement && e.relatedTarget.closest(".document-row"))
+            )
+              onBlur?.(text);
+          }}
+          role={open ? "combobox" : undefined}
+          aria-expanded={open || undefined}
+          aria-controls={open ? `tokens-${id}` : undefined}
+          aria-activedescendant={open && options[active] ? `token-${id}-${active}` : undefined}
+          onKeyDown={(e) => {
+            if (open) {
+              if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+                e.preventDefault();
+                setActive((n) => (n + (e.key === "ArrowDown" ? 1 : -1) + options.length) % Math.max(1, options.length));
+                return;
+              }
+              if (e.key === "Enter") {
+                e.preventDefault();
+                select(active);
+                return;
+              }
+              if (e.key === "Escape") {
+                e.preventDefault();
+                setClosed(match![0]);
+                return;
+              }
+            }
+            if (e.key === "Enter" && e.shiftKey) {
               e.preventDefault();
-              setActive((n) => (n + (e.key === "ArrowDown" ? 1 : -1) + options.length) % Math.max(1, options.length));
+              const prefix = text
+                .split("\n")
+                .slice(0, lineIndex)
+                .reduce((n, line) => n + line.length + 1, 0);
+              const at = prefix + (e.currentTarget.selectionStart ?? line.length);
+              onChange(text.slice(0, at) + "\n" + text.slice(at));
+              requestAnimationFrame(() => {
+                const next = document.getElementById(`${id}-continuation-${lineIndex + 1}`) as HTMLInputElement | null;
+                next?.focus();
+                next?.setSelectionRange(0, 0);
+              });
               return;
             }
-            if (e.key === "Enter") {
-              e.preventDefault();
-              select(active);
-              return;
-            }
-            if (e.key === "Escape") {
-              e.preventDefault();
-              setClosed(match![0]);
-              return;
-            }
-          }
-          if (e.key === "Enter" && e.shiftKey) {
-            e.preventDefault();
-            const at = e.currentTarget.selectionStart ?? text.length;
-            onChange(text.slice(0, at) + "\n" + text.slice(at));
-            return;
-          }
-          onKeyDown(e);
-        }}
-      />
+            onKeyDown(e);
+          }}
+        />
+      ))}
       {open && (
         <div
           data-line-menu
@@ -138,26 +155,44 @@ export function TokenInput({
           aria-label="Invoerkeuzes"
           className="absolute left-0 top-full z-20 w-64 rounded-lg border border-line bg-white p-2 shadow-lg"
         >
-          {options.map((o, i) => (
-            <div key={o.label}>
-              {(i === 0 || options[i - 1].group !== o.group) && (
-                <p className="px-2 py-1 text-xs text-ink-3">{o.group}</p>
-              )}
-              <button
-                type="button"
-                role="option"
-                id={`token-${id}-${i}`}
-                aria-selected={active === i}
-                className="min-h-11 w-full rounded px-2 text-left text-sm aria-selected:bg-brand-soft"
-                onMouseDown={(e) => e.preventDefault()}
-                onClick={() => select(i)}
-              >
-                {o.label}
-                {purposes.some((p) => PURPOSES.find((x) => x.value === p)?.label === o.label) ? " ✓" : ""}
-              </button>
-            </div>
-          ))}
-          {!options.length && <p className="text-sm text-ink-3">Geen resultaten</p>}
+          <Command
+            label="Invoerkeuzes"
+            shouldFilter={false}
+            value={options[active]?.label ?? ""}
+            onValueChange={(value) => {
+              const index = options.findIndex((o) => o.label === value);
+              if (index >= 0) setActive(index);
+            }}
+          >
+            <CommandList>
+              <CommandEmpty>Geen resultaten</CommandEmpty>
+              {[...new Set(options.map((o) => o.group))].map((group) => (
+                <CommandGroup key={group} heading={group}>
+                  {options
+                    .filter((o) => o.group === group)
+                    .map((o) => (
+                      <CommandItem
+                        key={o.label}
+                        id={`token-${id}-${options.indexOf(o)}`}
+                        value={o.label}
+                        onSelect={() => select(options.indexOf(o))}
+                        asChild
+                      >
+                        <button
+                          type="button"
+                          className="w-full text-left"
+                          tabIndex={0}
+                          onMouseDown={(e) => e.preventDefault()}
+                        >
+                          {o.label}
+                          {purposes.some((p) => PURPOSES.find((x) => x.value === p)?.label === o.label) ? " ✓" : ""}
+                        </button>
+                      </CommandItem>
+                    ))}
+                </CommandGroup>
+              ))}
+            </CommandList>
+          </Command>
         </div>
       )}
     </div>

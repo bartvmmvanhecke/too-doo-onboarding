@@ -1,13 +1,14 @@
 "use client";
 import { useState } from "react";
 import { Check, Plus } from "lucide-react";
+import { Command, CommandInput, CommandList, CommandGroup, CommandItem, CommandEmpty } from "@/components/ui/command";
 import { Avatar } from "@/components/avatar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { ENTRY_KINDS, PURPOSES, PURPOSE_CLASS, type AgendaItem, type EntryKind } from "@/lib/agenda";
 import type { Person } from "@/lib/mock-data";
 
 type Option = { label: string; group?: string; checked?: boolean; select: () => void };
-/** Command-style keuzelijst met zoeken en volledige toetsenbordbediening, zonder extra dependency. */
+/** Shadcn Command in een popover; sluiten brengt de focus terug naar de bronregel. */
 export function LinePicker({
   label,
   children,
@@ -20,13 +21,9 @@ export function LinePicker({
   onClose?: () => void;
 }) {
   const [open, setOpen] = useState(false);
-  const [query, setQuery] = useState("");
-  const [active, setActive] = useState(0);
-  const filtered = options.filter((o) => o.label.toLowerCase().includes(query.toLowerCase()));
   function select(option: Option) {
     option.select();
     setOpen(false);
-    setQuery("");
     onClose?.();
   }
   return (
@@ -45,51 +42,26 @@ export function LinePicker({
           }
         }}
       >
-        <input
-          aria-label={`Zoeken: ${label}`}
-          role="combobox"
-          aria-expanded="true"
-          aria-controls={`picker-${label}`}
-          aria-activedescendant={filtered.length ? `picker-${label}-${active}` : undefined}
-          className="min-h-11 w-full border-b border-line px-2 text-sm outline-none"
-          placeholder="Zoeken…"
-          value={query}
-          onChange={(e) => {
-            setQuery(e.target.value);
-            setActive(0);
-          }}
-          onKeyDown={(e) => {
-            if (e.key === "ArrowDown" || e.key === "ArrowUp") {
-              e.preventDefault();
-              setActive((n) => (n + (e.key === "ArrowDown" ? 1 : -1) + filtered.length) % Math.max(1, filtered.length));
-            }
-            if (e.key === "Enter" && filtered[active]) {
-              e.preventDefault();
-              select(filtered[active]);
-            }
-          }}
-        />
-        <div role="listbox" id={`picker-${label}`} aria-label={label}>
-          {filtered.map((o, i) => (
-            <div key={o.label}>
-              {o.group && (i === 0 || filtered[i - 1].group !== o.group) && (
-                <p className="px-2 pt-2 text-xs text-ink-3">{o.group}</p>
-              )}
-              <button
-                id={`picker-${label}-${i}`}
-                role="option"
-                aria-selected={active === i}
-                type="button"
-                className="flex min-h-11 w-full items-center justify-between rounded px-2 text-left text-sm aria-selected:bg-brand-soft"
-                onClick={() => select(o)}
-              >
-                {o.label}
-                {o.checked && <Check size={14} aria-hidden />}
-              </button>
-            </div>
-          ))}
-          {!filtered.length && <p className="p-2 text-sm text-ink-3">Geen resultaten</p>}
-        </div>
+        <Command label={label} loop>
+          <CommandInput aria-label={`Zoeken: ${label}`} placeholder="Zoeken…" />
+          <CommandList>
+            <CommandEmpty>Geen resultaten</CommandEmpty>
+            {[...new Set(options.map((o) => o.group ?? ""))].map((group) => (
+              <CommandGroup key={group} heading={group || undefined}>
+                {options
+                  .filter((o) => (o.group ?? "") === group)
+                  .map((o) => (
+                    <CommandItem key={o.label} value={o.label} onSelect={() => select(o)} asChild>
+                      <button type="button" className="w-full text-left" tabIndex={0}>
+                        {o.label}
+                        {o.checked && <Check size={14} aria-hidden />}
+                      </button>
+                    </CommandItem>
+                  ))}
+              </CommandGroup>
+            ))}
+          </CommandList>
+        </Command>
       </PopoverContent>
     </Popover>
   );

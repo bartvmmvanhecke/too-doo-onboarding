@@ -11,8 +11,10 @@ import { usePeople, useStore, type Meeting } from "@/lib/store";
 type Draft = { id: string; blockId: string; afterId?: string; text: string; patch?: Partial<AgendaItem>; parentId?: string; kind?: EntryKind; ownerId?: string | null; date?: string };
 export function DocumentEditor({ meeting }: { meeting: Meeting }) {
   const people = usePeople().filter((p) => meeting.participants.includes(p.id));
+  const [announcement, setAnnouncement] = useState("");
   const [edits, setEdits] = useState<Record<string, string>>({});
-  const [draft, setDraft] = useState<Draft | null>(null);
+  const [currentDraft, setDraft] = useState<Draft | null>(null);
+  const draft = currentDraft;
   const sequence = useRef(0);
   const refs = useRef(new Map<string, HTMLInputElement>());
   const ops = useStore.getState();
@@ -23,7 +25,8 @@ export function DocumentEditor({ meeting }: { meeting: Meeting }) {
     setDraft({ id, blockId, afterId, parentId, kind, text: "" });
     focus(id);
   }
-  function saveDraft() {
+  function saveDraft(sourceText?: string) {
+    const draft = sourceText !== undefined && currentDraft ? { ...currentDraft, text: sourceText } : currentDraft;
     if (!draft?.text.trim()) return null;
     let blockId = draft.blockId;
     if (!blockId) {
@@ -73,7 +76,12 @@ export function DocumentEditor({ meeting }: { meeting: Meeting }) {
     toast("Blok verwijderd", { action: { label: "Ongedaan maken", onClick: () => ops.putMeeting({ ...useStore.getState().meetings.find((m) => m.id === meeting.id)!, blocks: snapshot.blocks }) } });
   }
   function addAt(itemId: string, kind: EntryKind | "break") {
-    if (kind === "break") { ops.addBlock(meeting.id, "break"); return; }
+    if (kind === "break") {
+      const id = ops.addBlock(meeting.id, "break");
+      const bi = meeting.blocks.findIndex((b) => b.items.some((i) => i.id === itemId));
+      if (bi >= 0) ops.moveBlock(meeting.id, id, bi + 1);
+      return;
+    }
     const block = meeting.blocks.find((b) => b.items.some((i) => i.id === itemId));
     if (block) empty(block.id, itemId, itemId, kind);
   }
@@ -89,10 +97,13 @@ export function DocumentEditor({ meeting }: { meeting: Meeting }) {
     const text = active ? draft.text : "";
     const temp: AgendaItem = { id, text, duration: null, ownerIds: [], purposes: [], entries: [], ...(active ? draft.patch : {}) };
     const patch = (p: Partial<AgendaItem>) => setDraft((d) => d ? { ...d, patch: { ...d.patch, ...p } } : d);
-    const add = (kind: EntryKind | "break") => { const saved = saveDraft(); if (saved) addAt(saved.id, kind); };
+    const add = (kind: EntryKind | "break", sourceText?: string) => {
+      if (kind === "break") { const bid = ops.addBlock(meeting.id, "break"); const bi = meeting.blocks.findIndex((b) => b.id === blockId); if (bi >= 0) ops.moveBlock(meeting.id, bid, bi + 1); setDraft(null); empty(blockId, afterId); return; }
+      const saved = saveDraft(sourceText); if (saved) addAt(saved.id, kind);
+    };
     return <div key={id} className={`document-row flex flex-wrap items-center gap-1 ${active && draft.parentId ? "ml-7" : ""}`}>
       {active && (draft.kind === "action" || /^\[\s?\]/.test(text)) ? <input type="checkbox" disabled aria-label="Nieuwe actie" /> : <Plus size={14} className="text-ink-3 shrink-0" aria-hidden />}
-      <TokenInput id={id} text={text} label={active && draft.parentId ? "Nieuwe ingesprongen regel" : "Nieuw agendapunt"} people={people} inputRef={(el) => { if (el) refs.current.set(id, el); else refs.current.delete(id); }} placeholder="Typ een agendapunt…" update={patch} add={add}
+      <TokenInput id={id} text={text} label={active && draft.parentId ? "Nieuwe ingesprongen regel" : "Nieuw agendapunt"} people={people} inputRef={(el) => { if (el) refs.current.set(id, el); else refs.current.delete(id); }} placeholder="Typ een agendapunt…" purposes={temp.purposes} update={patch} add={add}
         onFocus={() => { if (!active) setDraft({ id, blockId, afterId, text: "" }); }}
         onChange={(text) => setDraft((d) => ({ ...(active ? d : {}), id, blockId, afterId, text }))}
         onBlur={() => { if (active && draft.text.trim()) saveDraft(); }}
@@ -111,10 +122,12 @@ export function DocumentEditor({ meeting }: { meeting: Meeting }) {
   }
   function itemRow(item: AgendaItem, block: AgendaBlock) {
     const text = edits[item.id] ?? item.text;
-    return <div key={item.id}>
+    return <div key={item.id} onDragOver={(e) => { if (e.dataTransfer.types.includes("text/agenda-item")) e.preventDefault(); }} onDrop={(e) => { const id = e.dataTransfer.getData("text/agenda-item"); if (id) { e.preventDefault(); e.stopPropagation(); const from = block.items.findIndex((i) => i.id === id); ops.moveItem(meeting.id, id, block.id, Math.max(0, block.items.indexOf(item) - (from >= 0 && from < block.items.indexOf(item) ? 1 : 0))); setAnnouncement("Agendapunt verplaatst"); } }}>
       <div className="document-row group flex flex-wrap items-center gap-1 text-sm">
-        <button type="button" aria-label={`Verplaats ${item.text}`} className="document-reveal min-h-11 w-5"><GripVertical size={14} /></button><span aria-hidden>•</span>
-        <TokenInput id={item.id} text={text} label={`Agendapunt in ${block.title || "naamloos blok"}`} people={people} inputRef={(el) => { if (el) refs.current.set(item.id, el); else refs.current.delete(item.id); }} onChange={(text) => setEdits((e) => ({ ...e, [item.id]: text }))} update={(patch) => ops.updateItem(meeting.id, item.id, patch)} add={(kind) => addAt(item.id, kind)} onBlur={(text) => saveItem(item, text)} onKeyDown={(e) => {
+        <button type="button" draggable onDragStart={(e) => { e.dataTransfer.setData("text/agenda-item", item.id); e.dataTransfer.effectAllowed = "move"; }} onKeyDown={(e) => {
+          if (e.key === "ArrowUp" || e.key === "ArrowDown") { e.preventDefault(); const index = block.items.indexOf(item); const delta = e.key === "ArrowUp" ? -1 : 1; const target = index + delta; const topics = blocks.filter((b) => b.kind === "topics"); const next = topics[topics.indexOf(block) + delta]; if (target >= 0 && target < block.items.length) ops.moveItem(meeting.id, item.id, block.id, target); else if (next) ops.moveItem(meeting.id, item.id, next.id, delta > 0 ? 0 : next.items.length); setAnnouncement(`${item.text} verplaatst`); requestAnimationFrame(() => document.querySelector<HTMLButtonElement>(`[data-b-grip="${item.id}"]`)?.focus()); }
+        }} data-b-grip={item.id} aria-label={`Verplaats ${item.text}`} className="document-reveal min-h-11 w-5"><GripVertical size={14} /></button><span aria-hidden>•</span>
+        <TokenInput id={item.id} text={text} label={`Agendapunt in ${block.title || "naamloos blok"}`} people={people} inputRef={(el) => { if (el) refs.current.set(item.id, el); else refs.current.delete(item.id); }} onChange={(text) => setEdits((e) => ({ ...e, [item.id]: text }))} update={(patch) => ops.updateItem(meeting.id, item.id, patch)} purposes={item.purposes} add={(kind, sourceText) => { if (sourceText !== undefined) saveItem(item, sourceText); addAt(item.id, kind); }} onBlur={(text) => saveItem(item, text)} onKeyDown={(e) => {
           if (arrows(e)) return;
           if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); if (text.trim()) { saveItem(item, text); empty(block.id, item.id); } }
           if (e.key === "Tab" && !e.shiftKey) {
@@ -143,7 +156,7 @@ export function DocumentEditor({ meeting }: { meeting: Meeting }) {
     const action = meeting.actions.find((a) => a.id === entry.actionId);
     return <div key={entry.id} className="document-row ml-7 flex flex-wrap items-center gap-2 text-sm">
       {entry.kind === "action" ? <label className="flex min-h-11 items-center"><input type="checkbox" aria-label={`Actie afronden: ${entry.text}`} checked={action?.done ?? false} onChange={() => { if (entry.actionId) ops.toggleAction(meeting.id, entry.actionId); }} /></label> : entry.kind !== "note" ? <span className="text-xs text-brand">{entry.kind === "decision" ? "Beslissing" : "Document"}</span> : <span aria-hidden className="text-ink-3">↳</span>}
-      <TokenInput id={entry.id} text={text} label={`${entry.kind === "action" ? "Actie" : "Notitie"} bij ${item.text}`} people={people} inputRef={(el) => { if (el) { refs.current.set(entry.id, el); el.dataset.entryParent = item.id; } else refs.current.delete(entry.id); }} onChange={(text) => setEdits((e) => ({ ...e, [entry.id]: text }))} update={(patch) => { if (patch.ownerIds) update({ ownerId: patch.ownerIds[0] ?? null }); }} add={(kind) => addAt(item.id, kind)} onBlur={save} onKeyDown={(e) => {
+      <TokenInput id={entry.id} text={text} label={`${entry.kind === "action" ? "Actie" : "Notitie"} bij ${item.text}`} people={people} inputRef={(el) => { if (el) { refs.current.set(entry.id, el); el.dataset.entryParent = item.id; } else refs.current.delete(entry.id); }} onChange={(text) => setEdits((e) => ({ ...e, [entry.id]: text }))} update={(patch) => { if (patch.ownerIds) update({ ownerId: patch.ownerIds[0] ?? null }); }} purposes={item.purposes} add={(kind, sourceText) => { if (sourceText !== undefined) saveItem(item, sourceText); addAt(item.id, kind); }} onBlur={save} onKeyDown={(e) => {
         if (arrows(e)) return;
         if ((e.key === "Enter" && !text) || (e.key === "Tab" && e.shiftKey)) { e.preventDefault(); ops.removeEntry(meeting.id, item.id, entry.id); if (text.trim()) { const id = ops.addAgendaItem(meeting.id, block.id, text); ops.moveItem(meeting.id, id, block.id, block.items.indexOf(item) + 1); focus(id); } else empty(block.id, item.id); }
         else if (e.key === "Enter") { e.preventDefault(); save(); empty(block.id, item.id, item.id, entry.kind); }
@@ -153,9 +166,10 @@ export function DocumentEditor({ meeting }: { meeting: Meeting }) {
     </div>;
   }
   return <div>
-    {blocks.map((b) => <section key={b.id} className="mb-5">
+    <p className="sr-only" aria-live="polite">{announcement}</p>
+    {blocks.map((b) => <section key={b.id} className="mb-5" onDragOver={(e) => e.preventDefault()} onDrop={(e) => { e.preventDefault(); const itemId = e.dataTransfer.getData("text/agenda-item"); const blockId = e.dataTransfer.getData("text/agenda-block"); if (itemId && b.kind === "topics") ops.moveItem(meeting.id, itemId, b.id, b.items.length); if (blockId) { const from = meeting.blocks.findIndex((x) => x.id === blockId); const to = meeting.blocks.indexOf(b); ops.moveBlock(meeting.id, blockId, Math.max(0, to - (from < to ? 1 : 0))); } setAnnouncement("Agenda verplaatst"); }}>
       {b.kind === "break" ? <div className="flex items-center gap-3 text-xs text-ink-3"><hr className="flex-1 border-line" />Pauze · {b.duration} min<hr className="flex-1 border-line" /></div> : <>
-        {b.title && <div className="document-row flex items-center gap-2"><input aria-label="Bloktitel" className="flex-1 text-lg font-semibold" defaultValue={b.title} onBlur={(e) => { if (e.target.value.trim()) ops.updateBlock(meeting.id, b.id, { title: e.target.value }); }} onKeyDown={(e) => { if ((e.key === "Enter" || e.key === "Backspace") && !e.currentTarget.value) { e.preventDefault(); removeBlock(b); } else if (e.key === "Enter") { ops.updateBlock(meeting.id, b.id, { title: e.currentTarget.value }); empty(b.id); } }} /><span className="document-reveal text-xs text-ink-3">{blockDuration(b) ? `${blockDuration(b)} min` : ""}</span></div>}
+        {b.title && <div className="document-row flex items-center gap-2"><button type="button" draggable aria-label={`Verplaats blok ${b.title}`} className="document-reveal min-h-11 w-5" onDragStart={(e) => e.dataTransfer.setData("text/agenda-block", b.id)} onKeyDown={(e) => { if (e.key === "ArrowUp" || e.key === "ArrowDown") { e.preventDefault(); ops.moveBlock(meeting.id, b.id, Math.max(0, meeting.blocks.indexOf(b) + (e.key === "ArrowUp" ? -1 : 1))); setAnnouncement(`${b.title} verplaatst`); } }}><GripVertical size={14} aria-hidden /></button><input aria-label="Bloktitel" className="flex-1 text-lg font-semibold" defaultValue={b.title} onBlur={(e) => { if (e.target.value.trim()) ops.updateBlock(meeting.id, b.id, { title: e.target.value }); }} onKeyDown={(e) => { if ((e.key === "Enter" || e.key === "Backspace") && !e.currentTarget.value) { e.preventDefault(); removeBlock(b); } else if (e.key === "Enter") { ops.updateBlock(meeting.id, b.id, { title: e.currentTarget.value }); empty(b.id); } }} /><span className="document-reveal text-xs text-ink-3">{blockDuration(b) ? `${blockDuration(b)} min` : ""}</span></div>}
         {b.items.map((i) => itemRow(i, b))}
         {draftRow(b.id)}
       </>}

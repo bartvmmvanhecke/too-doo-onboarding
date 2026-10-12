@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { MeetingDetail } from "@/components/meeting/meeting-detail";
 import { newBlock, newItem, type AgendaBlock } from "@/lib/agenda";
 import { nextWeekday, toISO, WEEKDAY } from "@/lib/date";
@@ -59,13 +60,23 @@ function exampleMeeting(blocks: AgendaBlock[]): Meeting {
 export function ExampleScreen() {
   const [seed] = useState(exampleBlocks);
   const meeting = useStore((s) => s.meetings.find((m) => m.id === EXAMPLE_MEETING_ID));
+  const params = useSearchParams();
+  // Vanuit de proefomgeving van Variant A (/probeer): terugknop, en eventueel meteen de overlegmodus.
+  const fromTrial = params.get("van") === "probeer";
+  const startRun = fromTrial && params.get("start") === "1";
 
   useEffect(() => {
     const { putMeeting, removeMeeting } = useStore.getState();
     putMeeting(exampleMeeting(seed));
+    if (startRun) useStore.getState().startRun(EXAMPLE_MEETING_ID);
     return () => removeMeeting(EXAMPLE_MEETING_ID);
-  }, [seed]);
+  }, [seed, startRun]);
 
   if (!meeting) return null;
-  return <MeetingDetail meeting={meeting} example={{ seed }} />;
+  return (
+    <MeetingDetail
+      meeting={meeting}
+      example={{ seed, back: fromTrial ? { label: "Terug naar je proefomgeving", href: "/probeer" } : undefined }}
+    />
+  );
 }

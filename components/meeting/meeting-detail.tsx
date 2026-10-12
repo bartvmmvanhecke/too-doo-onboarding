@@ -145,7 +145,14 @@ function tourSteps(meeting: Meeting): TourStep[] {
  * Met `example` (op /voorbeeld) komen er een statusbanner, een rondleiding en de
  * zwevende checklist "Aan de slag" bij.
  */
-export function MeetingDetail({ meeting, example }: { meeting: Meeting; example?: { seed: AgendaBlock[] } }) {
+export function MeetingDetail({
+  meeting,
+  example,
+}: {
+  meeting: Meeting;
+  /** `back`: terugknop naar de proefomgeving van Variant A, in de voorbeeldbalk en de checklist. */
+  example?: { seed: AgendaBlock[]; back?: { label: string; href: string } };
+}) {
   const moreAdded = useStore((s) => s.moreMeetingsAdded);
   const extraPeople = useStore((s) => s.extraPeople);
   const people = usePeople();
@@ -289,6 +296,7 @@ export function MeetingDetail({ meeting, example }: { meeting: Meeting; example?
             onShowMe={() => setTouring(true)}
             onStartBlank={startBlank}
             onDismiss={() => setBannerOpen(false)}
+            back={example.back}
           />
         )}
 
@@ -335,7 +343,7 @@ export function MeetingDetail({ meeting, example }: { meeting: Meeting; example?
             <div aria-hidden className="h-56" />
             <GettingStarted
               items={gettingStarted}
-              nextUp={{ label: "Zet je eigen vergadering klaar", href: "/overleg" }}
+              nextUp={example.back ?? { label: "Zet je eigen vergadering klaar", href: "/overleg" }}
               onClose={() => setChecklistOpen(false)}
             />
           </>

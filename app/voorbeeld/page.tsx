@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import type { Metadata } from "next";
 import { AppShell } from "@/components/app/app-shell";
 import { Hydrated } from "@/components/hydrated";
@@ -8,9 +9,11 @@ export const metadata: Metadata = { title: "Rondkijken met voorbeelddata · too-
 export default function Page() {
   return (
     <AppShell>
-      <Hydrated>
-        <ExampleScreen />
-      </Hydrated>
+      <Suspense fallback={null}>
+        <Hydrated>
+          <ExampleScreen />
+        </Hydrated>
+      </Suspense>
     </AppShell>
   );
 }

@@ -6,7 +6,7 @@ import { newBlock, newItem, todayISO } from "@/lib/agenda";
 import { ME, type GuestBundle } from "@/lib/assistant/types";
 import { formatShortDate, nextWeekday, toISO } from "@/lib/date";
 import { deriveMeetingType } from "@/lib/meeting";
-import { USER_PERSON_ID, type Person } from "@/lib/mock-data";
+import { PEOPLE, USER_PERSON_ID, type Person } from "@/lib/mock-data";
 import type { Action, Meeting } from "@/lib/store";
 import { uid } from "@/lib/utils";
 
@@ -16,10 +16,15 @@ export function guestBundles(s: GuestBundle & { others: GuestBundle[] }): GuestB
   return [...s.others, ...(s.meeting.name ? [current] : [])];
 }
 
-/** Deelnemers worden personen in de app; de gebruiker zelf is altijd USER_PERSON_ID. */
+/**
+ * Deelnemers worden personen in de app; de gebruiker zelf is altijd USER_PERSON_ID. Wie uit de agenda komt,
+ * bestaat al in de app (zelfde id) en wordt niet opnieuw toegevoegd.
+ */
 export function guestPeople(bundles: GuestBundle[]): Person[] {
   const seen = new Map<string, Person>();
-  for (const b of bundles) for (const p of b.meeting.participants) if (!seen.has(p.id)) seen.set(p.id, { ...p });
+  for (const b of bundles)
+    for (const p of b.meeting.participants)
+      if (!seen.has(p.id) && !PEOPLE.some((x) => x.id === p.id)) seen.set(p.id, { ...p });
   return [...seen.values()];
 }
 

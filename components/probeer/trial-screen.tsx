@@ -1,9 +1,11 @@
 "use client";
 
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { AssistantPanel, Chips } from "@/components/probeer/assistant-panel";
 import { DraftMeeting } from "@/components/probeer/draft-meeting";
+import { EntryBlocks, PickMeeting } from "@/components/probeer/entry-blocks";
+import { connectAccount } from "@/components/probeer/save-guest";
 import { TrialSidebar } from "@/components/probeer/trial-sidebar";
 import { Button } from "@/components/ui/button";
 import {
@@ -11,21 +13,21 @@ import {
   RECURRENCE_CHIPS,
   mailOwners,
   participantsText,
-  respond,
   whenText,
-  type AssistantInput,
-  type AssistantState,
+  type CalendarProvider,
+  type CalendarResult,
   type Message,
 } from "@/lib/assistant";
+import { appointmentOptions, seriesOptions } from "@/lib/assistant/calendar";
 import { formatShortDate } from "@/lib/date";
 import { LISTEN_DELAY, SAMPLE_TRANSCRIPT } from "@/lib/extract";
 import { hasGuestWork, useGuestStore } from "@/lib/guest-store";
+import { readNotesFile } from "@/lib/notes-file";
+import { useCalendarConsent, useSsoLogin } from "@/lib/simulate";
 import { useStore, type SaveIntent } from "@/lib/store";
 import { track } from "@/lib/track";
 import { cn, lowerFirst } from "@/lib/utils";
 
-/** Typ-indicator voor elk antwoord (600–900 ms). */
-const TYPING_DELAY = 750;
 const FLASH_MS = 2000;
 /** Per tabblad: één keer "Welkom terug" per bezoek. */
 const SESSION_KEY = "toodoo-guest-session";
@@ -44,30 +46,38 @@ const DAY_CHIPS = [
 
 const TIME_CHIPS = ["08:00", "09:00", "10:00", "14:00"].map((t) => ({ value: t, label: t }));
 
-const ENTRIES = [
-  {
-    id: "meeting" as const,
-    title: "Mijn volgende overleg",
-    text: "Zeg in één zin waarover het gaat; ik stel een agenda voor.",
-  },
-  {
-    id: "notes" as const,
-    title: "Notities van een vorig overleg",
-    text: "Plak ze; ik haal de acties en eigenaars eruit.",
-  },
-  { id: "example" as const, title: "Eerst een voorbeeld", text: "Bekijk hoe een opgevolgd overleg eruitziet." },
-];
+const PROVIDER_LABEL = { outlook: "Outlook", google: "Google" } as const;
 
-function assistantState(s: AssistantState): AssistantState {
-  return {
-    step: s.step,
-    entry: s.entry,
-    pending: s.pending,
-    meeting: s.meeting,
-    actions: s.actions,
-    decisions: s.decisions,
-    others: s.others,
-  };
+/**
+ * Eén keer per paginalading: meetpunt "trial_app_opened" en, bij terugkeer, "Welkom terug".
+ * Buiten React bijgehouden: Strict Mode en Activity (cacheComponents) laten effecten opnieuw lopen
+ * wanneer de pagina opnieuw zichtbaar wordt, en dat mag geen tweede bericht opleveren.
+ */
+let openedThisLoad = false;
+
+function openTrial() {
+  if (openedThisLoad) return;
+  openedThisLoad = true;
+  useStore.getState().setVariant("A");
+  track("trial_app_opened");
+  let first = true;
+  try {
+    first = !window.sessionStorage.getItem(SESSION_KEY);
+    window.sessionStorage.setItem(SESSION_KEY, "1");
+  } catch {
+    // sessionStorage niet beschikbaar: als eerste bezoek behandelen.
+  }
+  const guest = useGuestStore.getState();
+  if (first && hasGuestWork(guest)) {
+    track("guest_returned");
+    const name = guest.meeting.name ?? guest.others[0]?.meeting.name;
+    guest.addMessages([
+      {
+        from: "assistant",
+        text: `Welkom terug. Je ${lowerFirst(name ?? "overleg")} staat er nog. Bewaar het wanneer je wilt.`,
+      },
+    ]);
+  }
 }
 
 function SummaryCard() {
@@ -125,80 +135,86 @@ export function TrialScreen({ onSave }: { onSave: (intent: SaveIntent, trigger: 
   const meeting = useGuestStore((s) => s.meeting);
   const actions = useGuestStore((s) => s.actions);
   const others = useGuestStore((s) => s.others);
-  const [typing, setTyping] = useState(false);
+  const account = useGuestStore((s) => s.account);
+  const typing = useGuestStore((s) => s.typing);
+  const flashKeys = useGuestStore((s) => s.flash);
+  const flashAt = useGuestStore((s) => s.flashAt);
+  const editRequest = useGuestStore((s) => s.editRequest);
+  const dispatch = useGuestStore((s) => s.dispatch);
+  const sso = useSsoLogin();
+  const consent = useCalendarConsent();
   const [listening, setListening] = useState(false);
-  const [flash, setFlash] = useState<Set<string>>(new Set());
-  const [editRequest, setEditRequest] = useState(0);
+  const [connecting, setConnecting] = useState<CalendarProvider | null>(null);
+  const [reading, setReading] = useState<string | null>(null);
+  const [flashSeen, setFlashSeen] = useState(0);
   const [open, setOpen] = useState(true);
-  const timers = useRef<ReturnType<typeof setTimeout>[]>([]);
 
-  const later = (fn: () => void, ms: number) => timers.current.push(setTimeout(fn, ms));
+  useEffect(openTrial, []);
 
+  // De blauwe markering verdwijnt na 2 s. Geen cleanup: ook verborgen (Activity) mag ze gewoon aflopen.
   useEffect(() => {
-    const list = timers.current;
-    return () => list.forEach(clearTimeout);
-  }, []);
+    if (flashAt > flashSeen) setTimeout(() => setFlashSeen(flashAt), FLASH_MS);
+  }, [flashAt, flashSeen]);
+  const flash = new Set(flashAt > flashSeen ? flashKeys : []);
 
-  // Openen: meetpunt, actieve variant A, en bij terugkeer "Welkom terug".
-  useEffect(() => {
-    useStore.getState().setVariant("A");
-    track("trial_app_opened");
-    let first = true;
-    try {
-      first = !window.sessionStorage.getItem(SESSION_KEY);
-      window.sessionStorage.setItem(SESSION_KEY, "1");
-    } catch {
-      // sessionStorage niet beschikbaar: elke keer als eerste bezoek behandelen.
-    }
-    const guest = useGuestStore.getState();
-    if (first && hasGuestWork(guest)) {
-      track("guest_returned");
-      const name = guest.meeting.name ?? guest.others[0]?.meeting.name;
-      guest.addMessages([
-        {
-          from: "assistant",
-          text: `Welkom terug. Je ${lowerFirst(name ?? "overleg")} staat er nog. Bewaar het wanneer je wilt.`,
-        },
-      ]);
-    }
-  }, []);
-
-  const send = (input: AssistantInput, userText?: string) => {
-    if (typing) return;
-    const guest = useGuestStore.getState();
-    if (userText) guest.addMessages([{ from: "user", text: userText }]);
-    if (input.type === "text") track("assistant_message_sent", { stap: String(guest.step), lengte: input.text.length });
-    setTyping(true);
-    later(() => {
-      const s = useGuestStore.getState();
-      const reply = respond(assistantState(s), input);
-      s.applyReply(reply.state, reply.messages);
-      for (const [event, props] of reply.events) track(event, props);
-      if (reply.flash.length) {
-        setFlash(new Set(reply.flash));
-        later(() => setFlash(new Set()), FLASH_MS);
-      }
-      if (reply.edit) setEditRequest((n) => n + 1);
-      setTyping(false);
-    }, TYPING_DELAY);
+  const busy = typing || listening || connecting !== null || reading !== null;
+  const send = dispatch;
+  const sendText = (text: string) => {
+    if (!busy) send({ type: "text", text }, text);
   };
-
-  const sendText = (text: string) => send({ type: "text", text }, text);
 
   const canListen = ["entry", "sentence", "notes", "place-actions"].includes(pending.kind);
   const listen = () => {
-    if (listening || typing || !canListen) return;
+    if (busy || !canListen) return;
     setListening(true);
-    later(() => {
+    setTimeout(() => {
       setListening(false);
-      sendText(step === 1 ? SAMPLE_MEETING_SENTENCE : SAMPLE_TRANSCRIPT);
+      const text = step === 1 && pending.kind !== "notes" ? SAMPLE_MEETING_SENTENCE : SAMPLE_TRANSCRIPT;
+      send({ type: "text", text }, text);
     }, LISTEN_DELAY);
   };
 
-  const chooseEntry = (id: (typeof ENTRIES)[number]["id"], title: string) => {
-    track("assistant_entry_chosen", { ingang: id === "meeting" ? "meeting" : id === "notes" ? "notes" : "example" });
-    if (id === "example") return router.push("/voorbeeld?van=probeer");
-    send({ type: "entry", entry: id }, title);
+  /** "Uit mijn agenda": demo-uitkomsten voor login en agendatoestemming; koppelen = inloggen. */
+  const connectCalendar = async (provider: CalendarProvider) => {
+    if (busy) return;
+    track("assistant_entry_chosen", { ingang: "agenda", provider });
+    useGuestStore.getState().addMessages([{ from: "user", text: `Uit mijn agenda · ${PROVIDER_LABEL[provider]}` }]);
+    setConnecting(provider);
+    const login = await sso.start(provider === "outlook" ? "microsoft" : "google");
+    track("sso_result", { provider, resultaat: login });
+    let result: CalendarResult;
+    if (login === "blocked") result = { kind: "blocked" };
+    else {
+      const outcome = await consent.connect();
+      if (outcome === "series" || outcome === "none") connectAccount(provider);
+      result =
+        outcome === "series"
+          ? { kind: "series", options: seriesOptions() }
+          : outcome === "none"
+            ? { kind: "none", options: appointmentOptions() }
+            : { kind: outcome };
+    }
+    setConnecting(null);
+    send({ type: "calendar", provider, result });
+  };
+
+  /** Notities uit een bestand (dropzone, "Kies bestand", of slepen op "Openstaande acties"). */
+  const readFile = async (file: File) => {
+    if (busy) return;
+    if (pending.kind === "entry") track("assistant_entry_chosen", { ingang: "notes", bron: "bestand" });
+    setReading(file.name);
+    const result = await readNotesFile(file);
+    setReading(null);
+    send(
+      {
+        type: "notes-file",
+        name: result.name,
+        text: result.text,
+        sample: result.sample,
+        image: result.kind === "image",
+      },
+      `Bestand: ${result.name}`,
+    );
   };
 
   const owners = mailOwners(actions, meeting.participants);
@@ -224,26 +240,38 @@ export function TrialScreen({ onSave }: { onSave: (intent: SaveIntent, trigger: 
     </div>
   );
 
+  const tell = (label = "Vertel het me") => {
+    track("assistant_entry_chosen", { ingang: "meeting" });
+    send({ type: "entry", entry: "meeting" }, label);
+  };
+
   let controls: ReactNode = null;
   switch (pending.kind) {
     case "entry":
       controls = (
-        <div role="group" aria-label="Hoe wil je starten?" className="flex flex-col gap-2">
-          {ENTRIES.map((e, i) => (
-            <button
-              key={e.id}
-              type="button"
-              onClick={() => chooseEntry(e.id, e.title)}
-              className={cn(
-                "flex cursor-pointer flex-col gap-0.5 rounded-xl px-3.5 py-3 text-left",
-                i === 0 ? "border-2 border-brand bg-brand-selected" : "border border-line bg-white hover:bg-app",
-              )}
-            >
-              <span className="text-[15px] font-extrabold">{e.title}</span>
-              <span className="text-[13px] text-ink-2">{e.text}</span>
-            </button>
-          ))}
-        </div>
+        <EntryBlocks
+          busy={busy}
+          connecting={connecting}
+          reading={reading}
+          onCalendar={connectCalendar}
+          onFile={readFile}
+          onPaste={() => {
+            track("assistant_entry_chosen", { ingang: "notes", bron: "plakken" });
+            send({ type: "entry", entry: "notes" }, "Ik plak de tekst");
+          }}
+          onTell={() => tell()}
+          onExample={() => track("assistant_entry_chosen", { ingang: "example" })}
+        />
+      );
+      break;
+    case "pick-meeting":
+      controls = (
+        <PickMeeting
+          key={pending.options.map((o) => o.id).join()}
+          options={pending.options}
+          onPick={(o) => send({ type: "pick-meeting", id: o.id }, o.name)}
+          onTell={() => tell()}
+        />
       );
       break;
     case "day":
@@ -359,7 +387,7 @@ export function TrialScreen({ onSave }: { onSave: (intent: SaveIntent, trigger: 
   }
 
   const placeholder =
-    pending.kind === "entry" || pending.kind === "sentence"
+    pending.kind === "entry" || pending.kind === "sentence" || pending.kind === "pick-meeting"
       ? "Bijv. ons wekelijks productieoverleg: orders, problemen en planning"
       : pending.kind === "confirm-meeting"
         ? "Bijv. het duurt anderhalf uur"
@@ -375,6 +403,7 @@ export function TrialScreen({ onSave }: { onSave: (intent: SaveIntent, trigger: 
       <TrialSidebar
         meetingNames={meetingNames}
         canSave={step === 3 || others.length > 0}
+        account={account}
         onSave={() => onSave("save", "zijbalk")}
       />
       <main className={cn("min-w-0 flex-1 px-4 pt-5 sm:px-8 lg:pb-10", open ? "pb-[60dvh]" : "pb-16 lg:pr-24")}>
@@ -382,6 +411,9 @@ export function TrialScreen({ onSave }: { onSave: (intent: SaveIntent, trigger: 
           <DraftMeeting
             flash={flash}
             editRequest={editRequest}
+            account={account}
+            busy={busy}
+            onNotesFile={readFile}
             onSave={(intent) => onSave(intent, intent === "login" ? "ik-heb-al-een-account" : "start-overleg")}
             onExample={() => track("assistant_entry_chosen", { ingang: "example" })}
             onEditDone={() => send({ type: "edited" })}
@@ -400,13 +432,13 @@ export function TrialScreen({ onSave }: { onSave: (intent: SaveIntent, trigger: 
           !isLast ? null : card === "summary" ? <SummaryCard /> : <MailCard />
         }
         input={{
-          label: pending.kind === "entry" ? "Of vertel het meteen" : "Bericht aan de assistent",
+          label: pending.kind === "entry" ? "Of typ meteen" : "Bericht aan de assistent",
           visibleLabel: pending.kind === "entry",
           placeholder,
           onSend: sendText,
           onMic: listen,
           listening,
-          disabled: typing || listening,
+          disabled: busy,
         }}
       />
     </div>

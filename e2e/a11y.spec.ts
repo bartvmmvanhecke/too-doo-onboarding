@@ -84,7 +84,7 @@ const CASES: { name: string; path: string; setup?: (page: import("@playwright/te
     path: "/probeer",
     setup: async (page) => {
       await page
-        .getByRole("textbox", { name: "Of vertel het meteen" })
+        .getByRole("textbox", { name: "Of typ meteen" })
         .fill(
           "Ons productieoverleg, elke maandag om 8u met Jan, Sofie, Pieter en Karim: lopende orders, problemen en planning.",
         );
@@ -97,7 +97,7 @@ const CASES: { name: string; path: string; setup?: (page: import("@playwright/te
     path: "/probeer",
     setup: async (page) => {
       await page
-        .getByRole("textbox", { name: "Of vertel het meteen" })
+        .getByRole("textbox", { name: "Of typ meteen" })
         .fill("Ons productieoverleg, elke maandag om 8u met Jan, Sofie, Pieter en Karim");
       await page.keyboard.press("Enter");
       await page.getByRole("button", { name: "Klopt" }).click();

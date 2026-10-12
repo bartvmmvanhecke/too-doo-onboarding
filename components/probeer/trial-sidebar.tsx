@@ -5,6 +5,7 @@ import { Menu } from "lucide-react";
 import { Logo } from "@/components/brand";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import type { GuestAccount } from "@/lib/guest-store";
 import { notAvailable } from "@/lib/not-available";
 import { cn } from "@/lib/utils";
 
@@ -43,16 +44,27 @@ function NavItems({ meetingNames }: { meetingNames: string[] }) {
   );
 }
 
-function SaveBox({ canSave, onSave }: { canSave: boolean; onSave: () => void }) {
+function SaveBox({ canSave, onSave, account }: { canSave: boolean; onSave: () => void; account: GuestAccount | null }) {
   return (
     <div className="flex flex-col gap-1.5 border-t border-white/15 px-3 py-3.5">
-      <span className="text-sm font-extrabold">Nog niet bewaard</span>
-      <span className="text-[13px] leading-snug text-nav-muted">
-        Je werk staat op dit toestel. Bewaar het wanneer je wilt.
-      </span>
+      {account ? (
+        <>
+          <span className="text-sm font-extrabold">
+            {account.firstName} {account.lastName}
+          </span>
+          <span className="text-[13px] leading-snug text-nav-muted">Proefperiode · nog 30 dagen</span>
+        </>
+      ) : (
+        <>
+          <span className="text-sm font-extrabold">Nog niet bewaard</span>
+          <span className="text-[13px] leading-snug text-nav-muted">
+            Je werk staat op dit toestel. Bewaar het wanneer je wilt.
+          </span>
+        </>
+      )}
       {canSave && (
         <Button variant="inverse" size="sm" className="mt-1.5" onClick={onSave}>
-          Bewaar je overleg
+          {account ? "Open in je account" : "Bewaar je overleg"}
         </Button>
       )}
     </div>
@@ -64,10 +76,12 @@ export function TrialSidebar({
   meetingNames,
   canSave,
   onSave,
+  account,
 }: {
   meetingNames: string[];
   canSave: boolean;
   onSave: () => void;
+  account: GuestAccount | null;
 }) {
   return (
     <>
@@ -78,7 +92,7 @@ export function TrialSidebar({
         <Logo href="/" tone="white" className="self-start px-2.5 pb-5" />
         <NavItems meetingNames={meetingNames} />
         <div className="mt-auto">
-          <SaveBox canSave={canSave} onSave={onSave} />
+          <SaveBox canSave={canSave} onSave={onSave} account={account} />
         </div>
       </nav>
 
@@ -97,7 +111,7 @@ export function TrialSidebar({
           <PopoverContent align="start" className="w-64 bg-app-nav p-2 text-white">
             <nav aria-label="Hoofdmenu" className="flex flex-col gap-1">
               <NavItems meetingNames={meetingNames} />
-              <SaveBox canSave={canSave} onSave={onSave} />
+              <SaveBox canSave={canSave} onSave={onSave} account={account} />
             </nav>
           </PopoverContent>
         </Popover>

@@ -1,11 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useLayoutEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Loader2 } from "lucide-react";
 import { SaveDialog } from "@/components/probeer/save-dialog";
+import { saveGuestToApp } from "@/components/probeer/save-guest";
 import { TrialScreen } from "@/components/probeer/trial-screen";
-import { clearGuest } from "@/lib/guest-store";
+import { clearGuest, useGuestStore } from "@/lib/guest-store";
 import { useStore, type SaveIntent } from "@/lib/store";
 import { track } from "@/lib/track";
 
@@ -15,7 +16,19 @@ export function ProbeerScreen() {
   const [intent, setIntent] = useState<SaveIntent | null>(null);
   const [saved, setSaved] = useState(false);
 
+  // Activity (cacheComponents) houdt deze pagina verborgen bij na het bewaren: bij verbergen terug naar begin.
+  useLayoutEffect(
+    () => () => {
+      setSaved(false);
+      setIntent(null);
+    },
+    [],
+  );
+
   const openSave = (next: SaveIntent, trigger: string) => {
+    // Na "Uit mijn agenda" is er al een account: geen bewaar-modal meer, meteen naar de app.
+    const user = useGuestStore.getState().account && useStore.getState().user;
+    if (user) return onSaved(saveGuestToApp(user, next), next);
     track("save_prompt_shown", { intent: next, trigger });
     setIntent(next);
   };

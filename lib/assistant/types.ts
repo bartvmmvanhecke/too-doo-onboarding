@@ -35,7 +35,36 @@ export interface GuestMeeting {
   topics: GuestTopic[];
   /** Nog niet bevestigd met "Klopt". */
   proposed: boolean;
+  /** Uit de agenda overgenomen (label "uit Outlook"). */
+  source?: CalendarProvider | null;
 }
+
+export type CalendarProvider = "outlook" | "google";
+
+/** Een vast overleg of een losse afspraak uit de agenda, zoals de assistent ze toont (C1b). */
+export interface CalendarOption {
+  id: string;
+  name: string;
+  recurrence: Recurrence | null;
+  weekday: number | null;
+  time: Minutes;
+  duration: Minutes;
+  participants: GuestPerson[];
+  /** "jij organiseert" */
+  organizer: boolean;
+  /** Agendapunten uit de uitnodiging. */
+  topics: string[];
+  /** "Elke maandag 08:00 · 6 deelnemers" */
+  line: string;
+}
+
+/** Uitkomst van "Uit mijn agenda" (demo-uitkomsten voor login en agendatoestemming). */
+export type CalendarResult =
+  | { kind: "series"; options: CalendarOption[] }
+  | { kind: "none"; options: CalendarOption[] }
+  | { kind: "admin" }
+  | { kind: "cancelled" }
+  | { kind: "blocked" };
 
 export interface GuestAction {
   id: string;
@@ -56,7 +85,7 @@ export interface GuestDecision {
 
 export type GuestStep = 1 | 2 | 3 | "done";
 
-export type EntryChoice = "meeting" | "notes" | "example";
+export type EntryChoice = "meeting" | "notes" | "calendar" | "example";
 
 /** Wat de assistent nu vraagt; bepaalt de knoppen onder het laatste bericht. */
 export type Pending =
@@ -68,6 +97,7 @@ export type Pending =
   | { kind: "recurrence" }
   | { kind: "participants" }
   | { kind: "confirm-meeting" }
+  | { kind: "pick-meeting"; provider: CalendarProvider; options: CalendarOption[] }
   | { kind: "notes" }
   | { kind: "owner"; actionId: string }
   | { kind: "place-actions" }
@@ -99,7 +129,10 @@ export interface AssistantState extends GuestBundle {
 }
 
 export type AssistantInput =
-  | { type: "entry"; entry: Exclude<EntryChoice, "example"> }
+  | { type: "entry"; entry: "meeting" | "notes" }
+  | { type: "calendar"; provider: CalendarProvider; result: CalendarResult }
+  | { type: "pick-meeting"; id: string }
+  | { type: "notes-file"; name: string; text: string; sample: boolean; image: boolean }
   | { type: "text"; text: string }
   | { type: "chip"; value: string }
   | { type: "confirm-meeting" }

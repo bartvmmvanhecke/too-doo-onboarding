@@ -12,31 +12,79 @@
 <style>
 body{margin:0;background:#FFFFFF}
 a{color:#0B5FD8}a:hover{color:#08449C}
+
+.ia-stage{position:relative;width:600px;max-width:100%;height:460px}
+.ia-card{position:absolute;background:#FFFFFF;color:#16213A;border-radius:18px;box-shadow:0 24px 50px rgba(5,20,60,.35)}
+.ia-agenda{left:0;top:40px;width:300px;padding:18px 20px;box-sizing:border-box}
+.ia-item{display:flex;gap:10px;align-items:flex-start;border-radius:12px;padding:10px 12px;margin-top:12px;background:#F4F7FB;animation:ia-hl 10s infinite}
+.ia-dot{width:8px;height:8px;border-radius:50%;background:#8DB6F0;margin-top:7px;flex-shrink:0}
+.ia-line{position:absolute;left:300px;height:2px;background:#8DB6F0;transform-origin:left center;transform:scaleX(0)}
+.ia-l1{top:188px;width:80px;animation:ia-draw1 10s infinite}
+.ia-l2{top:188px;width:190px;animation:ia-draw2 10s infinite;opacity:0}
+.ia-act{right:0;width:220px;box-sizing:border-box;padding:14px 16px;display:flex;flex-direction:column;gap:8px;opacity:0;transform:translateX(-16px)}
+.ia-a1{top:110px;animation:ia-in1 10s infinite}
+.ia-a2{top:300px;animation:ia-in2 10s infinite}
+.ia-label{font-size:11px;font-weight:800;letter-spacing:.5px;text-transform:uppercase;color:#0B5FD8;display:flex;align-items:center;gap:6px}
+.ia-check{width:18px;height:18px;border-radius:50%;border:2px solid #A9B4C8;display:inline-flex;align-items:center;justify-content:center;box-sizing:border-box;flex-shrink:0}
+.ia-a1 .ia-check{animation:ia-tick 10s infinite}
+.ia-a1 .ia-check svg{opacity:0;animation:ia-tickmark 10s infinite}
+.ia-done{font-size:12px;font-weight:700;color:#1E7A4C;opacity:0;animation:ia-done 10s infinite}
+.ia-a1 .ia-title{animation:ia-strike 10s infinite}
+.ia-meta{display:flex;align-items:center;gap:8px;border-top:1px solid #EEF2F8;padding-top:8px;font-size:13px;color:#3E4860}
+.ia-av{width:24px;height:24px;border-radius:50%;font-size:10px;font-weight:800;display:inline-flex;align-items:center;justify-content:center}
+.ia-date{margin-left:auto;font-size:12px;font-weight:800;color:#0B5FD8;background:#E8F1FE;border-radius:6px;padding:3px 8px}
+@keyframes ia-hl{0%,8%{background:#F4F7FB;box-shadow:none}14%,92%{background:#EAF2FF;box-shadow:0 0 0 2px #8DB6F0}100%{background:#F4F7FB;box-shadow:none}}
+@keyframes ia-draw1{0%,14%{transform:scaleX(0)}22%,92%{transform:scaleX(1)}100%{transform:scaleX(0)}}
+@keyframes ia-draw2{0%,30%{opacity:0;transform:rotate(65deg) scaleX(0)}31%{opacity:1;transform:rotate(65deg) scaleX(0)}38%,92%{opacity:1;transform:rotate(65deg) scaleX(1)}100%{opacity:0;transform:rotate(65deg) scaleX(0)}}
+@keyframes ia-in1{0%,20%{opacity:0;transform:translateX(-16px)}28%,92%{opacity:1;transform:none}100%{opacity:0;transform:translateX(-16px)}}
+@keyframes ia-in2{0%,36%{opacity:0;transform:translateX(-16px)}44%,92%{opacity:1;transform:none}100%{opacity:0;transform:translateX(-16px)}}
+@keyframes ia-tick{0%,58%{background:#FFFFFF;border-color:#A9B4C8}62%,92%{background:#1E7A4C;border-color:#1E7A4C}100%{background:#FFFFFF;border-color:#A9B4C8}}
+@keyframes ia-tickmark{0%,58%{opacity:0}62%,92%{opacity:1}100%{opacity:0}}
+@keyframes ia-done{0%,62%{opacity:0}68%,92%{opacity:1}100%{opacity:0}}
+@keyframes ia-strike{0%,60%{color:#16213A;text-decoration:none}64%,92%{color:#5B6478;text-decoration:line-through}100%{color:#16213A;text-decoration:none}}
+@media (prefers-reduced-motion: reduce){
+.ia-item,.ia-line,.ia-act,.ia-check,.ia-check svg,.ia-done,.ia-title{animation:none!important}
+.ia-l1{transform:scaleX(1)}.ia-l2{opacity:1;transform:rotate(65deg) scaleX(1)}
+.ia-act{opacity:1;transform:none}.ia-item{background:#EAF2FF;box-shadow:0 0 0 2px #8DB6F0}
+.ia-a1 .ia-check{background:#1E7A4C;border-color:#1E7A4C}.ia-a1 .ia-check svg,.ia-done{opacity:1}
+.ia-a1 .ia-title{color:#5B6478;text-decoration:line-through}
+}
+
 </style>
 </helmet>
 <div style="font-family: 'Nunito', system-ui, sans-serif; color: #16213A; min-height: 900px; display: flex; flex-wrap: wrap; background: #FFFFFF">
-  <section aria-label="Wat too-doo doet" style="flex: 999 1 560px; min-height: 900px; background: linear-gradient(160deg, #123A80 0%, #0B5FD8 100%); color: #FFFFFF; position: relative; overflow: hidden; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 48px; box-sizing: border-box; gap: 36px">
-    <div aria-hidden="true" style="position: absolute; width: 520px; height: 520px; border-radius: 50%; background: rgba(255,255,255,0.06); top: -160px; left: -140px"></div>
-    <div aria-hidden="true" style="position: absolute; width: 380px; height: 380px; border-radius: 50%; background: rgba(255,255,255,0.05); bottom: -120px; right: -80px"></div>
-    <div aria-hidden="true" style="position: relative; width: 100%; max-width: 520px; height: 380px">
-      <div style="position: absolute; left: 0; top: 30px; width: 420px; background: #FFFFFF; color: #16213A; border-radius: 18px; padding: 18px 20px; box-shadow: 0 24px 50px rgba(5, 20, 60, 0.35)">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px"><span style="font-size: 16px; font-weight: 800">Openstaande acties</span><span style="font-size: 12px; font-weight: 800; color: #8E1F16">1 te laat</span></div>
-        <span style="font-size: 12px; color: #5B6478">komen vanzelf terug tot ze af zijn</span>
-        <div style="display: flex; align-items: center; gap: 10px; padding: 10px 0; border-top: 1px solid #EEF2F8"><span style="width: 16px; height: 16px; border: 2px solid #A9B4C8; border-radius: 4px; flex-shrink: 0"></span><span style="flex: 1; font-size: 14px; font-weight: 700">Offerte plooibank opvragen</span><span style="width: 30px; height: 30px; border-radius: 50%; background: #F2C9A8; color: #6A3412; font-size: 11px; font-weight: 800; display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0">JA</span><span style="font-size: 12px; font-weight: 800; background: #EEF2F8; color: #3E4860; padding: 3px 8px; border-radius: 6px">vr 16 okt</span></div><div style="display: flex; align-items: center; gap: 10px; padding: 10px 0; border-top: 1px solid #EEF2F8"><span style="width: 16px; height: 16px; border: 2px solid #A9B4C8; border-radius: 4px; flex-shrink: 0"></span><span style="flex: 1; font-size: 14px; font-weight: 700">Instructie heftruck bijwerken</span><span style="width: 30px; height: 30px; border-radius: 50%; background: #C9DDF6; color: #0F3B7A; font-size: 11px; font-weight: 800; display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0">SO</span><span style="font-size: 12px; font-weight: 800; background: #FCE6E3; color: #8E1F16; padding: 3px 8px; border-radius: 6px">2 dagen te laat</span></div><div style="display: flex; align-items: center; gap: 10px; padding: 10px 0; border-top: 1px solid #EEF2F8"><span style="width: 16px; height: 16px; border: 2px solid #A9B4C8; border-radius: 4px; flex-shrink: 0"></span><span style="flex: 1; font-size: 14px; font-weight: 700">Leverancier staal bellen</span><span style="width: 30px; height: 30px; border-radius: 50%; background: #E6DCF5; color: #4B2A7A; font-size: 11px; font-weight: 800; display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0">KA</span><span style="font-size: 12px; font-weight: 800; background: #EEF2F8; color: #3E4860; padding: 3px 8px; border-radius: 6px">wo 14 okt</span></div>
-      </div>
-      <div style="position: absolute; right: 0; top: 0; background: #FFFFFF; color: #16213A; border-radius: 14px; padding: 12px 14px; box-shadow: 0 16px 36px rgba(5, 20, 60, 0.3); display: flex; flex-direction: column; gap: 4px; width: 170px">
-        <span style="font-size: 11px; font-weight: 800; color: #5B6478; text-transform: uppercase; letter-spacing: 0.4px">Volgende vergadering</span>
-        <span style="font-size: 15px; font-weight: 800">Productieoverleg</span>
-        <span style="font-size: 12px; color: #3E4860">ma 19 okt · 08:00</span>
-      </div>
-      <div style="position: absolute; right: 20px; bottom: 10px; background: #FFFFFF; color: #16213A; border-radius: 14px; padding: 12px 14px; box-shadow: 0 16px 36px rgba(5, 20, 60, 0.3); display: flex; align-items: center; gap: 10px; width: 230px">
-        <span style="width: 32px; height: 32px; border-radius: 10px; background: #E2F4EA; display: flex; align-items: center; justify-content: center; flex-shrink: 0"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1E7A4C" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"></path></svg></span>
-        <span style="display: flex; flex-direction: column"><span style="font-size: 13px; font-weight: 800">Jan vinkte af via mail</span><span style="font-size: 12px; color: #5B6478">zonder account</span></span>
+  <section aria-label="Wat too-doo doet" style="flex: 999 1 560px; min-height: 900px; background: radial-gradient(circle at 85% 20%, #2F7BEA 0%, rgba(47,123,234,0) 45%), linear-gradient(160deg, #0F2E6B 0%, #123A80 55%, #0B5FD8 100%); color: #FFFFFF; position: relative; overflow: hidden; display: flex; flex-direction: column; padding: 40px 48px; box-sizing: border-box; gap: 28px">
+    <div style="display: flex; flex-direction: column; gap: 6px">
+      <span style="font-size: 26px; font-weight: 800">too-<span style="color: #7CC4FF">doo</span></span>
+      <span style="font-size: 16px; color: #D5E2F7">Van losse punten in je overleg naar duidelijke opvolging.</span>
+    </div>
+    <div style="flex: 1; display: flex; align-items: center; justify-content: center">
+      <div class="ia-stage" aria-hidden="true">
+        <div class="ia-card ia-agenda">
+          <span style="font-size: 11px; font-weight: 800; letter-spacing: .5px; text-transform: uppercase; color: #5B6478">Productieoverleg · maandag</span>
+          <div style="font-size: 17px; font-weight: 800; margin-top: 8px">Lopende orders</div>
+          <div style="height: 10px; width: 92%; border-radius: 6px; background: #E9EEF6; margin-top: 14px"></div>
+          <div style="height: 10px; width: 64%; border-radius: 6px; background: #E9EEF6; margin-top: 8px"></div>
+          <div class="ia-item"><span class="ia-dot"></span><span style="font-size: 14px; line-height: 1.45"><b>Staal-leverancier blijft te laat leveren</b><br><span style="color: #3E4860">opnieuw bellen · nieuwe offerte vragen</span></span></div>
+        </div>
+        <div class="ia-line ia-l1"></div>
+        <div class="ia-line ia-l2"></div>
+        <div class="ia-card ia-act ia-a1">
+          <span class="ia-label"><span class="ia-check"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"></path></svg></span>Actie</span>
+          <span class="ia-title" style="font-size: 15px; font-weight: 800; line-height: 1.35">Staal-leverancier opnieuw bellen</span>
+          <span class="ia-done">Afgevinkt door Sofie, via mail</span>
+          <span class="ia-meta"><span class="ia-av" style="background: #F2C9A8; color: #6A3412">SO</span>Sofie<span class="ia-date">vr 16 okt</span></span>
+        </div>
+        <div class="ia-card ia-act ia-a2">
+          <span class="ia-label"><span class="ia-check"></span>Actie</span>
+          <span class="ia-title" style="font-size: 15px; font-weight: 800; line-height: 1.35">Nieuwe offerte staal vragen</span>
+          <span class="ia-meta"><span class="ia-av" style="background: #C9DDF6; color: #0F3B7A">JA</span>Jan<span class="ia-date">di 20 okt</span></span>
+        </div>
       </div>
     </div>
-    <div style="position: relative; text-align: center; max-width: 440px; display: flex; flex-direction: column; gap: 8px">
-      <span style="font-size: 28px; font-weight: 800; line-height: 1.2">Wat je afspreekt, gebeurt ook.</span>
-      <span style="font-size: 16px; color: #D5E2F7; line-height: 1.5">Acties met een eigenaar komen vanzelf terug op je volgende vergadering, tot ze af zijn.</span>
+    <div style="display: flex; flex-direction: column; gap: 6px; max-width: 460px">
+      <span style="font-size: 26px; font-weight: 800; line-height: 1.2">Wat je afspreekt, gebeurt ook.</span>
+      <span style="font-size: 15px; color: #D5E2F7; line-height: 1.5">Uit elk agendapunt komen acties met een eigenaar. Ze komen terug tot ze afgevinkt zijn.</span>
     </div>
   </section>
   <aside aria-label="Assistent" style="flex: 1 1 520px; max-width: 600px; min-height: 900px; background: #FFFFFF; box-sizing: border-box; display: flex; flex-direction: column; border-left: 1px solid #E3E8F1">

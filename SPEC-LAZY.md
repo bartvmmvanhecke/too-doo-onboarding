@@ -11,9 +11,12 @@ Mockups: `design/variant-a-lazy/` (C0 t/m C6). Zoals eerder: lees de HTML en inl
 | Mockup | Inhoud |
 |---|---|
 | `C0-Flow.dc.html` | Overzicht van de flow, regels voor het accountmoment, meetpunten (referentie, niet bouwen) |
-| `C1-Meteen-in-app.dc.html` | Landen in de app, assistent biedt 3 eenvoudige tekstkeuzes |
-| `C1b-Agenda-gekoppeld.dc.html` | Na 'Haal het uit mijn agenda' + koppelen: vaste overleggen kiezen |
-| `C1c-Notities-gekozen.dc.html` | Na 'Ik heb notities': pas dan dropzone en plakken |
+| `C0b-Welkom.dc.html` | Welkomstvraag vóór de app: drie kaarten |
+| `C0c-Welkom-agenda.dc.html` | Welkom, agenda gekozen: Outlook of Google |
+| `C0d-Welkom-notities.dc.html` | Welkom, notities gekozen: bestand of tekst |
+| `C0e-Welkom-vertellen.dc.html` | Welkom, vertellen gekozen: één zin |
+| `C1-Meteen-in-app.dc.html` | In de app na 'Ik vertel het': titel en agenda ingevuld, één vraag |
+| `C1b-Agenda-gekoppeld.dc.html` | In de app na koppelen: vaste vergaderingen kiezen |
 | `C2-Agent-begrijpt.dc.html` | Eén zin → overleg en agenda verschijnen live; '+'-menu in het chatveld open |
 | `C2b-Plakken-herkend.dc.html` | Lange tekst geplakt in de chat → assistent herkent notities |
 | `C3-Agent-acties.dc.html` | Notities plakken → acties op de agenda, ontbrekende eigenaar wordt een vraag |
@@ -93,28 +96,30 @@ Alles regelgebaseerd en deterministisch, in één module (`lib/assistant/`), zod
 
 Typ-indicator (3 puntjes, 600–900 ms) voor elk antwoord. Velden die net ingevuld werden, krijgen 2 s een blauwe markering (C2).
 
-### Stap 1 · Waarmee wil je starten? (C1, C1b, C1c) · update 12 okt (vereenvoudigd)
-Eén bericht: "Je eerste overleg staat in twee minuten klaar. **Waarmee wil je starten?**"
+### Stap 0 · Welkomstvraag vóór de app (C0b–C0e) · update 12 okt
+"Probeer Too-doo gratis" opent `/probeer`. Zolang de gast nog niet gestart is, toont `/probeer` eerst een **welkomstscherm**: een gecentreerde kaart (max. 620 px) boven een wazige, gedimde weergave van de app.
 
-Daaronder **drie eenvoudige keuzes als tekstregels** (icoon, korte tekst, chevron; één regel hoog, ≥ 48 px). **Geen knoppen, dropzones of uitleg in de keuzes zelf.** De details verschijnen pas na de keuze, als volgend bericht van de assistent:
+- Logo, rechtsboven link "Inloggen" (opent het bewaar-modal in login-modus).
+- Kop: **"Hoe wil je je eerste vergadering klaarzetten?"**, subtekst "Kies wat je bij de hand hebt. Je kunt alles later aanpassen."
+- Drie gelijkwaardige kaarten (icoon, titel, één regel uitleg, chevron), zonder knoppen erin:
+  1. **Uit mijn agenda** · Outlook of Google, het snelst
+  2. **Uit notities van de vorige keer** · Bestand of tekst
+  3. **Ik vertel het** · In één zin
+- Onderaan: link "Of bekijk eerst een voorbeeld" (bestaande `/voorbeeld`) en "Geen account nodig".
+- **Een kaart kiezen klapt die kaart open** (accordeon; de andere blijven zichtbaar, iets gedimd, om te wisselen):
+  - **Agenda (C0c):** knoppen Outlook en Google + "We lezen alleen je vaste vergaderingen. Je logt meteen in, zodat je werk bewaard blijft." Koppelen = inloggen (gesimuleerd met de bestaande demo-uitkomsten). Bij succes: gebruiker aangemaakt (Tom Claes uit de mock-data), naar de app met de lijst vaste vergaderingen in de assistent (C1b). Daarna geen bewaar-modal meer. Bij geen reeksen, IT-goedkeuring, geannuleerd of geblokkeerde login: rustige melding **op deze kaart**, de twee andere kaarten blijven bruikbaar.
+  - **Notities (C0d):** dropzone (Sleep een bestand hierheen · Word, PDF, e-mail of foto · Kies bestand) + link "Of plak de tekst" (toont een tekstvak op de kaart). Bestandsverwerking zoals eerder: .txt/.md/.eml inlezen, .docx via mammoth, .pdf via pdfjs-dist, anders/afbeeldingen de vaste voorbeeldtekst; toon welk bestand verwerkt wordt. Na verwerken naar de app, meteen in stap 2 met de acties als voorstellen (C3). De naam van de vergadering wordt gevraagd als die niet uit de notities blijkt.
+  - **Vertellen (C0e):** label "Waarover gaat je volgende vergadering?", één invoerveld, knop **Zet ze klaar**, hulptekst "Eén zin volstaat. Wie en wanneer mag erbij, hoeft niet." Zelfde parser als sectie "Zin begrijpen". Naar de app (C1).
+- **Overgang:** na de keuze verdwijnt de wazige laag en schuift het resultaat (titel, lijst of acties) op zijn plek in de app, ±300 ms. Geen animatie bij `prefers-reduced-motion`.
+- De keuze wordt bewaard in de gast-state (`startPath: agenda | notes | tell`); wie terugkomt, ziet het welkomstscherm niet opnieuw.
 
-1. **Haal het uit mijn agenda** → antwoord van de gebruiker verschijnt als bubbel, assistent vraagt "Outlook of Google?" met twee knoppen.
-   - Gesimuleerd met de bestaande demo-uitkomsten voor agendatoestemming (reeksen gevonden / geen reeksen / IT-goedkeuring nodig / geannuleerd) en Microsoft-login (slaagt / bedrijf blokkeert).
-   - Koppelen = inloggen. Bij succes: gebruiker wordt aangemaakt (Tom Claes uit de mock-data), gast-state gaat over naar de app-store, banner "Verbonden met Outlook als … Je werk wordt vanaf nu automatisch bewaard.", zijbalk toont naam + "Proefperiode · nog 30 dagen". Het bewaar-modal (sectie 6) wordt daarna niet meer getoond; "Ja, stuur ze" in stap 3 gaat meteen naar de e-mailadressen (sectie 7).
-   - **C1b**: radiolijst met vaste overleggen (dat wat de gebruiker organiseert met de meeste deelnemers bovenaan, label "jij organiseert"), knop "Dit overleg opvolgen", tekst "Staat het er niet tussen? Vertel het me." Het overleg vult titel, datumregel, avatars en een agendapunt uit de uitnodiging in als voorstel. Daarna stap 2.
-   - Geen reeksen → "Ik vond geen vaste overleggen in je agenda." + losse afspraken komende 2 weken, of "Vertel het me".
-   - IT-goedkeuring nodig, geannuleerd of login geblokkeerd → rustige melding in de assistent ("Je bedrijf moet dit eerst goedkeuren. Geen probleem: vertel het me of gebruik notities.") en de twee andere keuzes worden opnieuw aangeboden als tekstregels. Geen foutpagina.
-2. **Ik heb notities van de vorige keer** → **C1c**: assistent "Top. Sleep ze hierheen of plak de tekst. Ik haal de acties en eigenaars eruit." met een dropzone (Sleep een bestand hierheen · Word, PDF, e-mail of foto · knop Kies bestand) en "Of plak de tekst hieronder in het chatveld." De placeholder van het chatveld wordt "Plak je notities hier".
-   - Ondersteun .txt, .md, .docx, .pdf, .eml en afbeeldingen. .txt/.md/.eml echt inlezen; .docx via mammoth en .pdf via pdfjs-dist, anders de vaste voorbeeldtekst. Afbeeldingen: bestandsnaam tonen en de voorbeeldtekst gebruiken (geen OCR). Toon altijd welk bestand verwerkt wordt.
-   - Daarna stap 2 met de extractie. Naam van het overleg wordt gevraagd als die niet uit de notities blijkt.
-3. **Ik vertel het je** → assistent "Waarover gaat je volgende overleg? Eén zin is genoeg." en focus op het chatveld (C2).
+### Stap 1 · Eerste scherm in de app (C1, C1b) · update 12 okt
+**Geen startmenu meer in de assistent.** Het eerste scherm gaat verder met het gekozen pad en de assistent stelt **één gerichte vraag**:
+- Na **Ik vertel het (C1):** titel en voorgestelde agenda staan al ingevuld (blauwe markering). Assistent: "Je [naam] staat klaar, met een voorstel van agenda. **Wanneer gaat het door en wie zit erbij?**" met knop **Haal het uit mijn agenda** en hulptekst "Of typ het, bv. 'elke maandag om 8u met Jan, Sofie en Karim'." In de datumregel staan de links "Uit agenda halen" en "Deelnemers uit agenda". Ontbreekt dag/uur of deelnemers na het antwoord, dan vraagt de assistent alleen wat ontbreekt.
+- Na **agenda (C1b):** radiolijst met vaste vergaderingen (de vergadering die de gebruiker organiseert met de meeste deelnemers bovenaan, label "jij organiseert"), knop "Deze vergadering opvolgen", tekst "Staat ze er niet tussen? Vertel het me." Titel, datumregel, avatars en een agendapunt uit de uitnodiging worden als voorstel ingevuld. Daarna stap 2.
+- Na **notities:** meteen stap 2 (C3).
 
-Onder de keuzes de tekstlink **Of bekijk eerst een voorbeeld** → bestaande `/voorbeeld` (Stap2d), met de knop in de voorbeeldbalk terug naar `/probeer`.
-Vrije tekst in het chatveld werkt meteen, zonder eerst te kiezen (zie "Ingangen blijven bereikbaar").
-
-Het blok "Openstaande acties" in het overleg toont in de lege toestand de regel "Sleep notities van je vorig overleg op deze plek, of kies een bestand." en accepteert slepen.
-
-**Elke vraag van de assistent verschijnt precies één keer.** Een keuze maken of tekst sturen voegt één antwoord toe; dubbel renderen (bv. door React Strict Mode of een effect dat twee keer loopt) mag niet voorkomen.
+**Elke vraag van de assistent verschijnt precies één keer.** Dubbel renderen (React Strict Mode, effect dat twee keer loopt) mag niet voorkomen.
 
 ### Ingangen blijven bereikbaar, ook na stap 1 (C1, C2, C2b, C3) · update 12 okt
 De drie startopties worden **niet** permanent opnieuw als chips getoond. Ze blijven bereikbaar op vier manieren:

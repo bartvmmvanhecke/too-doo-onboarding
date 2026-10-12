@@ -16,6 +16,7 @@ const NAV_ROUTES = [
   "/b/reis",
   "/b/mail",
   "/b/structuur",
+  "/probeer",
 ];
 
 test.describe("flowkeuze-knop met de twee varianten", () => {

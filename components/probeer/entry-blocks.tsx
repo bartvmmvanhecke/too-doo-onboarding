@@ -2,10 +2,10 @@
 
 import { useRef, useState, type DragEvent } from "react";
 import Link from "next/link";
-import { FileUp, Loader2 } from "lucide-react";
+import { CalendarDays, ChevronRight, FileText, FileUp, Loader2, MessageCircle } from "lucide-react";
 import { GoogleMark, MicrosoftMark } from "@/components/brand";
 import { Button } from "@/components/ui/button";
-import type { CalendarOption, CalendarProvider } from "@/lib/assistant/types";
+import type { CalendarOption, CalendarProvider, StartChoice } from "@/lib/assistant/types";
 import { NOTES_ACCEPT } from "@/lib/notes-file";
 import { cn } from "@/lib/utils";
 
@@ -62,7 +62,10 @@ export function useFileDrop(onFile: (file: File) => void, enabled = true) {
           e.preventDefault();
           setOver(true);
         },
-        onDragLeave: () => setOver(false),
+        // Enkel echt naar buiten: over een kindelement slepen geeft ook dragleave.
+        onDragLeave: (e: DragEvent) => {
+          if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setOver(false);
+        },
         onDrop: (e: DragEvent) => {
           e.preventDefault();
           setOver(false);
@@ -74,111 +77,133 @@ export function useFileDrop(onFile: (file: File) => void, enabled = true) {
   return { over, handlers };
 }
 
-const block = "flex flex-col gap-2.5 rounded-xl border border-line bg-white p-3.5";
+const START_CHOICES: { value: StartChoice; label: string; icon: typeof CalendarDays }[] = [
+  { value: "calendar", label: "Haal het uit mijn agenda", icon: CalendarDays },
+  { value: "notes", label: "Ik heb notities van de vorige keer", icon: FileText },
+  { value: "meeting", label: "Ik vertel het je", icon: MessageCircle },
+];
+
+export const START_LABEL: Record<StartChoice, string> = Object.fromEntries(
+  START_CHOICES.map((c) => [c.value, c.label]),
+) as Record<StartChoice, string>;
 
 /**
- * Stap 1 · "Waarmee wil je starten?" (C1): drie gelijkwaardige blokken, en een link naar het voorbeeld.
+ * Stap 1 · "Waarmee wil je starten?" (C1): drie eenvoudige tekstregels (icoon, tekst, chevron), zonder
+ * knoppen of dropzone erin. De details komen pas na de keuze, als volgend bericht van de assistent.
  */
-export function EntryBlocks({
+export function EntryChoices({
+  choices = START_CHOICES.map((c) => c.value),
+  disabled,
+  onChoose,
+  onExample,
+}: {
+  choices?: StartChoice[];
+  disabled: boolean;
+  onChoose: (choice: StartChoice) => void;
+  onExample: () => void;
+}) {
+  return (
+    <div className="flex flex-col gap-2">
+      <div role="group" aria-label="Startopties" className="flex flex-col gap-2">
+        {START_CHOICES.filter((c) => choices.includes(c.value)).map(({ value, label, icon: Icon }) => (
+          <button
+            key={value}
+            type="button"
+            disabled={disabled}
+            onClick={() => onChoose(value)}
+            className="flex min-h-12 cursor-pointer items-center gap-3 rounded-xl border border-line-soft bg-white px-3.5 text-left text-[15px] font-bold text-ink hover:bg-app disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            <Icon className="size-[18px] shrink-0 text-brand" aria-hidden />
+            <span className="flex-1">{label}</span>
+            <ChevronRight className="size-4 shrink-0 text-ink-subtle" strokeWidth={2.5} aria-hidden />
+          </button>
+        ))}
+      </div>
+      <Link
+        href="/voorbeeld?van=probeer"
+        onClick={onExample}
+        className="min-h-11 self-start pt-1 text-sm font-bold text-ink-2 hover:text-ink"
+      >
+        Of bekijk eerst een voorbeeld
+      </Link>
+    </div>
+  );
+}
+
+/** Na "Haal het uit mijn agenda": "Outlook of Google?" met twee knoppen. */
+export function ProviderChoice({
   busy,
   connecting,
-  reading,
   onCalendar,
-  onFile,
-  onPaste,
-  onTell,
-  onExample,
 }: {
   busy: boolean;
   connecting: CalendarProvider | null;
-  reading: string | null;
   onCalendar: (provider: CalendarProvider) => void;
+}) {
+  return (
+    <div className="flex flex-col gap-2">
+      <div role="group" aria-label="Agenda kiezen" className="flex flex-wrap gap-2">
+        <Button variant="outline" size="md" disabled={busy} onClick={() => onCalendar("outlook")}>
+          {connecting === "outlook" ? (
+            <Loader2 className="size-4 animate-spin" aria-hidden />
+          ) : (
+            <MicrosoftMark size={7} />
+          )}
+          Outlook
+        </Button>
+        <Button variant="outline" size="md" disabled={busy} onClick={() => onCalendar("google")}>
+          {connecting === "google" ? <Loader2 className="size-4 animate-spin" aria-hidden /> : <GoogleMark />}
+          Google
+        </Button>
+      </div>
+      <span className="text-[13px] text-ink-3">Ik toon je vaste overleggen, jij kiest er één. Alleen lezen.</span>
+      {connecting && (
+        <span role="status" className="text-[13px] text-ink-3">
+          Verbinden met {connecting === "outlook" ? "Outlook" : "Google"}…
+        </span>
+      )}
+    </div>
+  );
+}
+
+/** Na "Ik heb notities van de vorige keer" (C1c): dropzone met "Kies bestand", en de tip om te plakken. */
+export function NotesDropzone({
+  busy,
+  reading,
+  onFile,
+}: {
+  busy: boolean;
+  reading: string | null;
   onFile: (file: File) => void;
-  onPaste: () => void;
-  onTell: () => void;
-  onExample: () => void;
 }) {
   const { over, handlers } = useFileDrop(onFile, !busy);
   return (
-    <div className="flex flex-col gap-2.5">
-      <section aria-label="Uit je agenda" className={block}>
-        <span className="flex flex-col gap-0.5">
-          <span className="text-[15px] font-extrabold">Uit mijn agenda</span>
-          <span className="text-[13px] text-ink-2">Ik toon je vaste overleggen, jij kiest er één. Alleen lezen.</span>
-        </span>
-        <span className="flex flex-wrap gap-2">
-          <Button variant="outline" size="sm" disabled={busy} onClick={() => onCalendar("outlook")}>
-            {connecting === "outlook" ? (
-              <Loader2 className="size-4 animate-spin" aria-hidden />
-            ) : (
-              <MicrosoftMark size={7} />
-            )}
-            Outlook
-          </Button>
-          <Button variant="outline" size="sm" disabled={busy} onClick={() => onCalendar("google")}>
-            {connecting === "google" ? <Loader2 className="size-4 animate-spin" aria-hidden /> : <GoogleMark />}
-            Google
-          </Button>
-        </span>
-        {connecting && (
-          <span role="status" className="text-[13px] text-ink-3">
-            Verbinden met {connecting === "outlook" ? "Outlook" : "Google"}…
-          </span>
+    <div className="mt-3 flex flex-col gap-2.5">
+      <div
+        {...handlers}
+        data-dropzone="notities"
+        className={cn(
+          "flex flex-col items-center gap-2 rounded-xl border-[1.5px] border-dashed px-3.5 py-4 text-center",
+          over ? "border-brand bg-brand-selected" : "border-line bg-white",
         )}
-      </section>
-
-      <section aria-label="Notities van een vorig overleg" className={block}>
-        <span className="flex flex-col gap-0.5">
-          <span className="text-[15px] font-extrabold">Notities van een vorig overleg</span>
-          <span className="text-[13px] text-ink-2">Ik haal de acties en eigenaars eruit.</span>
-        </span>
-        <div
-          {...handlers}
-          data-dropzone="notities"
-          className={cn(
-            "flex flex-wrap items-center gap-3 rounded-[10px] border-[1.5px] border-dashed p-3",
-            over ? "border-brand bg-brand-selected" : "border-line bg-surface-muted",
-          )}
-        >
-          <FileUp className="size-5 shrink-0 text-ink-3" aria-hidden />
-          <span className="flex-1 text-[13px] leading-snug text-ink-2">
-            Sleep een bestand hierheen
-            <br />
-            Word, PDF, e-mail of foto
-          </span>
-          <FilePicker onFile={onFile} disabled={busy}>
-            {reading ? <Loader2 className="size-4 animate-spin" aria-hidden /> : null}
-            Kies bestand
-          </FilePicker>
-        </div>
-        {reading && (
-          <span role="status" className="text-[13px] text-ink-3">
-            {reading} wordt gelezen…
-          </span>
-        )}
-        <button
-          type="button"
-          disabled={busy}
-          onClick={onPaste}
-          className="min-h-11 cursor-pointer self-start text-sm font-bold text-brand hover:text-brand-hover hover:underline disabled:opacity-60"
-        >
-          Of plak de tekst
-        </button>
-      </section>
-
-      <button
-        type="button"
-        disabled={busy}
-        onClick={onTell}
-        className={cn(block, "cursor-pointer gap-0.5 text-left hover:bg-app disabled:opacity-60")}
       >
-        <span className="text-[15px] font-extrabold">Vertel het me</span>
-        <span className="text-[13px] text-ink-2">Eén zin over je volgende overleg; ik stel een agenda voor.</span>
-      </button>
-
-      <Link href="/voorbeeld?van=probeer" onClick={onExample} className="min-h-11 self-start pt-1 text-sm font-bold">
-        Eerst een voorbeeld bekijken
-      </Link>
+        <FileUp className="size-6 text-ink-2" aria-hidden />
+        <span className="text-sm text-ink-2">
+          Sleep een bestand hierheen
+          <br />
+          <span className="text-[13px] text-ink-3">Word, PDF, e-mail of foto</span>
+        </span>
+        <FilePicker onFile={onFile} disabled={busy}>
+          {reading ? <Loader2 className="size-4 animate-spin" aria-hidden /> : null}
+          Kies bestand
+        </FilePicker>
+      </div>
+      {reading && (
+        <span role="status" className="text-[13px] text-ink-3">
+          {reading} wordt gelezen…
+        </span>
+      )}
+      <span className="text-[13px] text-ink-2">Of plak de tekst hieronder in het chatveld.</span>
     </div>
   );
 }

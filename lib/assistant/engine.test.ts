@@ -15,6 +15,7 @@ function start(): AssistantState {
     actions: [],
     decisions: [],
     others: [],
+    notesReminderShown: false,
   };
 }
 
@@ -129,11 +130,12 @@ describe("Uit mijn agenda (C1b)", () => {
     ["admin", "Je bedrijf moet dit eerst goedkeuren."],
     ["cancelled", "Het koppelen is geannuleerd."],
     ["blocked", "Inloggen met Microsoft lukt niet bij je bedrijf."],
-  ] as const)("%s: rustige melding, de andere ingangen blijven", (kind, text) => {
-    const r = respond(start(), { type: "calendar", provider: "outlook", result: { kind } }, REF);
+  ] as const)("%s: rustige melding, de twee andere keuzes opnieuw", (kind, text) => {
+    const asked = respond(start(), { type: "entry", entry: "calendar" }, REF);
+    const r = respond(asked.state, { type: "calendar", provider: "outlook", result: { kind } }, REF);
     expect(r.messages).toHaveLength(1);
     expect(r.messages[0].text).toBe(`${text} Geen probleem: vertel het me of gebruik notities.`);
-    expect(r.state.pending).toEqual({ kind: "entry" });
+    expect(r.state.pending).toEqual({ kind: "entry", choices: ["notes", "meeting"] });
     expect(r.state.step).toBe(1);
   });
 });
@@ -160,5 +162,123 @@ describe("Notities uit een bestand", () => {
     expect(r.messages[0].text).toContain("Ik las **bord.jpg**.");
     expect(r.messages[0].text).toContain("voorbeeldnotities");
     expect(r.state.actions).toHaveLength(3);
+  });
+});
+
+describe("startkeuzes (C1): de details komen pas na de keuze", () => {
+  it("agenda: 'Outlook of Google?'", () => {
+    const r = respond(start(), { type: "entry", entry: "calendar" }, REF);
+    expect(r.messages.map((m) => m.text)).toEqual(["Outlook of Google?"]);
+    expect(r.state.pending).toEqual({ kind: "provider", fields: null, resume: { kind: "entry" } });
+  });
+
+  it("notities: dropzone en plakken (C1c)", () => {
+    const r = respond(start(), { type: "entry", entry: "notes" }, REF);
+    expect(r.messages).toEqual([
+      {
+        from: "assistant",
+        text: "Top. Sleep ze hierheen of plak de tekst. Ik haal de acties en eigenaars eruit.",
+        card: "dropzone",
+      },
+    ]);
+    expect(r.state.pending.kind).toBe("notes");
+  });
+
+  it("vertellen: één zin (C2)", () => {
+    const r = respond(start(), { type: "entry", entry: "meeting" }, REF);
+    expect(r.messages[0].text).toBe("Waarover gaat je volgende overleg? Eén zin is genoeg.");
+    expect(r.state.pending.kind).toBe("sentence");
+  });
+});
+
+describe("ingangen blijven bereikbaar", () => {
+  const SENTENCE = "productieoverleg elke maandag om 8u met Jan en Sofie";
+
+  it("zinnen als 'koppel mijn agenda' en 'ik heb notities' voeren de actie meteen uit", () => {
+    let r = respond(start(), { type: "text", text: "Koppel mijn agenda" }, REF);
+    expect(r.state.pending.kind).toBe("provider");
+    r = respond(start(), { type: "text", text: "ik heb notities" }, REF);
+    expect(r.state.pending.kind).toBe("notes");
+    expect(r.messages[0].card).toBe("dropzone");
+  });
+
+  it("een lange geplakte tekst: 'Dit lijken notities…', Ja verwerkt ze", () => {
+    const { state } = play([{ type: "text", text: SENTENCE }]);
+    expect(state.pending.kind).toBe("confirm-meeting");
+    let r = respond(state, { type: "text", text: SAMPLE_NOTES }, REF);
+    expect(r.messages[0].text).toBe(
+      "Dit lijken notities van een vorig overleg. Zal ik er de openstaande acties en agendapunten uit halen?",
+    );
+    expect(r.state.pending.kind).toBe("paste");
+    r = respond(r.state, { type: "paste", process: true }, REF);
+    expect(r.state.actions).toHaveLength(3);
+    expect(r.state.step).toBe(2);
+  });
+
+  it("'Nee, gewoon bericht' behandelt de tekst als gewone zin", () => {
+    const { state } = play([{ type: "entry", entry: "meeting" }]);
+    const long = `${SENTENCE}, en verder bespreken we de orders, de stilstanden van vorige week, de planning voor de komende weken en alles wat er nog op de werkvloer en in het magazijn speelt.`;
+    let r = respond(state, { type: "text", text: long }, REF);
+    expect(r.state.pending.kind).toBe("paste");
+    r = respond(r.state, { type: "paste", process: false }, REF);
+    expect(r.state.actions).toHaveLength(0);
+    expect(r.state.meeting.name).toBe("Productieoverleg");
+  });
+
+  it("geplakte notities als antwoord op de vraag om notities: geen extra vraag", () => {
+    const { state } = play([{ type: "entry", entry: "notes" }]);
+    const r = respond(state, { type: "text", text: SAMPLE_NOTES }, REF);
+    expect(r.state.pending.kind).not.toBe("paste");
+    expect(r.state.actions).toHaveLength(3);
+  });
+
+  it("'Uit agenda halen' vult enkel dag en uur, daarna verder waar de assistent was", () => {
+    let { state } = play([
+      { type: "entry", entry: "meeting" },
+      { type: "text", text: "teamoverleg" },
+    ]);
+    expect(state.pending.kind).toBe("day");
+    let r = respond(state, { type: "calendar-field", field: "when" }, REF);
+    expect(r.messages[0].text).toBe("Outlook of Google?");
+    r = respond(
+      r.state,
+      { type: "calendar", provider: "outlook", result: { kind: "series", options: seriesOptions() } },
+      REF,
+    );
+    r = respond(r.state, { type: "pick-meeting", id: "productie" }, REF);
+    state = r.state;
+    expect(state.meeting).toMatchObject({ name: "Teamoverleg", weekday: 1, time: 480, recurrence: "weekly" });
+    expect(state.meeting.participants).toHaveLength(0);
+    expect(state.pending.kind).toBe("participants");
+    expect(r.flash).toEqual(["when"]);
+  });
+
+  it("de herinnering over notities komt één keer, ook bij een tweede overleg niet opnieuw", () => {
+    const { said } = play([
+      { type: "text", text: SENTENCE },
+      { type: "confirm-meeting" },
+      { type: "no-actions" },
+      { type: "another-meeting" },
+      { type: "text", text: "teamoverleg elke dinsdag om 9u met Els" },
+      { type: "confirm-meeting" },
+    ]);
+    const reminder =
+      "**Heb je notities van de vorige keer?** Plak ze hier, dan staan de openstaande acties meteen klaar.";
+    expect(said.filter((t) => t === reminder)).toHaveLength(1);
+    expect(said.at(-1)).toContain("Staat er nog iets open van de vorige keer?");
+  });
+
+  it("geen dubbele vragen over alle ingangen heen", () => {
+    const { said } = play([
+      { type: "entry", entry: "calendar" },
+      { type: "calendar-field", field: "when" },
+      { type: "entry", entry: "calendar" },
+      { type: "calendar", provider: "outlook", result: { kind: "admin" } },
+      { type: "entry", entry: "notes" },
+      { type: "entry", entry: "notes" },
+      { type: "text", text: "ik heb notities" },
+      { type: "text", text: SAMPLE_NOTES },
+    ]);
+    expectNoRepeatedQuestion(said);
   });
 });

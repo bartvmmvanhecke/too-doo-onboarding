@@ -1,7 +1,9 @@
 "use client";
 
 import { Fragment, useEffect, useRef, useState, type ReactNode } from "react";
-import { Check, ChevronRight, Loader2, Mic, SendHorizontal, Sparkles } from "lucide-react";
+import { Check, ChevronRight, FileUp, Loader2, Mic, SendHorizontal, Sparkles } from "lucide-react";
+import { useFileDrop } from "@/components/probeer/entry-blocks";
+import { PlusMenu, type PlusMenuActions } from "@/components/probeer/plus-menu";
 import { Button } from "@/components/ui/button";
 import type { Message } from "@/lib/assistant/types";
 import { cn } from "@/lib/utils";
@@ -80,10 +82,32 @@ export interface AssistantInputProps {
   onMic?: () => void;
   listening?: boolean;
   disabled?: boolean;
+  /** "+"-menu links in het chatveld: notities plakken, bestand kiezen, agenda koppelen. */
+  plus?: PlusMenuActions;
+  /** Telt op wanneer het chatveld de focus moet krijgen (bv. na "Ik vertel het je"). */
+  focusRequest?: number;
 }
 
-function AssistantInput({ label, visibleLabel, placeholder, onSend, onMic, listening, disabled }: AssistantInputProps) {
+function AssistantInput({
+  label,
+  visibleLabel,
+  placeholder,
+  onSend,
+  onMic,
+  listening,
+  disabled,
+  plus,
+  focusRequest = 0,
+}: AssistantInputProps) {
   const [text, setText] = useState("");
+  const fieldRef = useRef<HTMLTextAreaElement>(null);
+  // Enkel bij een nieuwe aanvraag; niet opnieuw wanneer de pagina weer zichtbaar wordt (Activity).
+  const focused = useRef(focusRequest);
+  useEffect(() => {
+    if (focusRequest === focused.current) return;
+    focused.current = focusRequest;
+    fieldRef.current?.focus();
+  }, [focusRequest]);
   const send = () => {
     if (!text.trim() || disabled) return;
     onSend(text.trim());
@@ -101,7 +125,9 @@ function AssistantInput({ label, visibleLabel, placeholder, onSend, onMic, liste
         {label}
       </label>
       <div className="flex items-end gap-2">
+        {plus && <PlusMenu {...plus} disabled={disabled} />}
         <textarea
+          ref={fieldRef}
           id="assistent-bericht"
           rows={visibleLabel ? 2 : 1}
           value={text}
@@ -160,6 +186,7 @@ export function AssistantPanel({
   input,
   open,
   onOpenChange,
+  onFileDrop,
 }: {
   subtitle: string;
   progress?: string;
@@ -170,8 +197,11 @@ export function AssistantPanel({
   input: AssistantInputProps;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  /** Een bestand slepen op het hele paneel verwerkt het als notities. */
+  onFileDrop?: ((file: File) => void) | null;
 }) {
   const endRef = useRef<HTMLDivElement>(null);
+  const drop = useFileDrop((file) => onFileDrop?.(file), !!onFileDrop);
   // Een kaart toont altijd de huidige state, dus enkel bij het laatste bericht met die kaart.
   const lastWithCard = (card: Message["card"]) => messages.findLastIndex((m) => m.card === card);
 
@@ -196,6 +226,7 @@ export function AssistantPanel({
   return (
     <aside
       aria-label="Assistent"
+      {...drop.handlers}
       className="fixed inset-x-0 bottom-0 z-30 flex h-[55dvh] flex-col rounded-t-2xl border-t border-line-soft bg-white shadow-[0_-12px_32px_rgba(22,33,58,0.14)] lg:sticky lg:top-0 lg:h-dvh lg:w-[400px] lg:shrink-0 lg:rounded-none lg:border-t-0 lg:border-l lg:shadow-none xl:w-[420px]"
     >
       <div className="flex items-center gap-3 border-b border-line-soft py-3 pr-2 pl-4 lg:py-4 lg:pr-24">
@@ -239,6 +270,16 @@ export function AssistantPanel({
       </div>
 
       <AssistantInput {...input} />
+
+      {drop.over && (
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-2 z-10 flex flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-brand bg-brand-selected/95 text-[15px] font-bold text-brand"
+        >
+          <FileUp className="size-7" aria-hidden />
+          Laat los om je notities te verwerken
+        </div>
+      )}
     </aside>
   );
 }

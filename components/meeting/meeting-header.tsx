@@ -2,7 +2,7 @@
 
 import { useState, type ReactNode } from "react";
 import Link from "next/link";
-import { ChevronLeft, CircleDashed, Clock, Play, Plus, UserPlus } from "lucide-react";
+import { CalendarDays, ChevronLeft, CircleDashed, Clock, Play, Plus, UserPlus } from "lucide-react";
 import { Avatar } from "@/components/avatar";
 import { icon, InlineText, ProgressBar, STROKE } from "@/components/meeting/bits";
 import { useMeeting, useMeetingOps, type TrialView } from "@/components/meeting/meeting-context";
@@ -245,6 +245,23 @@ export function MeetingHeader({
   );
 }
 
+/** Subtiele link in de datumregel die het agendapad start, enkel voor dat veld (Variant A, C1). */
+function FromCalendar({ trial, field, label }: { trial: TrialView; field: "when" | "participants"; label: string }) {
+  const onFromCalendar = trial.onFromCalendar;
+  if (!onFromCalendar) return null;
+  return (
+    <Button
+      variant="link"
+      size="sm"
+      onClick={() => onFromCalendar(field)}
+      className="min-h-11 gap-1 px-1.5 text-[13px] font-bold"
+    >
+      <CalendarDays className="size-[13px]" strokeWidth={2.2} aria-hidden />
+      {label}
+    </Button>
+  );
+}
+
 /** Wat de assistent net invulde, licht 2 s op (Variant A). */
 const flashed = "rounded-lg bg-brand-selected shadow-[0_0_0_2px_var(--proposal-line)]";
 
@@ -315,6 +332,7 @@ function TrialHeader({ trial, participants }: { trial: TrialView; participants: 
                 {trial.scheduleEditor}
               </PopoverContent>
             </Popover>
+            {!trial.scheduleText && <FromCalendar trial={trial} field="when" label="Uit agenda halen" />}
             <span aria-hidden className={muted}>
               ·
             </span>
@@ -336,6 +354,9 @@ function TrialHeader({ trial, participants }: { trial: TrialView; participants: 
                   {trial.participantsEditor}
                 </PopoverContent>
               </Popover>
+            )}
+            {participants.length === 0 && (
+              <FromCalendar trial={trial} field="participants" label="Deelnemers uit agenda" />
             )}
           </div>
         </div>

@@ -89,9 +89,16 @@ export type GuestStep = 1 | 2 | 3 | "done";
 
 export type EntryChoice = "meeting" | "notes" | "calendar" | "example";
 
+/** De drie startkeuzes (C1), als eenvoudige tekstregels. */
+export type StartChoice = "calendar" | "notes" | "meeting";
+
+/** Velden die "Uit agenda halen" en "Deelnemers uit agenda" invullen (C1). */
+export type CalendarField = "when" | "participants";
+
 /** Wat de assistent nu vraagt; bepaalt de knoppen onder het laatste bericht. */
 export type Pending =
-  | { kind: "entry" }
+  /** De startkeuzes; na een mislukte agendakoppeling enkel de twee andere. */
+  | { kind: "entry"; choices?: StartChoice[] }
   | { kind: "sentence" }
   | { kind: "name" }
   | { kind: "day" }
@@ -99,11 +106,24 @@ export type Pending =
   | { kind: "recurrence" }
   | { kind: "participants" }
   | { kind: "confirm-meeting" }
-  | { kind: "pick-meeting"; provider: CalendarProvider; options: CalendarOption[] }
+  /**
+   * "Outlook of Google?". `fields`: enkel die velden invullen (null = het hele overleg); `resume`: wat
+   * openstond vóór het agendapad, daar gaat de assistent daarna mee verder.
+   */
+  | { kind: "provider"; fields: CalendarField[] | null; resume: Pending }
+  | {
+      kind: "pick-meeting";
+      provider: CalendarProvider;
+      options: CalendarOption[];
+      fields: CalendarField[] | null;
+      resume: Pending;
+    }
   | { kind: "notes" }
   | { kind: "owner"; actionId: string }
   | { kind: "place-actions" }
   | { kind: "proposal" }
+  /** "Dit lijken notities van een vorig overleg…" (C2b): de geplakte tekst wacht op Ja of Nee. */
+  | { kind: "paste"; text: string; resume: Pending }
   | { kind: "idle" };
 
 export interface Message {
@@ -112,7 +132,7 @@ export interface Message {
   /** **vet** wordt vet getoond. */
   text: string;
   /** Kaart onder het bericht, berekend uit de huidige state. */
-  card?: "summary" | "mail";
+  card?: "summary" | "mail" | "dropzone";
 }
 
 /** Een overleg dat al klaarstaat ("Nog een overleg toevoegen"). */
@@ -128,10 +148,15 @@ export interface AssistantState extends GuestBundle {
   entry: EntryChoice | null;
   pending: Pending;
   others: GuestBundle[];
+  /** De herinnering "Heb je notities van de vorige keer?" kwam al (één keer, ook na herladen). */
+  notesReminderShown: boolean;
 }
 
 export type AssistantInput =
-  | { type: "entry"; entry: "meeting" | "notes" }
+  /** Een startkeuze, het "+"-menu of een zin als "koppel mijn agenda". */
+  | { type: "entry"; entry: StartChoice }
+  /** "Uit agenda halen" / "Deelnemers uit agenda" in de datumregel. */
+  | { type: "calendar-field"; field: CalendarField }
   | { type: "calendar"; provider: CalendarProvider; result: CalendarResult }
   | { type: "pick-meeting"; id: string }
   | { type: "notes-file"; name: string; text: string; sample: boolean; image: boolean }
@@ -144,7 +169,9 @@ export type AssistantInput =
   | { type: "no-actions" }
   | { type: "place-actions" }
   | { type: "dismiss-proposal" }
-  | { type: "another-meeting" };
+  | { type: "another-meeting" }
+  /** Antwoord op "Dit lijken notities…": verwerken of als gewoon bericht behandelen. */
+  | { type: "paste"; process: boolean };
 
 export type AssistantEvent = [
   name: "meeting_parsed" | "meeting_confirmed" | "actions_extracted" | "first_action_with_owner" | "meeting_ready",

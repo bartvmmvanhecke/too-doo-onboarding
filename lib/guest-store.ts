@@ -99,6 +99,7 @@ export function initialGuest(): GuestData {
     actions: [],
     decisions: [],
     others: [],
+    notesReminderShown: false,
     conversation: withIds(WELCOME_MESSAGES),
     account: null,
   };
@@ -118,6 +119,7 @@ function assistantState(s: AssistantState): AssistantState {
     actions: s.actions,
     decisions: s.decisions,
     others: s.others,
+    notesReminderShown: !!s.notesReminderShown,
   };
 }
 

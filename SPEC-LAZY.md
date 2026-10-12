@@ -11,10 +11,9 @@ Mockups: `design/variant-a-lazy/` (C0 t/m C6). Zoals eerder: lees de HTML en inl
 | Mockup | Inhoud |
 |---|---|
 | `C0-Flow.dc.html` | Overzicht van de flow, regels voor het accountmoment, meetpunten (referentie, niet bouwen) |
-| `C0b-Welkom.dc.html` | Welkomstvraag vóór de app: drie kaarten |
-| `C0c-Welkom-agenda.dc.html` | Welkom, agenda gekozen: Outlook of Google |
-| `C0d-Welkom-notities.dc.html` | Welkom, notities gekozen: bestand of tekst |
-| `C0e-Welkom-vertellen.dc.html` | Welkom, vertellen gekozen: één zin |
+| `C0f-Split-welkom.dc.html` | Welkom: illustratie links, assistent rechts met de drie keuzes |
+| `C0g-Split-vertellen.dc.html` | Keuze gemaakt: gesprek loopt verder in hetzelfde paneel |
+| `C0h-Aandokken.dc.html` | Aandokken: illustratie wordt de vergadering, paneel versmalt |
 | `C1-Meteen-in-app.dc.html` | In de app na 'Ik vertel het': titel en agenda ingevuld, één vraag |
 | `C1d-Leeg.dc.html` | 'Begin met een lege vergadering': standaardagenda, assistent ingeklapt |
 | `C1b-Agenda-gekoppeld.dc.html` | In de app na koppelen: vaste vergaderingen kiezen |
@@ -97,25 +96,27 @@ Alles regelgebaseerd en deterministisch, in één module (`lib/assistant/`), zod
 
 Typ-indicator (3 puntjes, 600–900 ms) voor elk antwoord. Velden die net ingevuld werden, krijgen 2 s een blauwe markering (C2).
 
-### Stap 0 · Welkomstvraag vóór de app (C0b–C0e) · update 12 okt
-"Probeer Too-doo gratis" opent `/probeer`. Zolang de gast nog niet gestart is, toont `/probeer` eerst een **welkomstscherm**: een gecentreerde kaart (max. 620 px) boven een wazige, gedimde weergave van de app.
+### Stap 0 · Welkom als gesplitst scherm dat aandokt (C0f–C0h) · update 12 okt
+"Probeer Too-doo gratis" opent `/probeer`. Zolang de gast nog niet gestart is, toont `/probeer` een **gesplitst welkomstscherm**:
 
-- Logo, rechtsboven link "Inloggen" (opent het bewaar-modal in login-modus).
-- Kop: **"Welkom bij too-doo. Hoe wil je je eerste vergadering klaarzetten?"**, subtekst "Kies wat je bij de hand hebt. Je kunt alles later aanpassen."
-- Drie gelijkwaardige kaarten (icoon, titel, één regel uitleg, chevron), zonder knoppen erin:
-  1. **Uit mijn agenda** · Outlook of Google, het snelst
-  2. **Uit notities of opnames** · Bestand of tekst
-  3. **Ik vertel het** · In één zin
-- Onderaan: "Of **begin met een lege vergadering** · **bekijk eerst een voorbeeld**" (twee tekstlinks; voorbeeld = bestaande `/voorbeeld`) en rechts "Geen account nodig".
-- **Een kaart kiezen klapt die kaart open** (accordeon; de andere blijven zichtbaar, iets gedimd, om te wisselen):
-  - **Agenda (C0c):** knoppen Outlook en Google + "We lezen alleen je vaste vergaderingen. Je logt meteen in, zodat je werk bewaard blijft." Koppelen = inloggen (gesimuleerd met de bestaande demo-uitkomsten). Bij succes: gebruiker aangemaakt (Tom Claes uit de mock-data), naar de app met de lijst vaste vergaderingen in de assistent (C1b). Daarna geen bewaar-modal meer. Bij geen reeksen, IT-goedkeuring, geannuleerd of geblokkeerde login: rustige melding **op deze kaart**, de twee andere kaarten blijven bruikbaar.
-  - **Notities (C0d):** dropzone (Sleep een bestand hierheen · Word, PDF, e-mail, foto of geluidsopname · Kies bestand) + link "Of plak de tekst" (toont een tekstvak op de kaart). Bestandsverwerking zoals eerder: .txt/.md/.eml inlezen, .docx via mammoth, .pdf via pdfjs-dist, anders/afbeeldingen/geluidsopnames (.mp3, .m4a, .wav) de vaste voorbeeldtekst (in het prototype geen echte transcriptie; toon 'Opname wordt uitgeschreven…' ±2 s); toon welk bestand verwerkt wordt. Na verwerken naar de app, meteen in stap 2 met de acties als voorstellen (C3). De naam van de vergadering wordt gevraagd als die niet uit de notities blijkt.
-  - **Vertellen (C0e):** label "Waarover gaat je volgende vergadering?", één invoerveld, knop **Zet ze klaar**, hulptekst "Eén zin volstaat. Wie en wanneer mag erbij, hoeft niet." Zelfde parser als sectie "Zin begrijpen". Naar de app (C1).
-- **Overgang:** na de keuze verdwijnt de wazige laag en schuift het resultaat (titel, lijst of acties) op zijn plek in de app, ±300 ms. Geen animatie bij `prefers-reduced-motion`.
-- De keuze wordt bewaard in de gast-state (`startPath: agenda | notes | tell | empty`); wie terugkomt, ziet het welkomstscherm niet opnieuw.
+- **Links (± 60 %):** illustratie in merkblauw (verloop primair donker → primair) met de belofte als productbeeld: kaart "Openstaande acties" (3 acties, 1 te laat), kaart "Volgende vergadering", kaart "Jan vinkte af via mail · zonder account". Eronder: **"Wat je afspreekt, gebeurt ook."** + "Acties met een eigenaar komen vanzelf terug op je volgende vergadering, tot ze af zijn." Puur decoratief voor schermlezers (`aria-hidden` op de kaarten, tekst wel leesbaar).
+- **Rechts (± 40 %, min. 520 px):** het **assistentpaneel zelf** (zelfde component als in de app, maar breder): logo + "Inloggen" bovenaan, label "Assistent", kop **"Welkom bij Too-doo. Laten we je eerste overleg klaarzetten."** (twee regels), subtekst **"Kies wat je al bij de hand hebt. Je kunt alles later aanpassen."**, drie keuzes in deze volgorde:
+  1. **Vertel het me** · Beschrijf je overleg in één zin — de hoofdroute.
+  2. **Gebruik notities van een vorig overleg** · Plak tekst, upload een bestand of spreek in.
+  3. **Haal het uit mijn agenda** · Outlook of Google, optioneel.
+  
+  Daaronder, gescheiden door een lijn, twee secundaire links: **Start met een lege meeting** (→ C1d) en **Bekijk eerst een voorbeeld** (→ `/voorbeeld`). Onderaan het gewone chatveld met "+"-knop; vrije tekst werkt meteen als "Vertel het me".
+- **Na een keuze loopt het gesprek verder in hetzelfde paneel** (C0g): de keuze verschijnt als antwoordbubbel, de assistent stelt de vervolgvraag:
+  - *Vertel het me* → "Waarover gaat je volgende overleg? Eén zin is genoeg. Wie en wanneer mag erbij, hoeft niet." Focus op het chatveld.
+  - *Notities* → bericht met dropzone (Sleep een bestand hierheen · Word, PDF, e-mail, foto of geluidsopname · Kies bestand), knop **Inspreken** en "Of plak de tekst in het chatveld". Verwerking zoals eerder (.txt/.md/.eml inlezen, .docx mammoth, .pdf pdfjs-dist, anders/afbeelding/opname de vaste voorbeeldtekst, opname toont eerst "Opname wordt uitgeschreven…").
+  - *Agenda* → bericht met knoppen Outlook en Google + "We lezen alleen je vaste vergaderingen. Je logt meteen in, zodat je werk bewaard blijft." Koppelen = inloggen (demo-uitkomsten). Mislukt het: rustige melding in het gesprek en de twee andere keuzes opnieuw aangeboden.
+- **Aandokken (C0h):** zodra er iets te tonen is (titel en agenda uit de zin, acties uit de notities, of de lijst uit de agenda) maakt de illustratie plaats voor de vergadering in opbouw en versmalt het paneel naar de gewone assistentbreedte (400 px) met de gewone kop ("Assistent · stelt voor, jij beslist"). Het gesprek blijft staan. Duur ±400 ms (breedte + crossfade links); bij `prefers-reduced-motion` alleen een korte fade. Tijdens het verwerken: bericht "Ik zet je overleg klaar…" met een stille indicator.
+- Daarna verder op het juiste punt: vertellen → C1, notities → C3, agenda → C1b, lege meeting → C1d (paneel klapt in tot strook).
+- **Mobiel (< 900 px):** geen illustratie; het gesprek staat op volledig scherm en zakt na aandokken naar een half onderblad.
+- `startPath: tell | notes | agenda | empty` in de gast-state; wie terugkomt, ziet het welkomstscherm niet opnieuw.
 
 ### Lege vergadering (C1d) · update 12 okt
-"Begin met een lege vergadering" op het welkomstscherm opent de app met:
+"Start met een lege meeting" op het welkomstscherm opent de app met:
 - titel "Nieuwe vergadering" meteen in bewerkmodus (geselecteerd, cursor erin);
 - de standaardagenda: Openstaande acties (leeg: "Nog niets open. Acties die je tijdens de vergadering noteert, komen hier vanzelf terug tot ze af zijn." + sleep-hint), Lopende zaken, Varia; per thema "+ Agendapunt toevoegen", onderaan "+ Thema";
 - datumregel met "Uit agenda halen" en "Deelnemers uit agenda";

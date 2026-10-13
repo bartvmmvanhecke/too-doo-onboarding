@@ -53,6 +53,7 @@ export interface GuestAccount {
 }
 
 interface GuestData extends AssistantState {
+  reviewVersion?: 1;
   guestId: string;
   createdAt: number;
   conversation: Message[];
@@ -124,6 +125,7 @@ const withIds = (messages: Omit<Message, "id">[]): Message[] => messages.map((m)
 
 export function initialGuest(): GuestData {
   return {
+    reviewVersion: 1,
     guestId: uid("g-"),
     createdAt: Date.now(),
     step: 1,
@@ -310,7 +312,16 @@ export const useGuestStore = create<GuestStore>()(
         // Van vóór het welkomstscherm: wie al bezig was, ziet het niet meer.
         const legacy =
           p.transitionPlayed === undefined && !!p.conversation && hasGuestWork({ conversation: p.conversation });
-        return { ...current, ...p, ...(legacy ? { transitionPlayed: true } : {}) };
+        return {
+          ...current,
+          ...p,
+          actions: (p.actions ?? []).map((a) =>
+            p.reviewVersion === undefined && p.step === 2 && !a.reviewStatus
+              ? { ...a, confirmed: false, reviewStatus: "open" as const }
+              : a,
+          ),
+          ...(legacy ? { transitionPlayed: true } : {}),
+        };
       },
     },
   ),

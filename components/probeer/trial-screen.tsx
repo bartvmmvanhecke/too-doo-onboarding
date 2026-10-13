@@ -104,7 +104,7 @@ function openTrial() {
 function SummaryCard() {
   const meeting = useGuestStore((s) => s.meeting);
   const rows = [
-    ["Overleg", meeting.name ?? "–"],
+    ["Vergadering", meeting.name ?? "–"],
     ["Wanneer", whenText(meeting, ", ") ?? "–"],
     ["Deelnemers", meeting.participants.length ? participantsText(meeting.participants) : "Nog niemand"],
   ];
@@ -147,7 +147,7 @@ function MailCard() {
   );
 }
 
-/** "Start met een lege meeting" (C1d): geen overgang, meteen de app met de assistent gesloten. */
+/** "Start met een lege vergadering" (C1d): geen overgang, meteen de app met de assistent gesloten. */
 function startEmptyMeeting() {
   track("assistant_entry_chosen", { ingang: "empty" });
   useGuestStore.getState().startEmpty();
@@ -353,8 +353,8 @@ export function TrialScreen({ onSave }: { onSave: (intent: SaveIntent, trigger: 
       <Chips
         label="Of probeer verder"
         options={[
-          { value: "run", label: "Toon hoe het overleg verloopt" },
-          { value: "another", label: "Nog een overleg toevoegen" },
+          { value: "run", label: "Toon hoe de vergadering verloopt" },
+          { value: "another", label: "Nog een vergadering toevoegen" },
         ]}
         onSelect={(v, label) =>
           v === "run" ? router.push("/voorbeeld?van=probeer&start=1") : send({ type: "another-meeting" }, label)
@@ -412,7 +412,7 @@ export function TrialScreen({ onSave }: { onSave: (intent: SaveIntent, trigger: 
     }, 800);
   }, [uiRequest, router]);
 
-  /** "Start met een lege meeting" (C1d): geen overgang, meteen de app met de assistent ingeklapt. */
+  /** "Start met een lege vergadering" (C1d): geen overgang, meteen de app met de assistent ingeklapt. */
   const startEmpty = () => {
     if (!busy) startEmptyMeeting();
   };

@@ -1,4 +1,5 @@
 "use client";
+import { ReviewBanner, ReviewHint } from "@/components/probeer/suggestion-review";
 import { useState } from "react";
 import { toast } from "sonner";
 import { InviteDialog } from "@/components/app/invite-dialog";
@@ -48,7 +49,9 @@ export function MeetingDetailB({
         }}
       >
         <TooltipProvider>
+          <ReviewBanner />
           <MeetingHeaderB hint={null} onShowHint={() => {}} onInvite={() => setInvite(true)} onAddAction={addAction} />
+          {!trial && <ReviewHint />}
           <div className="meeting-document">
             <OpenActions meeting={meeting} people={people} />
             <DocumentEditor meeting={meeting} />

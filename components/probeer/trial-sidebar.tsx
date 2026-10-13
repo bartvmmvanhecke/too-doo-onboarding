@@ -8,6 +8,7 @@ import { Logo } from "@/components/brand";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useGuestStore, GUEST_TTL_MS, type GuestAccount } from "@/lib/guest-store";
+import { useStore } from "@/lib/store";
 import { notAvailable } from "@/lib/not-available";
 import { cn } from "@/lib/utils";
 
@@ -30,7 +31,16 @@ function NavItems({ meetingNames }: { meetingNames: string[] }) {
       }}
     >
       {label}
-      {label === "Acties" && count > 0 && <span className={cn("ml-auto rounded-full px-2 py-0.5 text-xs", open ? "bg-[var(--review-count-bg)] text-[var(--review-count-ink)]" : "bg-white/15 text-white")}>{count}</span>}
+      {label === "Acties" && count > 0 && (
+        <span
+          className={cn(
+            "ml-auto rounded-full px-2 py-0.5 text-xs",
+            open ? "bg-[var(--review-count-bg)] text-[var(--review-count-ink)]" : "bg-white/15 text-white",
+          )}
+        >
+          {count}
+        </span>
+      )}
     </a>
   );
   return (
@@ -40,7 +50,7 @@ function NavItems({ meetingNames }: { meetingNames: string[] }) {
         Vergaderingen
       </Link>
       {meetingNames.length > 1 && (
-        <ul aria-label="Je overleggen" className="flex flex-col gap-0.5 pb-1 pl-6 text-sm text-nav-muted">
+        <ul aria-label="Je vergaderingen" className="flex flex-col gap-0.5 pb-1 pl-6 text-sm text-nav-muted">
           {meetingNames.map((n) => (
             <li key={n}>{n}</li>
           ))}
@@ -56,23 +66,62 @@ function NavItems({ meetingNames }: { meetingNames: string[] }) {
 const PANEL = { duration: 0.4, ease: [0.65, 0, 0.35, 1] as const };
 
 function SaveBox({ canSave, onSave, account }: { canSave: boolean; onSave: () => void; account: GuestAccount | null }) {
+  const company = useStore((s) => s.user?.company);
   const createdAt = useGuestStore((s) => s.createdAt);
   const [now, setNow] = useState(() => Date.now());
-  useEffect(() => { const timer = setInterval(() => setNow(Date.now()), 60000); return () => clearInterval(timer); }, []);
+  useEffect(() => {
+    const timer = setInterval(() => setNow(Date.now()), 60000);
+    return () => clearInterval(timer);
+  }, []);
   const days = Math.max(0, Math.ceil((createdAt + GUEST_TTL_MS - now) / 86400000));
   const urgent = !account && days <= SAVE_URGENT_DAYS;
   return (
     <div className="flex flex-col gap-2">
-      <button type="button" className={item} onClick={notAvailable}>Instellingen</button>
-      <div className={cn("flex flex-col gap-3 rounded-xl border p-3", urgent ? "border-[var(--save-urgent)] bg-[var(--save-urgent-bg)]" : "border-[var(--save-slot-line)]")}>
+      <button type="button" className={item} onClick={notAvailable}>
+        Instellingen
+      </button>
+      <div
+        className={cn(
+          "flex flex-col gap-3 rounded-xl border p-3",
+          urgent ? "border-[var(--save-urgent)] bg-[var(--save-urgent-bg)]" : "border-[var(--save-slot-line)]",
+        )}
+      >
         <div className="flex items-center gap-2">
-          <span className={cn("flex size-8 shrink-0 items-center justify-center rounded-full", urgent ? "bg-[var(--save-urgent)] text-app-nav" : "border border-dashed border-white")}>{urgent ? <Clock className="size-4" aria-hidden /> : <UserRound className="size-4" aria-hidden />}</span>
-          <div><p className="text-sm font-semibold">{account ? `${account.firstName} ${account.lastName}` : urgent ? `Nog ${days} dagen` : "Gast"}</p>
-          <p className="text-xs text-nav-muted">{account ? "Metaalwerken" : urgent ? "Daarna is je werk weg" : `Niet bewaard · nog ${days} dagen`}</p></div>
+          <span
+            className={cn(
+              "flex size-8 shrink-0 items-center justify-center rounded-full",
+              urgent ? "bg-[var(--save-urgent)] text-app-nav" : "border border-dashed border-white",
+            )}
+          >
+            {urgent ? <Clock className="size-4" aria-hidden /> : <UserRound className="size-4" aria-hidden />}
+          </span>
+          <div>
+            <p className="text-sm font-semibold">
+              {account ? `${account.firstName} ${account.lastName}` : urgent ? `Nog ${days} dagen` : "Gast"}
+            </p>
+            <p className="text-xs text-nav-muted">
+              {account
+                ? (company ?? "Bedrijf kiezen")
+                : urgent
+                  ? "Daarna is je werk weg"
+                  : `Niet bewaard · nog ${days} dagen`}
+            </p>
+          </div>
         </div>
-        {account ? <button type="button" className="min-h-11 text-left text-sm" onClick={notAvailable}>Bedrijf kiezen</button> :
-          <Button variant="inverse" className="h-10 min-h-11 w-full rounded-[10px]" onClick={onSave}>Account maken</Button>}
-        {account && canSave && <Button variant="inverse" onClick={onSave}>Open in je account</Button>}
+        {account ? (
+          <button type="button" className="min-h-11 text-left text-sm" onClick={notAvailable}>
+            Bedrijf kiezen
+          </button>
+        ) : (
+          <Button variant="inverse" className="h-10 min-h-11 w-full rounded-[10px]" onClick={onSave}>
+            Account maken
+          </Button>
+        )}
+        {account && canSave && (
+          <Button variant="inverse" onClick={onSave}>
+            Open in je account
+          </Button>
+        )}
       </div>
     </div>
   );

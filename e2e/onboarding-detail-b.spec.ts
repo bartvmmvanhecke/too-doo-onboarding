@@ -7,7 +7,7 @@ test("onboarding: variant B zodra het overleg verschijnt, gedeelde edits en herl
   await page.getByRole("button", { name: "Prototype-menu" }).click();
   await expect(page.getByRole("button", { name: "Variant B", exact: true })).toHaveCount(0);
   await page.keyboard.press("Escape");
-  await page.getByRole("button", { name: /^Start met een lege meeting/ }).click();
+  await page.getByRole("button", { name: /^Start met een lege vergadering/ }).click();
   await expect(page.getByRole("main").getByRole("heading", { level: 1 })).toBeVisible();
   await page.getByRole("button", { name: "Prototype-menu" }).click();
   await page.getByRole("button", { name: "Variant B", exact: true }).click();
@@ -22,7 +22,7 @@ test("onboarding: variant B zodra het overleg verschijnt, gedeelde edits en herl
   await page.getByRole("button", { name: "Prototype-menu" }).click();
   await page.getByRole("button", { name: "Variant A", exact: true }).click();
   await expect(page.getByText("Offerte bespreken", { exact: true })).toBeVisible();
-  await expect(page.getByRole("button", { name: "Start overleg" })).toBeEnabled();
+  await expect(page.getByRole("button", { name: "Start vergadering" })).toBeEnabled();
   errors.assertNone();
 });
 

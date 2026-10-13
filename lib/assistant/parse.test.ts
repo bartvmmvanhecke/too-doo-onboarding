@@ -146,7 +146,7 @@ describe("respond", () => {
     ]);
     expect(r.state.decisions.map((d) => d.text)).toEqual(["Planning week 42"]);
     expect(r.messages[0].text).toBe(
-      "Ik vond **3 acties** en **1 beslissing**. Ze staan links op de agenda; vink uit wat niet klopt.",
+      "Ik vond **3 acties** en **1 beslissing**. Kijk de voorstellen na en bevestig wat klopt.",
     );
     expect(r.messages.at(-1)?.text).toBe("Wie gaat leverancier staal opnieuw bellen?");
     expect(r.events.map((e) => e[0])).toEqual(["actions_extracted", "first_action_with_owner"]);

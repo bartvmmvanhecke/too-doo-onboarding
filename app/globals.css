@@ -7,6 +7,8 @@
  * dezelfde waarden, zodat de ui-componenten automatisch meekleuren.
  */
 :root {
+  --review-success-bg: #E9F5F0;
+  --review-success-ink: #1C6650;
   --review-hint-bg: #FFF3DF;
   --review-hint-ink: #5A3200;
   --review-hint-badge: #8A4B00;

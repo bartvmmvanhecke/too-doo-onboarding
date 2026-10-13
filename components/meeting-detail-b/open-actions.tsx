@@ -1,5 +1,5 @@
 "use client";
-import { SuggestionReview } from "@/components/probeer/suggestion-review";
+import { SuggestionReview, useReviewData } from "@/components/probeer/suggestion-review";
 import { useState } from "react";
 import { RefreshCw } from "lucide-react";
 import { Avatar } from "@/components/avatar";
@@ -15,7 +15,8 @@ export function OpenActions({ meeting, people }: { meeting: Meeting; people: Per
   const [all, setAll] = useState(false);
   const open = meeting.actions.filter((a) => trial?.confirming || !a.done);
   const late = open.filter((a) => daysLate(a.deadline)).length;
-  if (trial?.confirming) return <SuggestionReview />;
+  const { suggestions } = useReviewData();
+  if (suggestions.length) return <SuggestionReview />;
   return (
     <section
       className="mb-6 border-b border-line pb-5"

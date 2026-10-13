@@ -466,7 +466,7 @@ function extract(d: Draft, text: string, ref: Date) {
     m > 0
       ? `**${plural(n, "actie", "acties")}** en **${plural(m, "beslissing", "beslissingen")}**`
       : `**${plural(n, "actie", "acties")}**`;
-  d.messages.push(say(`Ik vond ${found}. Ze staan links op de agenda; vink uit wat niet klopt.`));
+  d.messages.push(say(`Ik vond ${found}. Kijk de voorstellen na en bevestig wat klopt.`));
   nextOwnerQuestion(d, false);
 }
 

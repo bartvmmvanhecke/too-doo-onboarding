@@ -47,22 +47,25 @@ function saveDocument(meeting: Meeting) {
       const item = block?.items.find((i) => i.id === d.id);
       return item ? { ...d, ...item, topicId: block!.id } : { ...d, confirmed: false };
     }),
-    actions: meeting.actions.map((a) => {
-      const previous = guest.actions.find((x) => x.id === a.id);
-      return {
-        ...previous,
-        id: a.id,
-        text: a.what,
-        ownerId: a.ownerId === USER_PERSON_ID ? ME : a.ownerId,
-        deadline:
-          previous && a.deadline === currentTrialMeeting().actions.find((x) => x.id === a.id)?.deadline
-            ? previous.deadline
-            : a.deadline || null,
-        confirmed: guest.step === 2 ? !a.done : (previous?.confirmed ?? true),
-        done: guest.step === 2 ? previous?.done : a.done,
-        ownerLater: previous?.ownerLater ?? false,
-      };
-    }),
+    actions: [
+      ...guest.actions.filter((a) => a.reviewStatus && !a.confirmed),
+      ...meeting.actions.map((a) => {
+        const previous = guest.actions.find((x) => x.id === a.id);
+        return {
+          ...previous,
+          id: a.id,
+          text: a.what,
+          ownerId: a.ownerId === USER_PERSON_ID ? ME : a.ownerId,
+          deadline:
+            previous && a.deadline === currentTrialMeeting().actions.find((x) => x.id === a.id)?.deadline
+              ? previous.deadline
+              : a.deadline || null,
+          confirmed: previous?.confirmed ?? true,
+          done: a.done,
+          ownerLater: previous?.ownerLater ?? false,
+        };
+      }),
+    ],
   });
 }
 

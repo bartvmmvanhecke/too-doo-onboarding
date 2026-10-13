@@ -15,13 +15,7 @@ import { ME } from "@/lib/assistant/types";
 import { formatShortDate, nextWeekday } from "@/lib/date";
 import { useGuestStore } from "@/lib/guest-store";
 import { USER_PERSON_ID } from "@/lib/mock-data";
-import {
-  DEFAULT_BLOCK,
-  isTopicBlock,
-  trialMeeting,
-  trialPeople,
-  TRIAL_MEETING_ID,
-} from "@/lib/trial-meeting";
+import { DEFAULT_BLOCK, isTopicBlock, trialMeeting, trialPeople, TRIAL_MEETING_ID } from "@/lib/trial-meeting";
 import { lowerFirst } from "@/lib/utils";
 
 const noop = () => {};
@@ -75,8 +69,7 @@ function trialOps(onStart: () => void): MeetingOps {
     toggleAction: (_, actionId) => {
       const a = g().actions.find((x) => x.id === actionId);
       if (!a) return;
-      if (g().step === 2) g().updateAction(actionId, { confirmed: !a.confirmed });
-      else g().updateAction(actionId, { done: !a.done });
+      g().updateAction(actionId, { done: !a.done });
     },
     assignOwner: (_, actionId, ownerId) =>
       g().updateAction(actionId, { ownerId: ownerId === USER_PERSON_ID ? ME : ownerId, ownerLater: false }),
@@ -208,7 +201,7 @@ export function TrialMeeting({
 
   return (
     <div className="app-theme flex flex-col gap-3.5" id={TRIAL_MEETING_ID}>
-      {ready && (
+      {ready && !actions.some((a) => a.reviewStatus) && (
         <div
           role="status"
           className="flex items-center gap-3 rounded-xl bg-success-bg px-4 py-3 text-[15px] font-semibold text-success-ink"

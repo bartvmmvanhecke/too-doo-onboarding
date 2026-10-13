@@ -85,10 +85,10 @@ export function WelcomeHeader({ onLogin }: { onLogin: () => void }) {
 }
 
 const CHOICES: { value: StartChoice; label: string; hint: string; icon: typeof MessageCircle }[] = [
-  { value: "meeting", label: "Vertel het me", hint: "Beschrijf je overleg in één zin", icon: MessageCircle },
+  { value: "meeting", label: "Vertel het me", hint: "Beschrijf je vergadering in één zin", icon: MessageCircle },
   {
     value: "notes",
-    label: "Gebruik notities van een vorig overleg",
+    label: "Gebruik notities van een vorige vergadering",
     hint: "Plak tekst, upload een bestand of spreek in",
     icon: FileText,
   },
@@ -170,7 +170,7 @@ export function WelcomeIntro({
           className="min-h-11 px-0 text-[15px] font-bold underline"
           onClick={onEmpty}
         >
-          Start met een lege meeting
+          Start met een lege vergadering
         </Button>
         <Link
           href="/voorbeeld?van=probeer"

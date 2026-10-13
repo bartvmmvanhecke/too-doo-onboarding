@@ -339,7 +339,7 @@ function TrialHeader({ trial, participants }: { trial: TrialView; participants: 
             >
               <InlineText
                 value={meeting.name}
-                label="Naam van het overleg aanpassen"
+                label="Naam van de vergadering aanpassen"
                 editing={renaming || undefined}
                 onEditingChange={setRenaming}
                 onSave={trial.onRename}

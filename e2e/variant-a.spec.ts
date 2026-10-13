@@ -272,6 +272,47 @@ test.describe("Variant A · Lazy Registration", () => {
     errors.assertNone();
   });
 
+  test("voorbeeldsuggesties onder 'Vertel het me' vullen het chatveld zonder te versturen", async ({ page }) => {
+    await page.goto("/probeer");
+    await start(page, "Vertel het me");
+    await expectAssistant(page, SENTENCE_QUESTION);
+    const suggestions = assistant(page).getByRole("group", { name: "Of begin met een voorbeeld" });
+    await expect(suggestions.getByRole("button")).toHaveText([
+      "Wekelijks productieoverleg",
+      "Maandelijks directieoverleg",
+      "Teamoverleg sales",
+      "1-op-1 met een medewerker",
+    ]);
+    const box = assistant(page).getByRole("textbox");
+
+    // Een tik vult het veld, focus erin, cursor achteraan; er wordt niets verstuurd.
+    await suggestions.getByRole("button", { name: "Teamoverleg sales" }).click();
+    await expect(box).toHaveValue("Teamoverleg sales");
+    await expect(box).toBeFocused();
+    expect(await box.evaluate((el: HTMLTextAreaElement) => el.selectionStart)).toBe("Teamoverleg sales".length);
+    await expect(log(page).getByText("Teamoverleg sales")).toHaveCount(0);
+    await expect(suggestions).toHaveCount(0);
+
+    // Veld weer leeg: de suggesties komen terug.
+    await box.fill("");
+    await expect(suggestions).toBeVisible();
+
+    // Aanvullen en versturen werkt zoals een zelfgetypte zin; daarna geen suggesties meer.
+    await suggestions.getByRole("button", { name: "Wekelijks productieoverleg" }).click();
+    await page.keyboard.type(" met Tania");
+    await box.press("Enter");
+    await expectAssistant(page, /Je productieoverleg staat klaar/);
+    await expectDocked(page);
+    await expect(suggestions).toHaveCount(0);
+  });
+
+  test("geen voorbeeldsuggesties na 'Notities' of 'Agenda'", async ({ page }) => {
+    await page.goto("/probeer");
+    await start(page, "Gebruik notities van een vorig overleg");
+    await expect(assistant(page).getByRole("button", { name: "Kies bestand" }).first()).toBeVisible();
+    await expect(assistant(page).getByText("Of begin met een voorbeeld")).toHaveCount(0);
+  });
+
   test("Microsoft geblokkeerd valt terug op e-mail met code", async ({ page }) => {
     const errors = trackErrors(page);
     await page.goto("/probeer");

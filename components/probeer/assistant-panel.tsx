@@ -1,6 +1,6 @@
 "use client";
 
-import { Fragment, useEffect, useRef, useState, type ReactNode } from "react";
+import { Fragment, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import { AnimatePresence, motion, useReducedMotion, type Transition } from "framer-motion";
 import { Check, FileUp, Loader2, Mic, SendHorizontal, X } from "lucide-react";
 import { AssistantMenu, type AssistantMenuItem } from "@/components/probeer/assistant-menu";
@@ -60,17 +60,25 @@ export function TypingDots() {
 /** Keuzeknoppen onder een vraag van de assistent. */
 export function Chips({
   label,
+  labelledBy,
   options,
   onSelect,
   disabled,
 }: {
   label: string;
+  /** Id van een zichtbaar label; dan `aria-labelledby` in plaats van `aria-label`. */
+  labelledBy?: string;
   options: { value: string; label: string }[];
   onSelect: (value: string, label: string) => void;
   disabled?: boolean;
 }) {
   return (
-    <div role="group" aria-label={label} className="flex flex-wrap gap-2">
+    <div
+      role="group"
+      aria-label={labelledBy ? undefined : label}
+      aria-labelledby={labelledBy}
+      className="flex flex-wrap gap-2"
+    >
       {options.map((o) => (
         <button
           key={o.value}
@@ -99,6 +107,10 @@ export interface AssistantInputProps {
   plus?: PlusMenuActions;
   /** Telt op wanneer het chatveld de focus moet krijgen (bv. na "Ik vertel het je"). */
   focusRequest?: number;
+  /** Vult het chatveld met deze tekst (zonder te versturen), focus erin en de cursor achteraan. */
+  fill?: { text: string; at: number };
+  /** Bij elke wijziging van de tekst in het chatveld, ook na versturen (dan leeg). */
+  onDraftChange?: (text: string) => void;
 }
 
 function AssistantInput({
@@ -111,9 +123,32 @@ function AssistantInput({
   disabled,
   plus,
   focusRequest = 0,
+  fill,
+  onDraftChange,
 }: AssistantInputProps) {
-  const [text, setText] = useState("");
+  const [text, setTextState] = useState("");
+  const setText = (value: string) => {
+    setTextState(value);
+    onDraftChange?.(value);
+  };
   const fieldRef = useRef<HTMLTextAreaElement>(null);
+  // Een suggestie vult het veld; na de render de focus erin en de cursor achteraan.
+  const filled = useRef(fill?.at ?? 0);
+  const caretToEnd = useRef(false);
+  useEffect(() => {
+    if (!fill || fill.at === filled.current) return;
+    filled.current = fill.at;
+    caretToEnd.current = true;
+    setTextState(fill.text);
+    onDraftChange?.(fill.text);
+  }, [fill, onDraftChange]);
+  useLayoutEffect(() => {
+    const field = fieldRef.current;
+    if (!caretToEnd.current || !field) return;
+    caretToEnd.current = false;
+    field.focus();
+    field.setSelectionRange(text.length, text.length);
+  }, [text]);
   // Enkel bij een nieuwe aanvraag; niet opnieuw wanneer de pagina weer zichtbaar wordt (Activity).
   const focused = useRef(focusRequest);
   useEffect(() => {

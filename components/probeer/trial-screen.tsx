@@ -17,11 +17,13 @@ import {
   START_LABEL,
 } from "@/components/probeer/entry-blocks";
 import { connectAccount } from "@/components/probeer/save-guest";
+import { TellSuggestions } from "@/components/probeer/tell-suggestions";
 import { TrialSidebar, SHARED } from "@/components/probeer/trial-sidebar";
 import { WELCOME_LABEL, WelcomeChoices, WelcomeHeader, WelcomeIntro, WelcomeStage } from "@/components/probeer/welcome";
 import { Button } from "@/components/ui/button";
 import {
   ME,
+  QUESTIONS,
   RECURRENCE_CHIPS,
   mailOwners,
   participantsText,
@@ -186,6 +188,9 @@ export function TrialScreen({ onSave }: { onSave: (intent: SaveIntent, trigger: 
   const handledUi = useRef(uiRequest?.at ?? 0);
   const [focusRequest, setFocusRequest] = useState(0);
   const focusInput = () => setFocusRequest((n) => n + 1);
+  /** Wat nu in het chatveld staat; een voorbeeldsuggestie vult het via `fill`. */
+  const [draft, setDraft] = useState("");
+  const [fill, setFill] = useState<{ text: string; at: number }>();
 
   // Stap 0: welkom → (terugtrekken → aandokken) → app. De overgang speelt één keer per gast.
   const reduce = useReducedMotion();
@@ -398,6 +403,15 @@ export function TrialScreen({ onSave }: { onSave: (intent: SaveIntent, trigger: 
     if (!busy) startEmptyMeeting();
   };
 
+  // Voorbeeldsuggesties (C0g): enkel op het welkomstscherm na "Vertel het me", zolang de vraag nog open staat.
+  const last = conversation.at(-1);
+  const tellSuggestions =
+    welcome &&
+    startPath === "tell" &&
+    pending.kind === "sentence" &&
+    last?.from === "assistant" &&
+    last.text === QUESTIONS.sentence;
+
   let controls: ReactNode = null;
   switch (pending.kind) {
     case "entry":
@@ -415,6 +429,16 @@ export function TrialScreen({ onSave }: { onSave: (intent: SaveIntent, trigger: 
           onExample={() => track("assistant_entry_chosen", { ingang: "example" })}
         />
       );
+      break;
+    case "sentence":
+      if (tellSuggestions)
+        controls = (
+          <TellSuggestions
+            visible={!draft.trim()}
+            disabled={busy}
+            onPick={(text) => setFill({ text, at: Date.now() })}
+          />
+        );
       break;
     case "provider":
       controls = <ProviderChoice busy={busy} connecting={connecting} onCalendar={connectCalendar} />;
@@ -751,6 +775,8 @@ export function TrialScreen({ onSave }: { onSave: (intent: SaveIntent, trigger: 
             listening,
             disabled: busy || anim !== null,
             focusRequest,
+            fill,
+            onDraftChange: setDraft,
             plus: {
               onPasteNotes: () => choose("notes", "Notities plakken", "menu"),
               onFile: readFile,

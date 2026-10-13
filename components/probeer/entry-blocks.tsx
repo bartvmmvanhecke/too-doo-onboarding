@@ -175,7 +175,7 @@ export function ProviderChoice({
 }
 
 /**
- * Na "Gebruik notities van een vorig overleg" (Stap 0): dropzone met "Kies bestand", de knop Inspreken en
+ * Na "Gebruik notities van een vorige vergadering" (Stap 0): dropzone met "Kies bestand", de knop Inspreken en
  * de tip om te plakken.
  */
 export function NotesDropzone({
@@ -230,7 +230,7 @@ export function NotesDropzone({
   );
 }
 
-/** C1b: vaste overleggen (of losse afspraken) als radiolijst, met "Dit overleg opvolgen". */
+/** C1b: vaste overleggen (of losse afspraken) als radiolijst, met "Deze vergadering opvolgen". */
 export function PickMeeting({
   options,
   onPick,
@@ -246,7 +246,7 @@ export function PickMeeting({
     <div className="flex flex-col gap-3">
       {options.length > 0 && (
         <fieldset className="flex flex-col gap-2 border-none p-0">
-          <legend className="sr-only">Kies een overleg</legend>
+          <legend className="sr-only">Kies een vergadering</legend>
           {options.map((o) => (
             <label
               key={o.id}
@@ -279,7 +279,7 @@ export function PickMeeting({
       )}
       {option && (
         <Button size="md" className="self-start" onClick={() => onPick(option)}>
-          Dit overleg opvolgen
+          Deze vergadering opvolgen
         </Button>
       )}
       <p className="text-[13px] text-ink-3">

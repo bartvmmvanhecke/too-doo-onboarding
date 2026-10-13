@@ -6,7 +6,6 @@ import { LayoutGroup, motion, useReducedMotion } from "framer-motion";
 import { CalendarDays, FileUp, LayoutList, Mic, PanelRightClose } from "lucide-react";
 import { AssistantPanel, Chips, Preparing } from "@/components/probeer/assistant-panel";
 import { AppUiProvider } from "@/components/app/app-ui";
-import { StatusBanner } from "@/components/probeer/trial-banner";
 import { TrialMeeting } from "@/components/probeer/trial-meeting";
 import {
   EntryChoices,
@@ -105,7 +104,7 @@ function openTrial() {
 function SummaryCard() {
   const meeting = useGuestStore((s) => s.meeting);
   const rows = [
-    ["Overleg", meeting.name ?? "–"],
+    ["Vergadering", meeting.name ?? "–"],
     ["Wanneer", whenText(meeting, ", ") ?? "–"],
     ["Deelnemers", meeting.participants.length ? participantsText(meeting.participants) : "Nog niemand"],
   ];
@@ -148,7 +147,7 @@ function MailCard() {
   );
 }
 
-/** "Start met een lege meeting" (C1d): geen overgang, meteen de app met de assistent gesloten. */
+/** "Start met een lege vergadering" (C1d): geen overgang, meteen de app met de assistent gesloten. */
 function startEmptyMeeting() {
   track("assistant_entry_chosen", { ingang: "empty" });
   useGuestStore.getState().startEmpty();
@@ -354,8 +353,8 @@ export function TrialScreen({ onSave }: { onSave: (intent: SaveIntent, trigger: 
       <Chips
         label="Of probeer verder"
         options={[
-          { value: "run", label: "Toon hoe het overleg verloopt" },
-          { value: "another", label: "Nog een overleg toevoegen" },
+          { value: "run", label: "Toon hoe de vergadering verloopt" },
+          { value: "another", label: "Nog een vergadering toevoegen" },
         ]}
         onSelect={(v, label) =>
           v === "run" ? router.push("/voorbeeld?van=probeer&start=1") : send({ type: "another-meeting" }, label)
@@ -413,7 +412,7 @@ export function TrialScreen({ onSave }: { onSave: (intent: SaveIntent, trigger: 
     }, 800);
   }, [uiRequest, router]);
 
-  /** "Start met een lege meeting" (C1d): geen overgang, meteen de app met de assistent ingeklapt. */
+  /** "Start met een lege vergadering" (C1d): geen overgang, meteen de app met de assistent ingeklapt. */
   const startEmpty = () => {
     if (!busy) startEmptyMeeting();
   };
@@ -744,9 +743,6 @@ export function TrialScreen({ onSave }: { onSave: (intent: SaveIntent, trigger: 
             <main
               className={cn("min-w-0 flex-1 px-4 pt-5 sm:px-8 panel:pb-10", open ? "pb-[60dvh]" : "pb-16 panel:pr-24")}
             >
-              <div className="dock-rise mx-auto mb-[18px] w-full max-w-[860px]">
-                <StatusBanner account={account} onLogin={() => onSave("login", "ik-heb-al-een-account")} />
-              </div>
               <div className="mx-auto w-full max-w-[860px]">
                 {/* Het detailscherm gebruikt de UI-context van de app (modal "Andere overlegmomenten"). */}
                 <AppUiProvider>

@@ -234,7 +234,7 @@ function SaveForm({
             <div className="flex flex-wrap items-center gap-2">
               <Button type="submit" size="default" disabled={code.length !== 6 || busy}>
                 {busy && <Loader2 className="size-4 animate-spin" aria-hidden />}
-                Bewaar mijn overleg
+                Bewaar mijn vergadering
               </Button>
               <Button
                 variant="link"

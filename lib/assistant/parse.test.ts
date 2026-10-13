@@ -146,7 +146,7 @@ describe("respond", () => {
     ]);
     expect(r.state.decisions.map((d) => d.text)).toEqual(["Planning week 42"]);
     expect(r.messages[0].text).toBe(
-      "Ik vond **3 acties** en **1 beslissing**. Ze staan links op de agenda; vink uit wat niet klopt.",
+      "Ik vond **3 acties** en **1 beslissing**. Kijk de voorstellen na en bevestig wat klopt.",
     );
     expect(r.messages.at(-1)?.text).toBe("Wie gaat leverancier staal opnieuw bellen?");
     expect(r.events.map((e) => e[0])).toEqual(["actions_extracted", "first_action_with_owner"]);
@@ -160,7 +160,8 @@ describe("respond", () => {
 
     r = respond(r.state, { type: "place-actions" }, REF);
     expect(r.state.step).toBe(3);
-    expect(r.messages.at(-1)?.text).toContain("**Zal ik Jan, Sofie en Karim hun actie nu al mailen?**");
+    expect(r.state.actions.every((a) => !a.confirmed && a.reviewStatus === "open")).toBe(true);
+    expect(r.messages.at(-1)?.text).not.toContain("hun actie nu al mailen");
   });
 
   it("via notities eerst: naam uit de kopregel, daarna enkel vragen wat ontbreekt", () => {

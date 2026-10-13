@@ -15,14 +15,7 @@ import { ME } from "@/lib/assistant/types";
 import { formatShortDate, nextWeekday } from "@/lib/date";
 import { useGuestStore } from "@/lib/guest-store";
 import { USER_PERSON_ID } from "@/lib/mock-data";
-import {
-  DEFAULT_BLOCK,
-  hasAgendaItem,
-  isTopicBlock,
-  trialMeeting,
-  trialPeople,
-  TRIAL_MEETING_ID,
-} from "@/lib/trial-meeting";
+import { DEFAULT_BLOCK, isTopicBlock, trialMeeting, trialPeople, TRIAL_MEETING_ID } from "@/lib/trial-meeting";
 import { lowerFirst } from "@/lib/utils";
 
 const noop = () => {};
@@ -76,8 +69,7 @@ function trialOps(onStart: () => void): MeetingOps {
     toggleAction: (_, actionId) => {
       const a = g().actions.find((x) => x.id === actionId);
       if (!a) return;
-      if (g().step === 2) g().updateAction(actionId, { confirmed: !a.confirmed });
-      else g().updateAction(actionId, { done: !a.done });
+      g().updateAction(actionId, { done: !a.done });
     },
     assignOwner: (_, actionId, ownerId) =>
       g().updateAction(actionId, { ownerId: ownerId === USER_PERSON_ID ? ME : ownerId, ownerLater: false }),
@@ -133,7 +125,7 @@ export function TrialMeeting({
   const others = useGuestStore((s) => s.others);
   const account = useGuestStore((s) => s.account);
   const ready = step === 3 || step === "done";
-  const confirming = step === 2 && actions.length > 0;
+  const confirming = actions.some((a) => a.reviewStatus === "open");
 
   const bundle = { meeting, actions, decisions };
   const shown = trialMeeting(bundle, { confirming });
@@ -154,7 +146,7 @@ export function TrialMeeting({
     proposedBlockIds: new Set(meeting.proposed ? meeting.topics.map((t) => t.id) : []),
     confirming,
     // "Start overleg" pas als er minstens één agendapunt is (SPEC-LAZY.md §3).
-    canStart: hasAgendaItem(bundle),
+    canStart: true,
     scheduleText: when
       ? [when, next && meeting.recurrence !== "once" ? `volgende ${next}` : next].filter(Boolean).join(" · ")
       : null,
@@ -209,7 +201,7 @@ export function TrialMeeting({
 
   return (
     <div className="app-theme flex flex-col gap-3.5" id={TRIAL_MEETING_ID}>
-      {ready && (
+      {ready && !actions.some((a) => a.reviewStatus) && (
         <div
           role="status"
           className="flex items-center gap-3 rounded-xl bg-success-bg px-4 py-3 text-[15px] font-semibold text-success-ink"

@@ -416,7 +416,7 @@ export function ownerQuestion(text: string): string {
 const hasOwner = (a: GuestAction) => !!a.ownerId;
 
 function nextOwnerQuestion(d: Draft, afterAnswer: boolean) {
-  const open = d.state.actions.find((a) => a.confirmed && !a.ownerId && !a.ownerLater);
+  const open = d.state.actions.find((a) => (a.confirmed || a.reviewStatus === "open") && !a.ownerId && !a.ownerLater);
   if (open) return void ask(d, { kind: "owner", actionId: open.id }, ownerQuestion(open.text));
   setPending(d, { kind: "place-actions" });
   if (afterAnswer) d.messages.push(say("Dat was alles. Zet ze op de agenda wanneer je wilt."));
@@ -432,7 +432,7 @@ function extract(d: Draft, text: string, ref: Date) {
   const proposals = extractProposals(text, people, ref);
   const actions: GuestAction[] = proposals
     .filter((p) => p.kind === "action")
-    .map((p) => ({ id: p.id, text: p.text, ownerId: p.ownerId, deadline: p.date, confirmed: true, ownerLater: false }));
+    .map((p) => ({ id: p.id, text: p.text, ownerId: p.ownerId, deadline: p.date, confirmed: false, reviewStatus: "open", ownerLater: false }));
   const decisions: GuestDecision[] = proposals
     .filter((p) => p.kind === "agenda")
     .map((p) => ({ id: p.id, text: p.text, confirmed: true }));
@@ -466,7 +466,7 @@ function extract(d: Draft, text: string, ref: Date) {
     m > 0
       ? `**${plural(n, "actie", "acties")}** en **${plural(m, "beslissing", "beslissingen")}**`
       : `**${plural(n, "actie", "acties")}**`;
-  d.messages.push(say(`Ik vond ${found}. Ze staan links op de agenda; vink uit wat niet klopt.`));
+  d.messages.push(say(`Ik vond ${found}. Kijk de voorstellen na en bevestig wat klopt.`));
   nextOwnerQuestion(d, false);
 }
 
@@ -536,7 +536,7 @@ function chooseOwner(d: Draft, actionId: string, value: string) {
 function placeActions(d: Draft) {
   d.state = {
     ...d.state,
-    actions: d.state.actions.filter((a) => a.confirmed && a.text.trim()),
+    actions: d.state.actions.filter((a) => (a.reviewStatus || a.confirmed) && a.text.trim()),
     decisions: d.state.decisions.filter((x) => x.confirmed && x.text.trim()),
   };
   // Notities nadat het overleg al klaarstond: de acties komen erbij, het overleg blijft klaar.

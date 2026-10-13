@@ -105,6 +105,8 @@ export type CalendarResult =
   | { kind: "blocked" };
 
 export interface GuestAction {
+  reviewStatus?: "open" | "confirmed" | "dismissed" | "agenda";
+  agendaItemId?: string;
   id: string;
   text: string;
   ownerId: string | null;

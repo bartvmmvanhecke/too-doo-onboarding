@@ -7,6 +7,8 @@
  * dezelfde waarden, zodat de ui-componenten automatisch meekleuren.
  */
 :root {
+  --save-urgent: #FF8A80;
+  --save-urgent-bg: rgba(255,107,107,0.12);
   --save-slot-line: rgba(255,255,255,0.22);
   --brand: #0b5fd8;
   --brand-hover: #08449c;

@@ -3,13 +3,15 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { Menu, UserRound } from "lucide-react";
+import { Menu, UserRound, Clock } from "lucide-react";
 import { Logo } from "@/components/brand";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useGuestStore, GUEST_TTL_MS, type GuestAccount } from "@/lib/guest-store";
 import { notAvailable } from "@/lib/not-available";
 import { cn } from "@/lib/utils";
+
+export const SAVE_URGENT_DAYS = 2;
 
 const item =
   "flex min-h-11 items-center rounded-[10px] px-3 py-2.5 text-base font-semibold text-nav-ink no-underline hover:bg-white/10 hover:text-white";
@@ -54,14 +56,15 @@ function SaveBox({ canSave, onSave, account }: { canSave: boolean; onSave: () =>
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => { const timer = setInterval(() => setNow(Date.now()), 60000); return () => clearInterval(timer); }, []);
   const days = Math.max(0, Math.ceil((createdAt + GUEST_TTL_MS - now) / 86400000));
+  const urgent = !account && days <= SAVE_URGENT_DAYS;
   return (
     <div className="flex flex-col gap-2">
       <button type="button" className={item} onClick={notAvailable}>Instellingen</button>
-      <div className="flex flex-col gap-3 rounded-xl border border-[var(--save-slot-line)] p-3">
+      <div className={cn("flex flex-col gap-3 rounded-xl border p-3", urgent ? "border-[var(--save-urgent)] bg-[var(--save-urgent-bg)]" : "border-[var(--save-slot-line)]")}>
         <div className="flex items-center gap-2">
-          <span className="flex size-8 shrink-0 items-center justify-center rounded-full border border-dashed border-white"><UserRound className="size-4" aria-hidden /></span>
-          <div><p className="text-sm font-semibold">{account ? `${account.firstName} ${account.lastName}` : "Gast"}</p>
-          <p className="text-xs text-nav-muted">{account ? "Metaalwerken" : `Niet bewaard · nog ${days} dagen`}</p></div>
+          <span className={cn("flex size-8 shrink-0 items-center justify-center rounded-full", urgent ? "bg-[var(--save-urgent)] text-app-nav" : "border border-dashed border-white")}>{urgent ? <Clock className="size-4" aria-hidden /> : <UserRound className="size-4" aria-hidden />}</span>
+          <div><p className="text-sm font-semibold">{account ? `${account.firstName} ${account.lastName}` : urgent ? `Nog ${days} dagen` : "Gast"}</p>
+          <p className="text-xs text-nav-muted">{account ? "Metaalwerken" : urgent ? "Daarna is je werk weg" : `Niet bewaard · nog ${days} dagen`}</p></div>
         </div>
         {account ? <button type="button" className="min-h-11 text-left text-sm" onClick={notAvailable}>Bedrijf kiezen</button> :
           <Button variant="inverse" className="h-10 min-h-11 w-full rounded-[10px]" onClick={onSave}>Account maken</Button>}

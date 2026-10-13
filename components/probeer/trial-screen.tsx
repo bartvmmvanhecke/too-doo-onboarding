@@ -6,7 +6,6 @@ import { LayoutGroup, motion, useReducedMotion } from "framer-motion";
 import { CalendarDays, FileUp, LayoutList, Mic, PanelRightClose } from "lucide-react";
 import { AssistantPanel, Chips, Preparing } from "@/components/probeer/assistant-panel";
 import { AppUiProvider } from "@/components/app/app-ui";
-import { StatusBanner } from "@/components/probeer/trial-banner";
 import { TrialMeeting } from "@/components/probeer/trial-meeting";
 import {
   EntryChoices,
@@ -744,9 +743,6 @@ export function TrialScreen({ onSave }: { onSave: (intent: SaveIntent, trigger: 
             <main
               className={cn("min-w-0 flex-1 px-4 pt-5 sm:px-8 panel:pb-10", open ? "pb-[60dvh]" : "pb-16 panel:pr-24")}
             >
-              <div className="dock-rise mx-auto mb-[18px] w-full max-w-[860px]">
-                <StatusBanner account={account} onLogin={() => onSave("login", "ik-heb-al-een-account")} />
-              </div>
               <div className="mx-auto w-full max-w-[860px]">
                 {/* Het detailscherm gebruikt de UI-context van de app (modal "Andere overlegmomenten"). */}
                 <AppUiProvider>

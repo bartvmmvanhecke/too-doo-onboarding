@@ -1,12 +1,13 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { Menu } from "lucide-react";
+import { Menu, UserRound } from "lucide-react";
 import { Logo } from "@/components/brand";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import type { GuestAccount } from "@/lib/guest-store";
+import { useGuestStore, GUEST_TTL_MS, type GuestAccount } from "@/lib/guest-store";
 import { notAvailable } from "@/lib/not-available";
 import { cn } from "@/lib/utils";
 
@@ -49,28 +50,23 @@ function NavItems({ meetingNames }: { meetingNames: string[] }) {
 const PANEL = { duration: 0.4, ease: [0.65, 0, 0.35, 1] as const };
 
 function SaveBox({ canSave, onSave, account }: { canSave: boolean; onSave: () => void; account: GuestAccount | null }) {
+  const createdAt = useGuestStore((s) => s.createdAt);
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => { const timer = setInterval(() => setNow(Date.now()), 60000); return () => clearInterval(timer); }, []);
+  const days = Math.max(0, Math.ceil((createdAt + GUEST_TTL_MS - now) / 86400000));
   return (
-    <div className="flex flex-col gap-1.5 border-t border-white/15 px-3 py-3.5">
-      {account ? (
-        <>
-          <span className="text-sm font-extrabold">
-            {account.firstName} {account.lastName}
-          </span>
-          <span className="text-[13px] leading-snug text-nav-muted">Proefperiode · nog 30 dagen</span>
-        </>
-      ) : (
-        <>
-          <span className="text-sm font-extrabold">Nog niet bewaard</span>
-          <span className="text-[13px] leading-snug text-nav-muted">
-            Je werk staat op dit toestel. Bewaar het wanneer je wilt.
-          </span>
-        </>
-      )}
-      {canSave && (
-        <Button variant="inverse" size="sm" className="mt-1.5" onClick={onSave}>
-          {account ? "Open in je account" : "Bewaar je overleg"}
-        </Button>
-      )}
+    <div className="flex flex-col gap-2">
+      <button type="button" className={item} onClick={notAvailable}>Instellingen</button>
+      <div className="flex flex-col gap-3 rounded-xl border border-[var(--save-slot-line)] p-3">
+        <div className="flex items-center gap-2">
+          <span className="flex size-8 shrink-0 items-center justify-center rounded-full border border-dashed border-white"><UserRound className="size-4" aria-hidden /></span>
+          <div><p className="text-sm font-semibold">{account ? `${account.firstName} ${account.lastName}` : "Gast"}</p>
+          <p className="text-xs text-nav-muted">{account ? "Metaalwerken" : `Niet bewaard · nog ${days} dagen`}</p></div>
+        </div>
+        {account ? <button type="button" className="min-h-11 text-left text-sm" onClick={notAvailable}>Bedrijf kiezen</button> :
+          <Button variant="inverse" className="h-10 min-h-11 w-full rounded-[10px]" onClick={onSave}>Account maken</Button>}
+        {account && canSave && <Button variant="inverse" onClick={onSave}>Open in je account</Button>}
+      </div>
     </div>
   );
 }

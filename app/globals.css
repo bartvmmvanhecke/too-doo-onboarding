@@ -945,6 +945,11 @@
   margin-inline: auto;
   padding: 28px 36px;
 }
+/* Notepad op het overleg-scherm: vult dezelfde container als de kop erboven, geen eigen max-width. */
+.meeting-document.meeting-document-fill {
+  max-width: none;
+  margin-inline: 0;
+}
 .document-row {
   min-height: 44px;
   border-radius: 8px;

@@ -1,4 +1,5 @@
 "use client";
+import { ReviewHint } from "@/components/probeer/suggestion-review";
 
 import { useState, type ReactNode } from "react";
 import Link from "next/link";
@@ -260,7 +261,7 @@ function StartButton({ enabled, onStart }: { enabled: boolean; onStart: () => vo
       onClick={onStart}
     >
       <Play className={icon} strokeWidth={STROKE} aria-hidden />
-      Start overleg
+      Start vergadering
     </Button>
   );
   if (enabled) return <span className="self-start">{button}</span>;
@@ -338,7 +339,7 @@ function TrialHeader({ trial, participants }: { trial: TrialView; participants: 
             >
               <InlineText
                 value={meeting.name}
-                label="Naam van het overleg aanpassen"
+                label="Naam van de vergadering aanpassen"
                 editing={renaming || undefined}
                 onEditingChange={setRenaming}
                 onSave={trial.onRename}
@@ -435,6 +436,7 @@ function TrialHeader({ trial, participants }: { trial: TrialView; participants: 
         </div>
         <StartButton enabled={trial.canStart} onStart={() => startRun(meeting.id)} />
       </div>
+      <ReviewHint />
     </header>
   );
 }

@@ -1,4 +1,5 @@
 "use client";
+import { ReviewBanner, ReviewHint } from "@/components/probeer/suggestion-review";
 
 import { useState } from "react";
 import { Coffee, LayoutList, ListChecks, Plus } from "lucide-react";
@@ -414,12 +415,14 @@ export function MeetingDetail({
     <MeetingOpsProvider value={trial?.ops ?? null}>
       <MeetingProvider value={{ meeting, people, owners, now, trial: trial?.view }}>
         <TooltipProvider>
+          <ReviewBanner />
           <MeetingHeader
             hint={run || trial ? null : hint}
             onShowHint={showHint}
             onAddAction={startAddingAction}
             onInvite={() => setInviteOpen(true)}
           />
+          {!trial && <ReviewHint />}
 
           {example && bannerOpen && !run && (
             <ExampleBanner

@@ -101,17 +101,17 @@ const CASES: { name: string; path: string; setup?: (page: import("@playwright/te
     name: "variant A: lege meeting",
     path: "/probeer",
     setup: async (page) => {
-      await page.getByRole("button", { name: "Start met een lege meeting" }).click();
-      await page.getByRole("region", { name: "Proefomgeving" }).waitFor();
+      await page.getByRole("button", { name: "Start met een lege vergadering" }).click();
+      await page.getByRole("button", { name: "Account maken", exact: true }).waitFor();
       // De inkomende app is al zichtbaar terwijl het welkomstscherm nog uitfade.
-      await page.getByRole("button", { name: "Start met een lege meeting" }).waitFor({ state: "detached" });
+      await page.getByRole("button", { name: "Start met een lege vergadering" }).waitFor({ state: "detached" });
     },
   },
   {
     name: "variant A: notities gekozen, +-menu open",
     path: "/probeer",
     setup: async (page) => {
-      await page.getByRole("button", { name: /^Gebruik notities van een vorig overleg/ }).click();
+      await page.getByRole("button", { name: /^Gebruik notities van een vorige vergadering/ }).click();
       await page.getByRole("button", { name: "Kies bestand" }).waitFor();
       await page.getByRole("button", { name: "Toevoegen: notities, bestand of agenda" }).click();
       await page.getByRole("menu", { name: "Toevoegen" }).waitFor();

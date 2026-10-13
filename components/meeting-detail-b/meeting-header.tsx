@@ -1,4 +1,5 @@
 "use client";
+import { ReviewHint } from "@/components/probeer/suggestion-review";
 
 import { useState, type ReactNode } from "react";
 import Link from "next/link";
@@ -407,6 +408,7 @@ function TrialHeader({ trial, participants }: { trial: TrialView; participants: 
         </div>
         <StartButton enabled={trial.canStart} onStart={() => startRun(meeting.id)} />
       </div>
+      <ReviewHint />
     </header>
   );
 }

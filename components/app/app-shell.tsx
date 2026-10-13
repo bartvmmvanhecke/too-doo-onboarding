@@ -32,6 +32,10 @@ function Sidebar() {
   const lazyUser = useStore((s) =>
     s.variant === "A" && s.lazy && s.user ? `${s.user.firstName} ${s.user.lastName}`.trim() : null,
   );
+  const openSuggestions = meetings.reduce(
+    (n, m) => n + (m.reviewSuggestions ?? []).filter((a) => a.reviewStatus === "open").length,
+    0,
+  );
   const openActions = meetings.reduce((n, m) => n + m.actions.filter((a) => !a.done).length, 0);
 
   const comingSoon = (label: string, badge?: ReactNode) => (
@@ -69,7 +73,16 @@ function Sidebar() {
         <Link href="/app" aria-current={inMeetings ? "page" : undefined} className={cn(item, inMeetings && active)}>
           Vergaderingen
         </Link>
-        {comingSoon("Acties", openActions > 0 ? <Badge>{openActions}</Badge> : undefined)}
+        {comingSoon(
+          "Acties",
+          openSuggestions > 0 ? (
+            <span className="rounded-full bg-[var(--review-count-bg)] px-2.5 py-px text-[13px] font-semibold text-[var(--review-count-ink)]">
+              {openSuggestions}
+            </span>
+          ) : openActions > 0 ? (
+            <Badge>{openActions}</Badge>
+          ) : undefined,
+        )}
         {comingSoon("Beslissingen")}
         {comingSoon("Notities")}
       </div>

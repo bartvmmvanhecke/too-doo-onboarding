@@ -81,6 +81,8 @@ export interface Action {
 export type { AgendaBlock, AgendaItem, Entry, MeetingRun };
 
 export interface Meeting extends MeetingSchedule {
+  /** Voorstellen blijven ook na bewaren open tot expliciet akkoord. */
+  reviewSuggestions?: import("@/lib/assistant/types").GuestAction[];
   id: string;
   type: string;
   participants: string[];

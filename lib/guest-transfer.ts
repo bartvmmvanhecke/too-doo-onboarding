@@ -54,6 +54,7 @@ export function bundleToMeeting(b: GuestBundle): Omit<Meeting, "id"> {
     duration: m.duration,
     participants: [USER_PERSON_ID, ...m.participants.map((p) => p.id)],
     actions,
+    reviewSuggestions: b.actions.filter((a) => a.reviewStatus).map((a) => ({ ...a, ownerId: ownerFor(a.ownerId) })),
     blocks: guestBlocks(b, { stableIds: false }),
     showWelcome: false,
     invited: false,

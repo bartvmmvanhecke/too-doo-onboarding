@@ -14,6 +14,13 @@ import { TokenInput, parseDuration } from "./inline-tokens";
 import { useMeeting, useMeetingOps } from "@/components/meeting/meeting-context";
 import { useStore, type Meeting } from "@/lib/store";
 
+/** Linkerkantlijn van een agendapuntrij (de grip); de invoerrij houdt dezelfde ruimte vrij. */
+const rowGrip = "document-reveal min-h-11 w-5";
+/** "↵" rechts in een agendapuntrij; de invoerrij reserveert hem onzichtbaar, zodat beide rijen even breed lopen. */
+function ReturnHint({ className = "document-reveal" }: { className?: string }) {
+  return <span className={`${className} text-[10px] text-ink-3`}>↵</span>;
+}
+
 type Draft = {
   id: string;
   blockId: string;
@@ -319,9 +326,11 @@ export function DocumentEditor({ meeting }: { meeting: Meeting }) {
       const saved = saveDraft(sourceText);
       if (saved) addAt(saved.id, kind);
     };
+    const indented = active && !!draft.parentId;
     return (
       <div key={id}>
-        <div className={`document-row flex flex-wrap items-center gap-1 ${active && draft.parentId ? "ml-7" : ""}`}>
+        <div className={`document-row flex flex-wrap items-center gap-1 ${indented ? "ml-7" : ""}`}>
+          {!indented && <span aria-hidden className={rowGrip} />}
           {active && (draft.kind === "action" || /^\[\s?\]/.test(text)) ? (
             <input type="checkbox" disabled aria-label="Nieuwe actie" />
           ) : (
@@ -414,8 +423,13 @@ export function DocumentEditor({ meeting }: { meeting: Meeting }) {
           ) : text ? (
             <LineFields item={temp} people={people} update={patch} add={add} focus={() => focus(id)} />
           ) : (
-            <span className="text-[10px] text-ink-3">Tab voor een notitie</span>
+            <>
+              <span className="text-[10px] text-ink-3">Tab voor een notitie</span>
+              {/* Zelfde plek als de toevoegen-+ van een agendapunt (LineFields). */}
+              <Plus size={16} aria-hidden className="invisible shrink-0" />
+            </>
           )}
+          {!indented && <ReturnHint className="invisible" />}
         </div>
         {active &&
           draft.kind !== "action" &&
@@ -474,7 +488,7 @@ export function DocumentEditor({ meeting }: { meeting: Meeting }) {
             }}
             data-b-grip={item.id}
             aria-label={`Verplaats ${item.text}`}
-            className="document-reveal min-h-11 w-5"
+            className={rowGrip}
           >
             <GripVertical size={14} />
           </button>
@@ -547,7 +561,7 @@ export function DocumentEditor({ meeting }: { meeting: Meeting }) {
               focus={() => focus(draft?.parentId === item.id ? draft.id : item.id)}
             />
           )}
-          <span className="document-reveal text-[10px] text-ink-3">↵</span>
+          <ReturnHint />
         </div>
         {proposals(item.id, text, item.id)}
         {item.entries.map((entry) => (

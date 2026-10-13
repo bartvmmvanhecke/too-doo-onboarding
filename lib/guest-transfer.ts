@@ -9,7 +9,6 @@ import { deriveMeetingType } from "@/lib/meeting";
 import { PEOPLE, USER_PERSON_ID, type Person } from "@/lib/mock-data";
 import type { Action, Meeting } from "@/lib/store";
 import { guestBlocks } from "@/lib/trial-meeting";
-import { uid } from "@/lib/utils";
 
 /** De overleggen van de gast: eerst de afgewerkte ("Nog een overleg toevoegen"), dan het huidige. */
 export function guestBundles(s: GuestBundle & { others: GuestBundle[] }): GuestBundle[] {
@@ -39,7 +38,7 @@ export function bundleToMeeting(b: GuestBundle): Omit<Meeting, "id"> {
   const actions: Action[] = b.actions
     .filter((a) => a.confirmed && a.text.trim())
     .map((a) => ({
-      id: uid("a-"),
+      id: a.id,
       what: a.text.trim(),
       ownerId: ownerFor(a.ownerId),
       deadline: a.deadline ? formatShortDate(a.deadline) : "",

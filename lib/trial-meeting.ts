@@ -35,10 +35,15 @@ export function guestBlocks(b: GuestBundle, opts: { stableIds: boolean }): Agend
   const stable = (id: string) => (opts.stableIds ? { id } : {});
   const items = (list: GuestItem[] | undefined) =>
     (list ?? []).filter((i) => i.text.trim()).map((i) => newItem(i.text.trim(), { ...stable(i.id), ...meta(i) }));
-  const topics = b.meeting.topics.filter((t) => t.text.trim());
+  const topics = b.meeting.topics.filter((t) => t.text.trim() || t.items?.length || t.kind);
   const blocks: AgendaBlock[] = topics.length
     ? topics.map((t) => ({
-        ...newBlock("topics", { ...stable(t.id), title: t.text.trim(), presenterId: t.presenterId ?? null }),
+        ...newBlock(t.kind ?? "topics", {
+          ...stable(t.id),
+          title: t.text.trim(),
+          presenterId: t.presenterId ?? null,
+          duration: t.duration ?? null,
+        }),
         items: items(t.items),
       }))
     : [newBlock("topics", { ...stable(DEFAULT_BLOCK), title: "Lopende zaken" })];
@@ -60,6 +65,7 @@ export function guestBlocks(b: GuestBundle, opts: { stableIds: boolean }): Agend
 /** Doel, eigenaars en duur, enkel wat gezet is. */
 function meta(i: GuestItemMeta): Partial<AgendaItem> {
   return {
+    ...(i.entries ? { entries: i.entries } : {}),
     ...(i.purposes ? { purposes: i.purposes } : {}),
     ...(i.ownerIds ? { ownerIds: i.ownerIds } : {}),
     ...(i.duration !== undefined ? { duration: i.duration } : {}),

@@ -3,6 +3,7 @@
 import { useRef, useState, type DragEvent } from "react";
 import Link from "next/link";
 import { CalendarDays, ChevronRight, FileText, FileUp, Loader2, MessageCircle, Mic } from "lucide-react";
+import { MicrosoftAuthorization } from "./microsoft-authorization";
 import { GoogleMark, MicrosoftMark } from "@/components/brand";
 import { Button } from "@/components/ui/button";
 import type { CalendarOption, CalendarProvider, StartChoice } from "@/lib/assistant/types";
@@ -140,10 +141,15 @@ export function ProviderChoice({
   connecting: CalendarProvider | null;
   onCalendar: (provider: CalendarProvider) => void;
 }) {
+  const [authorizing, setAuthorizing] = useState(false);
   return (
     <div className="flex flex-col gap-2">
+      {authorizing && <MicrosoftAuthorization onCancel={() => setAuthorizing(false)} onAccept={() => {
+        setAuthorizing(false);
+        onCalendar("outlook");
+      }} />}
       <div role="group" aria-label="Agenda kiezen" className="flex flex-wrap gap-2">
-        <Button variant="outline" size="md" disabled={busy} onClick={() => onCalendar("outlook")}>
+        <Button variant="outline" size="md" disabled={busy} onClick={() => setAuthorizing(true)}>
           {connecting === "outlook" ? (
             <Loader2 className="size-4 animate-spin" aria-hidden />
           ) : (

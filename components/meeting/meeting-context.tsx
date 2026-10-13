@@ -55,6 +55,7 @@ export interface MeetingCtx {
   /** Huidige tijd (ms); tikt elke seconde zolang de vergadering bezig is. */
   now: number;
   trial?: TrialView;
+  getCurrentMeeting?: () => Meeting;
 }
 
 const Ctx = createContext<MeetingCtx | null>(null);

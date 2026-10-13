@@ -11,7 +11,8 @@ import { weekdayLong } from "@/lib/date";
 import { EntryFields } from "./entry-fields";
 import { LineFields } from "./line-fields";
 import { TokenInput, parseDuration } from "./inline-tokens";
-import { usePeople, useStore, type Meeting } from "@/lib/store";
+import { useMeeting, useMeetingOps } from "@/components/meeting/meeting-context";
+import { useStore, type Meeting } from "@/lib/store";
 
 type Draft = {
   id: string;
@@ -26,7 +27,10 @@ type Draft = {
   date?: string;
 };
 export function DocumentEditor({ meeting }: { meeting: Meeting }) {
-  const people = usePeople().filter((p) => meeting.participants.includes(p.id));
+  const context = useMeeting();
+  const people = context.people.filter((p) => meeting.participants.includes(p.id));
+  const currentMeeting = () =>
+    context.getCurrentMeeting?.() ?? useStore.getState().meetings.find((m) => m.id === meeting.id)!;
   const [supportsSpeech] = useState(speechSupported);
   const [reviewed, setReviewed] = useState<Record<string, string>>({});
   const [structured, setStructured] = useState(false);
@@ -40,7 +44,7 @@ export function DocumentEditor({ meeting }: { meeting: Meeting }) {
   const documentFile = useRef<HTMLInputElement>(null);
   const documentParent = useRef<string | null>(null);
   const refs = useRef(new Map<string, HTMLInputElement>());
-  const ops = useStore.getState();
+  const ops = useMeetingOps();
   const content = meeting.blocks.some((b) => b.items.some((i) => i.text.trim()));
   const hasCustomBlocks = meeting.blocks.some(
     (b) => b.kind === "break" || (b.kind === "topics" && b.title && !["Lopende zaken", "Varia"].includes(b.title)),
@@ -86,7 +90,7 @@ export function DocumentEditor({ meeting }: { meeting: Meeting }) {
     if (!blockId) {
       const block = newBlock("topics", { title: "" });
       ops.putMeeting({
-        ...useStore.getState().meetings.find((m) => m.id === meeting.id)!,
+        ...currentMeeting(),
         blocks: [...meeting.blocks.filter((b) => b.kind === "actions" || b.items.length || !pristine), block],
       });
       blockId = block.id;
@@ -102,9 +106,7 @@ export function DocumentEditor({ meeting }: { meeting: Meeting }) {
         date: draft.date ?? "",
       });
       if (draft.afterEntryId) {
-        const item = useStore
-          .getState()
-          .meetings.find((m) => m.id === meeting.id)!
+        const item = currentMeeting()
           .blocks.flatMap((b) => b.items)
           .find((i) => i.id === draft.parentId)!;
         const added = item.entries.find((e) => e.id === entryId)!;
@@ -119,7 +121,7 @@ export function DocumentEditor({ meeting }: { meeting: Meeting }) {
       const title = draft.text.trim().slice(1).trim();
       if (!title) return null;
       setStructured(true);
-      const current = useStore.getState().meetings.find((m) => m.id === meeting.id)!;
+      const current = currentMeeting();
       const unnamed = current.blocks.find((b) => b.kind === "topics" && !b.title);
       if (unnamed?.items.length) ops.updateBlock(meeting.id, unnamed.id, { title: "Lopende zaken" });
       else if (unnamed) ops.removeBlock(meeting.id, unnamed.id);
@@ -135,10 +137,7 @@ export function DocumentEditor({ meeting }: { meeting: Meeting }) {
       ...draft.patch,
       ...(parseDuration(draft.text).duration !== undefined ? { duration: parseDuration(draft.text).duration } : {}),
     });
-    const block = useStore
-      .getState()
-      .meetings.find((m) => m.id === meeting.id)!
-      .blocks.find((b) => b.id === blockId)!;
+    const block = currentMeeting().blocks.find((b) => b.id === blockId)!;
     if (draft.afterId) ops.moveItem(meeting.id, id, blockId, block.items.findIndex((i) => i.id === draft.afterId) + 1);
     setDraft(null);
     return { id, blockId };
@@ -155,7 +154,7 @@ export function DocumentEditor({ meeting }: { meeting: Meeting }) {
     return true;
   }
   function removeBlock(block: AgendaBlock) {
-    const snapshot = useStore.getState().meetings.find((m) => m.id === meeting.id)!;
+    const snapshot = currentMeeting();
     const previous = blocks.slice(0, blocks.indexOf(block)).findLast((b) => b.kind === "topics");
     const target = previous ?? newBlock("topics", { title: "" });
     const rest = snapshot.blocks
@@ -168,7 +167,7 @@ export function DocumentEditor({ meeting }: { meeting: Meeting }) {
         label: "Ongedaan maken",
         onClick: () =>
           ops.putMeeting({
-            ...useStore.getState().meetings.find((m) => m.id === meeting.id)!,
+            ...currentMeeting(),
             blocks: snapshot.blocks,
           }),
       },
@@ -180,7 +179,7 @@ export function DocumentEditor({ meeting }: { meeting: Meeting }) {
     let blockId = initialBlockId;
     if (!blockId) {
       const block = newBlock("topics", { title: "" });
-      const current = useStore.getState().meetings.find((m) => m.id === meeting.id)!;
+      const current = currentMeeting();
       ops.putMeeting({
         ...current,
         blocks: [...current.blocks.filter((b) => b.kind === "actions" || b.items.length || !pristine), block],
@@ -190,15 +189,10 @@ export function DocumentEditor({ meeting }: { meeting: Meeting }) {
     let previous = parentId ?? afterId;
     let last = previous;
     let index = afterId
-      ? useStore
-          .getState()
-          .meetings.find((m) => m.id === meeting.id)!
+      ? currentMeeting()
           .blocks.find((b) => b.id === blockId)!
           .items.findIndex((i) => i.id === afterId) + 1
-      : useStore
-          .getState()
-          .meetings.find((m) => m.id === meeting.id)!
-          .blocks.find((b) => b.id === blockId)!.items.length;
+      : currentMeeting().blocks.find((b) => b.id === blockId)!.items.length;
     for (const line of lines) {
       if ((line.indented || parentId) && previous) {
         const action = /^\[\s?\]/.test(line.text);
@@ -246,7 +240,7 @@ export function DocumentEditor({ meeting }: { meeting: Meeting }) {
     });
   }
   function confirmSuggestion(itemId: string, suggestion: Suggestion, note = false) {
-    const current = useStore.getState().meetings.find((m) => m.id === meeting.id)!;
+    const current = currentMeeting();
     const item = current.blocks.flatMap((b) => b.items).find((i) => i.id === itemId);
     if (!item) return;
     if (suggestion.kind === "decision" && !note) {
@@ -798,7 +792,7 @@ export function DocumentEditor({ meeting }: { meeting: Meeting }) {
                   key={name}
                   className="document-dashed rounded-full px-3"
                   onClick={() => {
-                    const current = useStore.getState().meetings.find((m) => m.id === meeting.id)!;
+                    const current = currentMeeting();
                     const template = documentTemplate(name, current, useStore.getState().meetings);
                     ops.putMeeting({
                       ...current,

@@ -7,6 +7,13 @@
  * dezelfde waarden, zodat de ui-componenten automatisch meekleuren.
  */
 :root {
+  --review-primary: #2747D6;
+  --review-soft: #EEF1FD;
+  --review-row: #F5F7FF;
+  --review-dashed: #B9C6F5;
+  --review-line: #E3E7EF;
+  --review-muted: #6B7489;
+  --review-check: #2F9E73;
   --save-urgent: #FF8A80;
   --save-urgent-bg: rgba(255,107,107,0.12);
   --save-slot-line: rgba(255,255,255,0.22);

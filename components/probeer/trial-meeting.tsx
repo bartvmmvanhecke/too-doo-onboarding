@@ -17,7 +17,6 @@ import { useGuestStore } from "@/lib/guest-store";
 import { USER_PERSON_ID } from "@/lib/mock-data";
 import {
   DEFAULT_BLOCK,
-  hasAgendaItem,
   isTopicBlock,
   trialMeeting,
   trialPeople,
@@ -133,7 +132,7 @@ export function TrialMeeting({
   const others = useGuestStore((s) => s.others);
   const account = useGuestStore((s) => s.account);
   const ready = step === 3 || step === "done";
-  const confirming = step === 2 && actions.length > 0;
+  const confirming = actions.some((a) => a.reviewStatus === "open");
 
   const bundle = { meeting, actions, decisions };
   const shown = trialMeeting(bundle, { confirming });
@@ -154,7 +153,7 @@ export function TrialMeeting({
     proposedBlockIds: new Set(meeting.proposed ? meeting.topics.map((t) => t.id) : []),
     confirming,
     // "Start overleg" pas als er minstens één agendapunt is (SPEC-LAZY.md §3).
-    canStart: hasAgendaItem(bundle),
+    canStart: true,
     scheduleText: when
       ? [when, next && meeting.recurrence !== "once" ? `volgende ${next}` : next].filter(Boolean).join(" · ")
       : null,

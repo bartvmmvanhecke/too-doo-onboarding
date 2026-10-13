@@ -1,4 +1,5 @@
 "use client";
+import { SuggestionReview } from "@/components/probeer/suggestion-review";
 
 import { useEffect, useState } from "react";
 import { BlockCard, type AgendaMoves } from "@/components/meeting/agenda";
@@ -148,6 +149,7 @@ export function OpenActionsBlock({
       ? `${n} ${n === 1 ? "voorstel" : "voorstellen"} · vink aan wat klopt`
       : `${n} ${n === 1 ? "openstaande actie" : "openstaande acties"}`);
 
+  if (trial?.confirming) return <SuggestionReview />;
   return (
     <BlockCard
       block={block}

@@ -432,7 +432,7 @@ function extract(d: Draft, text: string, ref: Date) {
   const proposals = extractProposals(text, people, ref);
   const actions: GuestAction[] = proposals
     .filter((p) => p.kind === "action")
-    .map((p) => ({ id: p.id, text: p.text, ownerId: p.ownerId, deadline: p.date, confirmed: true, ownerLater: false }));
+    .map((p) => ({ id: p.id, text: p.text, ownerId: p.ownerId, deadline: p.date, confirmed: false, reviewStatus: "open", ownerLater: false }));
   const decisions: GuestDecision[] = proposals
     .filter((p) => p.kind === "agenda")
     .map((p) => ({ id: p.id, text: p.text, confirmed: true }));
@@ -536,7 +536,7 @@ function chooseOwner(d: Draft, actionId: string, value: string) {
 function placeActions(d: Draft) {
   d.state = {
     ...d.state,
-    actions: d.state.actions.filter((a) => a.confirmed && a.text.trim()),
+    actions: d.state.actions.filter((a) => (a.reviewStatus || a.confirmed) && a.text.trim()),
     decisions: d.state.decisions.filter((x) => x.confirmed && x.text.trim()),
   };
   // Notities nadat het overleg al klaarstond: de acties komen erbij, het overleg blijft klaar.

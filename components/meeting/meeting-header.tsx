@@ -260,7 +260,7 @@ function StartButton({ enabled, onStart }: { enabled: boolean; onStart: () => vo
       onClick={onStart}
     >
       <Play className={icon} strokeWidth={STROKE} aria-hidden />
-      Start overleg
+      Start vergadering
     </Button>
   );
   if (enabled) return <span className="self-start">{button}</span>;

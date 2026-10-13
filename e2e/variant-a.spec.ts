@@ -1063,16 +1063,25 @@ test.describe("Variant A · agenda en assistent sluiten", () => {
     // Doel.
     await row.getByRole("button", { name: "Doel toevoegen" }).click();
     await page.getByRole("checkbox", { name: /Bespreken/ }).check();
-    await page.getByRole("button", { name: "Pas 1 doel toe" }).click();
-    await expect(row.getByRole("button", { name: "Doel: Bespreken. Wijzigen" })).toBeVisible();
+    await page.getByRole("checkbox", { name: /Informeren/ }).check();
+    await page.getByRole("button", { name: "Pas 2 doelen toe" }).click();
+    await expect(row.getByRole("button", { name: "Doel: Bespreken, Informeren. Wijzigen" })).toBeVisible();
     // Eigenaar.
     await row.getByRole("button", { name: "Eigenaar kiezen" }).click();
     await page.getByLabel("Zoek een collega").fill("jan");
     await page.getByRole("checkbox", { name: /Jan/ }).check();
-    await page.getByRole("button", { name: "Wijs 1 eigenaar toe" }).click();
-    await expect(row.getByRole("button", { name: "Eigenaar: Jan. Wijzigen" })).toBeVisible();
+    await page.getByLabel("Zoek een collega").fill("sofie");
+    await page.getByRole("checkbox", { name: /Sofie/ }).check();
+    await page.getByRole("button", { name: "Wijs 2 eigenaars toe" }).click();
+    await expect(row.getByRole("button", { name: "Eigenaar: Jan, Sofie. Wijzigen" })).toBeVisible();
     // Duur; het thema telt de duur op.
     await row.getByRole("button", { name: "Duur toevoegen" }).click();
+    await expect(page.getByRole("button", { name: "5 minuten minder" })).toBeDisabled();
+    await page.getByRole("button", { name: "5 minuten meer" }).click();
+    await expect(page.getByRole("button", { name: "5 minuten minder" })).toBeDisabled();
+    await page.getByRole("button", { name: "5 minuten meer" }).click();
+    await page.getByRole("button", { name: "5 minuten minder" }).click();
+    await expect(page.locator("output")).toContainText("5");
     await page.getByRole("button", { name: "20", exact: true }).click();
     await expect(row.getByRole("button", { name: "Duur: 20 minuten. Wijzigen" })).toBeVisible();
     await expect(theme.getByText("20 min", { exact: true }).first()).toBeVisible();
@@ -1083,8 +1092,8 @@ test.describe("Variant A · agenda en assistent sluiten", () => {
 
     // Bewaard in de gast-state.
     await page.reload();
-    await expect(row.getByRole("button", { name: "Doel: Bespreken. Wijzigen" })).toBeVisible();
-    await expect(row.getByRole("button", { name: "Eigenaar: Jan. Wijzigen" })).toBeVisible();
+    await expect(row.getByRole("button", { name: "Doel: Bespreken, Informeren. Wijzigen" })).toBeVisible();
+    await expect(row.getByRole("button", { name: "Eigenaar: Jan, Sofie. Wijzigen" })).toBeVisible();
     await expect(row.getByRole("button", { name: "Duur: 20 minuten. Wijzigen" })).toBeVisible();
     await expect(theme.getByRole("button", { name: "Presentator: Sofie. Wijzigen" })).toBeVisible();
   });

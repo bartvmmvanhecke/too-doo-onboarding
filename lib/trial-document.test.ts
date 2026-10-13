@@ -28,3 +28,22 @@ test("document edits, nested actions and ownership survive the guest-to-account 
   ops.removeEntry(meeting.id, itemId, entryId);
   expect(currentTrialMeeting().actions).toEqual([]);
 });
+
+test("onboarding agenda goals, owners and duration survive document edits and account transfer", () => {
+  useGuestStore.getState().startEmpty();
+  const ops = trialDocumentOps(createDraftStore().getState());
+  const meeting = currentTrialMeeting();
+  const block = meeting.blocks.find((b) => b.kind === "topics")!;
+  const itemId = ops.addAgendaItem(meeting.id, block.id, "Order Peeters");
+  const patch = { purposes: ["discuss", "inform"] as const, ownerIds: ["jp", "sd"], duration: 20 };
+  ops.updateItem(meeting.id, itemId, { ...patch, purposes: [...patch.purposes] });
+  ops.updateItem(meeting.id, itemId, { text: "Order Peeters opvolgen" });
+  const saved = bundleToMeeting(useGuestStore.getState());
+  expect(saved.blocks.flatMap((b) => b.items).find((i) => i.text === "Order Peeters opvolgen")).toMatchObject(patch);
+  ops.updateItem(meeting.id, itemId, { purposes: [], ownerIds: [], duration: null });
+  expect(bundleToMeeting(useGuestStore.getState()).blocks.flatMap((b) => b.items)[0]).toMatchObject({
+    purposes: [],
+    ownerIds: [],
+    duration: null,
+  });
+});

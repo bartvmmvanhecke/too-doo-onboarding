@@ -2,6 +2,8 @@
 import { useState } from "react";
 import { Check, Plus } from "lucide-react";
 import { Command, CommandInput, CommandList, CommandGroup, CommandItem, CommandEmpty } from "@/components/ui/command";
+import { DurationPicker, OwnersPicker, PurposePicker } from "@/components/meeting/bits";
+import { useMeeting } from "@/components/meeting/meeting-context";
 import { Avatar } from "@/components/avatar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { ENTRY_KINDS, PURPOSES, PURPOSE_CLASS, type AgendaItem, type EntryKind } from "@/lib/agenda";
@@ -78,6 +80,7 @@ export function LineFields({
   add: (kind: EntryKind | "break") => void;
   focus: () => void;
 }) {
+  const { trial } = useMeeting();
   const owner = people.find((p) => item.ownerIds.includes(p.id));
   const goals = PURPOSES.map((p) => ({
     label: p.label,
@@ -92,57 +95,67 @@ export function LineFields({
   }));
   return (
     <>
-      <span className={owner ? "" : "document-reveal"}>
-        <LinePicker
-          label={`Eigenaar ${item.id}`}
-          onClose={focus}
-          options={[
-            { label: "Geen eigenaar", select: () => update({ ownerIds: [] }) },
-            ...people.map((p) => ({ label: p.name, select: () => update({ ownerIds: [p.id] }) })),
-          ]}
-        >
-          {owner ? <Avatar person={owner} size={24} /> : <span className="document-dashed">+ eigenaar</span>}
-        </LinePicker>
-      </span>
-      <span className={item.duration ? "" : "document-reveal"}>
-        <Popover>
-          <PopoverTrigger asChild>
-            <button
-              className={item.duration ? "min-h-11 text-xs text-ink-3" : "document-dashed"}
-              aria-label={`Duur ${item.id}`}
-              type="button"
+      {trial ? (
+        <span className="flex flex-wrap items-center gap-1">
+          <PurposePicker value={item.purposes} onChange={(purposes) => update({ purposes })} />
+          <OwnersPicker value={item.ownerIds} onChange={(ownerIds) => update({ ownerIds })} />
+          <DurationPicker value={item.duration} onChange={(duration) => update({ duration })} />
+        </span>
+      ) : (
+        <>
+          <span className={owner ? "" : "document-reveal"}>
+            <LinePicker
+              label={`Eigenaar ${item.id}`}
+              onClose={focus}
+              options={[
+                { label: "Geen eigenaar", select: () => update({ ownerIds: [] }) },
+                ...people.map((p) => ({ label: p.name, select: () => update({ ownerIds: [p.id] }) })),
+              ]}
             >
-              {item.duration ? `${item.duration} min` : "+ duur"}
-            </button>
-          </PopoverTrigger>
-          <PopoverContent className="app-theme">
-            <label className="text-sm">
-              Duur in minuten
-              <input
-                aria-label="Duur in minuten"
-                type="number"
-                min="0"
-                className="min-h-11 w-full border border-line rounded px-2"
-                defaultValue={item.duration ?? ""}
-                onChange={(e) => update({ duration: e.target.value ? Number(e.target.value) : null })}
-              />
-            </label>
-          </PopoverContent>
-        </Popover>
-      </span>
-      <span className={item.purposes.length ? "flex gap-1" : "document-reveal"}>
-        <LinePicker label={`Doel ${item.id}`} options={goals} onClose={focus}>
-          {item.purposes.length ? (
-            item.purposes.map((p) => (
-              <span key={p} className={`rounded-full px-2 py-1 ${PURPOSE_CLASS[p]}`}>
-                {PURPOSES.find((x) => x.value === p)?.label}
-              </span>
-            ))
-          ) : (
-            <span className="document-dashed">+ doel</span>
-          )}
-        </LinePicker>
-      </span>
+              {owner ? <Avatar person={owner} size={24} /> : <span className="document-dashed">+ eigenaar</span>}
+            </LinePicker>
+          </span>
+          <span className={item.duration ? "" : "document-reveal"}>
+            <Popover>
+              <PopoverTrigger asChild>
+                <button
+                  className={item.duration ? "min-h-11 text-xs text-ink-3" : "document-dashed"}
+                  aria-label={`Duur ${item.id}`}
+                  type="button"
+                >
+                  {item.duration ? `${item.duration} min` : "+ duur"}
+                </button>
+              </PopoverTrigger>
+              <PopoverContent className="app-theme">
+                <label className="text-sm">
+                  Duur in minuten
+                  <input
+                    aria-label="Duur in minuten"
+                    type="number"
+                    min="0"
+                    className="min-h-11 w-full border border-line rounded px-2"
+                    defaultValue={item.duration ?? ""}
+                    onChange={(e) => update({ duration: e.target.value ? Number(e.target.value) : null })}
+                  />
+                </label>
+              </PopoverContent>
+            </Popover>
+          </span>
+          <span className={item.purposes.length ? "flex gap-1" : "document-reveal"}>
+            <LinePicker label={`Doel ${item.id}`} options={goals} onClose={focus}>
+              {item.purposes.length ? (
+                item.purposes.map((p) => (
+                  <span key={p} className={`rounded-full px-2 py-1 ${PURPOSE_CLASS[p]}`}>
+                    {PURPOSES.find((x) => x.value === p)?.label}
+                  </span>
+                ))
+              ) : (
+                <span className="document-dashed">+ doel</span>
+              )}
+            </LinePicker>
+          </span>
+        </>
+      )}
       <span className="ml-auto flex items-center gap-1">
         {ENTRY_KINDS.map((k) => {
           const n = item.entries.filter((e) => e.kind === k.kind).length;

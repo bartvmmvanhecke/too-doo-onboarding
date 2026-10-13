@@ -10,6 +10,7 @@ import { MeetingDetail } from "@/components/meeting/meeting-detail";
 import { FilePicker } from "@/components/probeer/entry-blocks";
 import { ParticipantsEditor, WhenEditor } from "@/components/probeer/trial-editors";
 import { weekdayName, whenText } from "@/lib/assistant/format";
+import { goalLabel, totalMinutes } from "@/lib/assistant/goals";
 import { ME } from "@/lib/assistant/types";
 import { formatShortDate, nextWeekday } from "@/lib/date";
 import { useGuestStore } from "@/lib/guest-store";
@@ -142,6 +143,8 @@ export function TrialMeeting({
   const when = whenText(meeting);
   const day = weekdayName(meeting);
   const next = meeting.weekday ? formatShortDate(nextWeekday(meeting.weekday)) : null;
+  const goals = meeting.goals ?? [];
+  const actionsFirst = goals.includes("follow-through");
 
   const view: TrialView = {
     status: ready ? "Gepland" : "Concept",
@@ -162,28 +165,46 @@ export function TrialMeeting({
     },
     scheduleEditor: <WhenEditor meeting={meeting} onChange={onEdited} />,
     participantsEditor: <ParticipantsEditor meeting={meeting} onChange={onEdited} />,
-    emptyActions: !ready && (
-      <div className="flex flex-col gap-1 px-2 pb-1">
-        <p className="text-sm text-ink-3">
-          {emptyPath
-            ? "Nog niets open. Acties die je tijdens de vergadering noteert, komen hier vanzelf terug tot ze af zijn."
-            : "Wat vorige keer afgesproken werd en nog niet af is. Komt elk overleg vanzelf terug tot het af is."}
-        </p>
-        <p className="flex flex-wrap items-center text-[13px] text-ink-2">
-          Sleep notities van je vorig overleg op deze plek, of
+    emptyActions:
+      !ready && actionsFirst ? (
+        // "Afspraken worden echt uitgevoerd" (C0j): een dropzone voor de notities van het vorig overleg.
+        <p className="mx-1 mb-1 flex min-h-14 flex-wrap items-center justify-center rounded-[12px] border-[1.5px] border-dashed border-proposal-line bg-brand-selected px-3 py-2 text-center text-[13px] text-ink-2">
+          Sleep notities van je vorig overleg hierheen, of
           <FilePicker variant="link" onFile={onNotesFile} disabled={busy} className="min-h-0 pr-0 pl-1 text-[13px]">
             kies een bestand
           </FilePicker>
           .
         </p>
-      </div>
-    ),
+      ) : (
+        !ready && (
+          <div className="flex flex-col gap-1 px-2 pb-1">
+            <p className="text-sm text-ink-3">
+              {emptyPath
+                ? "Nog niets open. Acties die je tijdens de vergadering noteert, komen hier vanzelf terug tot ze af zijn."
+                : "Wat vorige keer afgesproken werd en nog niet af is. Komt elk overleg vanzelf terug tot het af is."}
+            </p>
+            <p className="flex flex-wrap items-center text-[13px] text-ink-2">
+              Sleep notities van je vorig overleg op deze plek, of
+              <FilePicker variant="link" onFile={onNotesFile} disabled={busy} className="min-h-0 pr-0 pl-1 text-[13px]">
+                kies een bestand
+              </FilePicker>
+              .
+            </p>
+          </div>
+        )
+      ),
     onFileDrop: busy || ready ? null : onNotesFile,
     onAddTheme: (text) => useGuestStore.getState().addTopic(text),
     onFromCalendar: busy ? null : onFromCalendar,
     titleLayoutId,
     done,
     countUp,
+    goals: goals.map((g) => goalLabel(g).toLowerCase()),
+    actionsFirst,
+    newBlockIds: new Set(meeting.topics.filter((t) => t.isNew).map((t) => t.id)),
+    roundBlockIds: new Set(meeting.topics.filter((t) => t.round).map((t) => t.id)),
+    blockMeta: goals.includes("focus"),
+    totalMinutes: goals.includes("focus") ? totalMinutes(meeting) : null,
   };
 
   return (

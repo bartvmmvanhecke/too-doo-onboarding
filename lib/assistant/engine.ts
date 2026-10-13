@@ -3,6 +3,19 @@
  * `respond(state, input)` geeft de nieuwe state, de berichten van de assistent en de meetpunten terug.
  * Principe: vul alleen in wat de gebruiker zei; vraag wat ontbreekt; verzin niets.
  */
+import {
+  DECIDE_RULE,
+  durationLabel,
+  goalFromText,
+  guessPurpose,
+  planDurations,
+  rescaleDurations,
+  ROUND_MINUTES,
+  ROUND_SUBTITLE,
+  ROUND_TITLE,
+  withTopics,
+  type MeetingGoal,
+} from "@/lib/assistant/goals";
 import { addPeople } from "@/lib/assistant/people";
 import {
   ME,
@@ -16,6 +29,7 @@ import {
   type CalendarResult,
   type GuestAction,
   type GuestDecision,
+  type GuestItem,
   type GuestMeeting,
   type Message,
   type Pending,
@@ -32,6 +46,7 @@ import {
   parseTopics,
   parseNames,
   parseRecurrence,
+  parseDuration,
   parseTimeIn,
   parseWeekday,
   type ParsedMeeting,
@@ -40,7 +55,7 @@ import { mailOwners, spokenTime, weekdayName } from "@/lib/assistant/format";
 import { formatShortDate, today } from "@/lib/date";
 import { extractProposals, findDate, findOwner, splitItems } from "@/lib/extract";
 import type { Recurrence } from "@/lib/meeting";
-import { parseTime } from "@/lib/time";
+import { parseTime, type Minutes } from "@/lib/time";
 import { lowerFirst, uid, upperFirst } from "@/lib/utils";
 
 type Out = Omit<Message, "id">;
@@ -72,6 +87,18 @@ export const QUESTIONS = {
   provider: "Outlook of Google?",
   paste: "Dit lijken notities van een vorig overleg. Zal ik er de openstaande acties en agendapunten uit halen?",
 } as const;
+
+/** De vervolgvraag per doel (C0j–C0m). */
+export const GOAL_QUESTIONS: Record<MeetingGoal, (m: GuestMeeting) => string> = {
+  "follow-through": () =>
+    "Dan komen de openstaande acties voortaan eerst. **Wat staat er nog open van vorige keer?** Plak je notities of typ het kort.",
+  focus: (m) =>
+    `Dan krijgt elk punt een duur en een doel, zodat je weet wanneer je verdergaat. Ik ging uit van ${durationLabel(m.duration)}. **Hoeveel tijd hebben jullie meestal?**`,
+  status: () =>
+    "Dan komt er een rondje per persoon: elk kort waar hij mee bezig is en waar hij vastloopt. **Wie zit erbij?** Voornamen volstaan.",
+  decide: () =>
+    "Dan krijgt elk punt waar een keuze in zit het doel **Beslissen**. Tijdens het overleg noteer je wat beslist is, zodat het niet terugkomt. **Welke knoop moet deze keer doorgehakt worden?**",
+};
 
 export const RECURRENCE_CHIPS: { value: Recurrence; label: string }[] = [
   { value: "weekly", label: "Elke week" },
@@ -175,18 +202,193 @@ function tellReady(d: Draft) {
   const m = d.state.meeting;
   const name = lowerFirst(m.name ?? "overleg");
   const n = m.topics.length;
-  if (n === 0)
-    return void ask(
-      d,
-      { kind: "topics" },
-      `Je ${name} staat klaar als concept. **Waar willen jullie in die meeting vooral vooruitgang op boeken?**`,
-    );
+  // Te vaag: de vrijblijvende doelvraag met vier doelchips (C0j–C0m). Geen overslaanknop: wie niet
+  // antwoordt, werkt gewoon links verder.
+  if (n === 0) {
+    if (ask(d, { kind: "goal", followUp: null }, goalQuestion((m.name ?? "overleg").toLowerCase()), "goals"))
+      d.state = { ...d.state, goalChips: true };
+    return;
+  }
   const themes = `${COUNT[n] ?? n} ${n === 1 ? "thema" : "thema's"}`;
   ask(
     d,
     { kind: "confirm-meeting" },
     `Je ${name} staat klaar. Ik zette ${themes} klaar. **Klopt dit ongeveer?** Vul er gerust agendapunten onder aan.`,
   );
+}
+
+/** "Je productieoverleg staat klaar. Pas het links aan zoals je wil. Of zeg wat er beter kan, dan stem ik het af." */
+export function goalQuestion(name: string): string {
+  return `Je ${name} staat klaar. Pas het links aan zoals je wil. **Of zeg wat er beter kan, dan stem ik het af.**`;
+}
+
+/** Wat links aangepast werd, krijgt een korte highlight. */
+function flashKeys(d: Draft, keys: string[]) {
+  d.flash = [...new Set([...d.flash, ...keys])];
+}
+
+/** Elke deelnemer die nog niet in het rondje staat, wordt er een punt in (C0l). */
+function syncRound(d: Draft) {
+  const m = d.state.meeting;
+  const round = m.topics.find((t) => t.round);
+  if (!round) return;
+  const have = new Set((round.items ?? []).map((i) => i.text.toLowerCase()));
+  const added = m.participants
+    .filter((p) => !have.has(p.name.toLowerCase()))
+    .map((p) => ({ id: uid("i-"), text: p.name, duration: ROUND_MINUTES, purposes: ["inform" as const] }));
+  if (!added.length) return;
+  patchMeeting(d, {
+    topics: m.topics.map((t) => (t.id === round.id ? { ...t, items: [...(t.items ?? []), ...added] } : t)),
+  });
+  flashKeys(d, [`block:${round.id}`, ...added.map((i) => `item:${i.id}`)]);
+}
+
+/** Het thema waar beslissingen komen: met een keuze erin, anders over knelpunten, anders het eerste. */
+function decideTopicId(m: GuestMeeting): string | null {
+  const topics = m.topics.filter((t) => !t.round);
+  const hit =
+    topics.find((t) => t.purposes?.includes("decide") || t.items?.some((i) => i.purposes?.includes("decide"))) ??
+    topics.find((t) => /beslis|knelpunt|probleem|problemen/i.test(t.text)) ??
+    topics[0];
+  return hit?.id ?? null;
+}
+
+/** Past het overleg links meteen aan voor een gekozen doel (C0j–C0m). */
+function applyGoal(d: Draft, goal: MeetingGoal) {
+  const m = d.state.meeting;
+  const goals = [...(m.goals ?? []), goal];
+  // Een doel kiezen is ook een antwoord op het voorstel: de thema's zijn niet langer "voorstel".
+  patchMeeting(d, { goals, proposed: false });
+  flashKeys(d, ["goals"]);
+  switch (goal) {
+    case "follow-through":
+      // "Openstaande acties" staat al bovenaan; het blok krijgt de markering "eerst".
+      return flashKeys(d, ["block:actions"]);
+    case "focus": {
+      d.state = { ...d.state, meeting: planDurations(d.state.meeting) };
+      return flashKeys(d, ["block:actions", ...d.state.meeting.topics.map((t) => `block:${t.id}`)]);
+    }
+    case "status": {
+      const base = withTopics(d.state.meeting);
+      const round = {
+        id: uid("t-"),
+        text: ROUND_TITLE,
+        subtitle: ROUND_SUBTITLE,
+        isNew: true,
+        round: true,
+        items: [],
+      };
+      patchMeeting(d, { topics: [round, ...base.topics] });
+      flashKeys(d, [`block:${round.id}`]);
+      return syncRound(d);
+    }
+    case "decide": {
+      const base = withTopics(d.state.meeting);
+      const choice = (text: string, purposes: GuestItem["purposes"]) =>
+        guessPurpose(text) === "decide" && !purposes?.includes("decide")
+          ? [...(purposes ?? []), "decide" as const]
+          : purposes;
+      const topics = base.topics.map((t) => ({
+        ...t,
+        ...(t.items?.length ? {} : { purposes: choice(t.text, t.purposes) }),
+        items: t.items?.map((i) => ({ ...i, purposes: choice(i.text, i.purposes) })),
+      }));
+      const at = decideTopicId({ ...base, topics });
+      patchMeeting(d, {
+        topics: topics.map((t) => (t.id === at ? { ...t, subtitle: DECIDE_RULE } : t)),
+      });
+      return flashKeys(d, at ? [`block:${at}`] : []);
+    }
+  }
+}
+
+/** Een doelchip (of vrije tekst die bij een doel past): links aanpassen en de vervolgvraag stellen. */
+function chooseGoal(d: Draft, goal: MeetingGoal) {
+  if (d.state.meeting.goals?.includes(goal)) return;
+  applyGoal(d, goal);
+  setPending(d, { kind: "goal", followUp: goal });
+  d.messages.push(say(GOAL_QUESTIONS[goal](d.state.meeting)));
+}
+
+/** Na het antwoord op een vervolgvraag: verder met bericht 2, zolang er nog geen acties zijn. */
+function afterGoal(d: Draft) {
+  const goals = d.state.meeting.goals ?? [];
+  if (!d.state.actions.length && !goals.includes("follow-through")) return askNotes(d);
+  setPending(d, { kind: "goal", followUp: null });
+}
+
+/** "Hoeveel tijd hebben jullie meestal?": de tijden proportioneel herverdelen (C0k). */
+function rescale(d: Draft, minutes: Minutes) {
+  d.state = { ...d.state, meeting: rescaleDurations(d.state.meeting, minutes) };
+  flashKeys(d, ["when", "block:actions", ...d.state.meeting.topics.map((t) => `block:${t.id}`)]);
+  d.messages.push(say(`Verdeeld over **${durationLabel(minutes)}**. Pas gerust een duur aan.`));
+  afterGoal(d);
+}
+
+/** Het antwoord op de vervolgvraag van een doel; false als het er niet op lijkt. */
+function answerGoal(d: Draft, goal: MeetingGoal, text: string, ref: Date): boolean {
+  switch (goal) {
+    case "follow-through":
+      // Door de bestaande notities-extractie: acties met eigenaars.
+      processNotes(d, text, ref);
+      return true;
+    case "focus": {
+      const minutes = parseDuration(text) ?? (/^\s*\d{2,3}\s*$/.test(text) ? Number(text.trim()) : null);
+      if (!minutes || minutes < 10 || minutes > 480) return false;
+      rescale(d, minutes);
+      return true;
+    }
+    case "status": {
+      const names = parseNames(text.replace(/^met\s+/i, ""));
+      if (!names.length) return false;
+      patchMeeting(d, { participants: addPeople(d.state.meeting.participants, names) });
+      flashKeys(d, ["participants"]);
+      syncRound(d);
+      const list = names.length === 1 ? names[0] : `${names.slice(0, -1).join(", ")} en ${names[names.length - 1]}`;
+      d.messages.push(
+        say(
+          `**${list}** ${names.length === 1 ? "staat" : "staan"} erbij, ${names.length === 1 ? "met" : "elk met"} ${ROUND_MINUTES} minuten in het rondje.`,
+        ),
+      );
+      afterGoal(d);
+      return true;
+    }
+    case "decide": {
+      const title = upperFirst(text.trim().replace(/^(bv\.?|bijvoorbeeld)\s+/i, ""));
+      if (title.length < 3) return false;
+      const at = decideTopicId(d.state.meeting);
+      if (!at) return false;
+      const item = { id: uid("i-"), text: title, purposes: ["decide" as const] };
+      patchMeeting(d, {
+        topics: d.state.meeting.topics.map((t) =>
+          t.id === at ? { ...t, subtitle: DECIDE_RULE, items: [...(t.items ?? []), item] } : t,
+        ),
+      });
+      flashKeys(d, [`block:${at}`, `item:${item.id}`]);
+      d.messages.push(say("Staat op de agenda met het doel **Beslissen**."));
+      afterGoal(d);
+      return true;
+    }
+  }
+}
+
+/** Vrije tekst bij de doelvraag: eerst de vervolgvraag, dan het dichtstbijzijnde doel, anders gewone input. */
+function onGoalText(d: Draft, followUp: MeetingGoal | null, text: string, ref: Date) {
+  if (followUp && answerGoal(d, followUp, text, ref)) return;
+  const goal = goalFromText(text);
+  if (goal && !d.state.meeting.goals?.includes(goal)) return chooseGoal(d, goal);
+  const p = parseMeetingUpdate(text);
+  if (foundFields(p).length) {
+    applyParsed(d, p, { topics: true });
+    return void d.messages.push(say("Aangepast. Kijk links of het klopt."));
+  }
+  const topics = parseTopics(text);
+  if (topics.length) {
+    patchMeeting(d, { topics: [...d.state.meeting.topics, ...topics.map((t) => ({ id: uid("t-"), text: t }))] });
+    d.flash = ["topics"];
+    return void d.messages.push(say("Ik zette het links op de agenda."));
+  }
+  d.messages.push(say("Pas het links aan, of kies hierboven wat er beter kan."));
 }
 
 function askNotes(d: Draft) {
@@ -416,7 +618,10 @@ function onText(d: Draft, text: string, ref: Date, plain = false): void {
       return;
     }
     if (intent) return onEntry(d, intent);
-    const asksNotes = pending.kind === "notes" || pending.kind === "place-actions";
+    const asksNotes =
+      pending.kind === "notes" ||
+      pending.kind === "place-actions" ||
+      (pending.kind === "goal" && pending.followUp === "follow-through");
     if (!asksNotes && looksLikeNotes(text))
       return void ask(d, { kind: "paste", text, resume: pending }, QUESTIONS.paste);
   }
@@ -446,6 +651,8 @@ function onText(d: Draft, text: string, ref: Date, plain = false): void {
       d.flash = ["topics"];
       return askNotes(d);
     }
+    case "goal":
+      return onGoalText(d, pending.followUp, text, ref);
     case "when-who": {
       const p = parseMeetingUpdate(text);
       if (foundFields(p).length === 0)
@@ -648,9 +855,15 @@ function pickMeeting(d: Draft, id: string) {
       ...(people ? { participants: [...d.state.meeting.participants, ...newPeople(d, o)] } : {}),
     });
     d.flash = [...(when ? ["when"] : []), ...(people ? ["participants"] : [])];
+    if (people) syncRound(d);
     const what = when && people ? "dag, uur en deelnemers" : when ? "dag en uur" : "de deelnemers";
     d.messages.push(say(`Ik nam ${what} over uit je ${lowerFirst(o.name)} in ${from}.`));
     setPending(d, p.resume);
+    // Bij de doelvraag: "haal ze uit je agenda" beantwoordt "Wie zit erbij?" (C0l).
+    if (p.resume.kind === "goal") {
+      if (people && p.resume.followUp === "status") afterGoal(d);
+      return;
+    }
     if (d.state.step === 1) askNext(d);
     return;
   }
@@ -753,7 +966,15 @@ export function respond(state: AssistantState, input: AssistantInput, ref: Date 
       break;
     }
     case "text":
+      // Typen laat de doelchips verdwijnen (C0j–C0m).
+      d.state = { ...d.state, goalChips: false };
       if (input.text.trim()) onText(d, input.text.trim(), ref);
+      break;
+    case "goal":
+      chooseGoal(d, input.goal);
+      break;
+    case "goal-duration":
+      if (d.state.pending.kind === "goal") rescale(d, input.minutes);
       break;
     case "chip":
       onChip(d, input.value, ref);

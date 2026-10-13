@@ -43,6 +43,8 @@ export function guestBlocks(b: GuestBundle, opts: { stableIds: boolean }): Agend
           title: t.text.trim(),
           presenterId: t.presenterId ?? null,
           duration: t.duration ?? null,
+          ...(t.subtitle ? { subtitle: t.subtitle } : {}),
+          ...(t.purposes?.length ? { purposes: t.purposes } : {}),
         }),
         items: items(t.items),
       }))
@@ -59,7 +61,7 @@ export function guestBlocks(b: GuestBundle, opts: { stableIds: boolean }): Agend
     const item = newItem(d.text.trim(), { ...stable(d.id), purposes: ["decide"], ...meta(d) });
     all[at].items = [item, ...all[at].items];
   }
-  return [newBlock("actions", stable(ACTIONS_BLOCK)), ...all];
+  return [newBlock("actions", { ...stable(ACTIONS_BLOCK), duration: b.meeting.actionsDuration ?? null }), ...all];
 }
 
 /** Doel, eigenaars en duur, enkel wat gezet is. */

@@ -86,7 +86,7 @@ interface GuestActions {
    * wordt een tweede invoer genegeerd. De timer leeft buiten React, zodat een component die verborgen
    * (Activity) of dubbel gemonteerd (Strict Mode) wordt het antwoord niet kan verliezen of verdubbelen.
    */
-  dispatch: (input: AssistantInput, userText?: string) => boolean;
+  dispatch: (input: AssistantInput, userText?: string, opts?: { applyNow?: boolean }) => boolean;
   setAccount: (account: GuestAccount | null) => void;
   setStartPath: (path: StartPath) => void;
   setTransitionPlayed: () => void;
@@ -108,6 +108,8 @@ interface GuestActions {
   removeItem: (id: string) => void;
   moveItem: (id: string, blockId: string, index: number) => void;
   setAssistantOpen: (open: boolean) => void;
+  /** De gebruiker typt in het chatveld: de doelchips verdwijnen (C0j–C0m). */
+  hideGoalChips: () => void;
   setClosedHintShown: () => void;
   updateAction: (id: string, patch: Partial<GuestAction>) => void;
   addAction: (text: string) => void;
@@ -132,6 +134,7 @@ export function initialGuest(): GuestData {
     decisions: [],
     others: [],
     notesReminderShown: false,
+    goalChips: false,
     conversation: withIds(WELCOME_MESSAGES),
     account: null,
     startPath: null,
@@ -163,6 +166,7 @@ function assistantState(s: AssistantState): AssistantState {
     decisions: s.decisions,
     others: s.others,
     notesReminderShown: !!s.notesReminderShown,
+    goalChips: !!s.goalChips,
   };
 }
 
@@ -176,28 +180,37 @@ const noopStorage: StateStorage = { getItem: () => null, setItem: () => {}, remo
 export const useGuestStore = create<GuestStore>()(
   persist(
     (set, get) => {
-      const meeting = (patch: Partial<GuestMeeting>) => set((s) => ({ meeting: { ...s.meeting, ...patch } }));
+      // Wat de gebruiker links zelf bewerkt, laat de doelchips verdwijnen (C0j–C0m).
+      const meeting = (patch: Partial<GuestMeeting>) =>
+        set((s) => ({ meeting: { ...s.meeting, ...patch }, goalChips: false }));
       return {
         ...initialGuest(),
         ...initialUi(),
 
-        dispatch: (input, userText) => {
+        dispatch: (input, userText, opts) => {
           if (get().typing) return false;
           if (userText)
             set((s) => ({ conversation: [...s.conversation, ...withIds([{ from: "user", text: userText }])] }));
           if (input.type === "text")
             track("assistant_message_sent", { stap: String(get().step), lengte: input.text.length });
+          // `applyNow` (een doelchip, C0j–C0m): links verandert meteen; enkel het bericht wacht op de typ-indicator.
+          const early = opts?.applyNow ? respond(assistantState(get()), input) : null;
+          if (early)
+            set({
+              ...early.state,
+              ...(early.flash.length ? { flash: early.flash, flashAt: Date.now() } : {}),
+            });
           set({ typing: true });
           replyTimer = setTimeout(() => {
             replyTimer = null;
             const s = get();
-            const reply = respond(assistantState(s), input);
+            const reply = early ?? respond(assistantState(s), input);
             set({
-              ...reply.state,
+              ...(early ? {} : reply.state),
               replyFrom: s.conversation.length,
               conversation: [...s.conversation, ...withIds(reply.messages)],
               typing: false,
-              ...(reply.flash.length ? { flash: reply.flash, flashAt: Date.now() } : {}),
+              ...(!early && reply.flash.length ? { flash: reply.flash, flashAt: Date.now() } : {}),
               editRequest: reply.edit ? s.editRequest + 1 : s.editRequest,
               ...(reply.ui ? { uiRequest: { kind: reply.ui, at: Date.now() } } : {}),
             });
@@ -244,8 +257,11 @@ export const useGuestStore = create<GuestStore>()(
         updateItem: (id, patch) => meeting(updateGuestItem(get().meeting, id, patch)),
         setPresenter: (blockId, presenterId) => meeting(setGuestPresenter(get().meeting, blockId, presenterId)),
         removeItem: (id) => meeting(removeGuestItem(get().meeting, id)),
-        moveItem: (id, blockId, index) => set((s) => moveGuestItem(s, id, blockId, index)),
+        moveItem: (id, blockId, index) => set((s) => ({ ...moveGuestItem(s, id, blockId, index), goalChips: false })),
         setAssistantOpen: (assistantOpen) => set({ assistantOpen }),
+        hideGoalChips: () => {
+          if (get().goalChips) set({ goalChips: false });
+        },
         setClosedHintShown: () => set({ closedHintShown: true }),
         moveTopic: (id, index) => {
           const topics = get().meeting.topics;
@@ -256,17 +272,18 @@ export const useGuestStore = create<GuestStore>()(
           meeting({ topics: rest });
         },
         updateAction: (id, patch) =>
-          set((s) => ({ actions: s.actions.map((a) => (a.id === id ? { ...a, ...patch } : a)) })),
+          set((s) => ({ actions: s.actions.map((a) => (a.id === id ? { ...a, ...patch } : a)), goalChips: false })),
         addAction: (text) =>
           set((s) => ({
+            goalChips: false,
             actions: [
               ...s.actions,
               { id: uid("a-"), text, ownerId: null, deadline: null, confirmed: true, ownerLater: false },
             ],
           })),
-        removeAction: (id) => set((s) => ({ actions: s.actions.filter((a) => a.id !== id) })),
+        removeAction: (id) => set((s) => ({ actions: s.actions.filter((a) => a.id !== id), goalChips: false })),
         updateDecision: (id, patch) =>
-          set((s) => ({ decisions: s.decisions.map((d) => (d.id === id ? { ...d, ...patch } : d)) })),
+          set((s) => ({ decisions: s.decisions.map((d) => (d.id === id ? { ...d, ...patch } : d)), goalChips: false })),
         reset: () => {
           if (replyTimer) clearTimeout(replyTimer);
           replyTimer = null;

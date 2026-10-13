@@ -356,7 +356,7 @@ test.describe("Variant A · Lazy Registration", () => {
   test("herladen en terugkomen behouden de gast-state; ouder dan 7 dagen start leeg", async ({ page, context }) => {
     await page.goto("/probeer");
     await say(page, "Veiligheidsoverleg maandelijks");
-    await expectAssistant(page, /Waar willen jullie in die meeting vooral vooruitgang op boeken\?/);
+    await expectAssistant(page, /Of zeg wat er beter kan, dan stem ik het af\./);
     await page.reload();
     await expect(page.getByRole("heading", { level: 1, name: "Veiligheidsoverleg" })).toBeVisible();
     await expect(log(page).getByText(/Welkom terug/)).toHaveCount(0);
@@ -691,7 +691,7 @@ test.describe("Variant A · welkom en overgang", () => {
     errors.assertNone();
   });
 
-  test("vertellen zonder onderwerpen: meteen de overgang als concept, één verduidelijkende vraag", async ({ page }) => {
+  test("vertellen zonder onderwerpen: meteen de overgang, en een vrijblijvende doelvraag", async ({ page }) => {
     await page.goto("/probeer");
     await start(page, "Vertel het me");
     await expectAssistant(page, SENTENCE_QUESTION);
@@ -702,11 +702,49 @@ test.describe("Variant A · welkom en overgang", () => {
     await expect(page.getByRole("main").getByRole("button", { name: /^Deelnemers: Tina/ })).toBeVisible();
     await expectAssistant(
       page,
-      "Je overleg staat klaar als concept. Waar willen jullie in die meeting vooral vooruitgang op boeken?",
+      "Je overleg staat klaar. Pas het links aan zoals je wil. Of zeg wat er beter kan, dan stem ik het af.",
     );
-    await say(page, "planning en veiligheid");
-    await expect(page.getByRole("region", { name: "Planning komende week" })).toBeVisible();
-    await expectAssistant(page, NOTES_TELL);
+    await expect(log(page).getByRole("button", { name: "Laat zo" })).toHaveCount(0);
+    const goals = assistant(page).getByRole("group", { name: "Doel van dit overleg" });
+    await expect(goals.getByRole("button")).toHaveText([
+      "Afspraken worden echt uitgevoerd",
+      "Korter en gerichter",
+      "Weten waar iedereen mee bezig is",
+      "Niet steeds hetzelfde bespreken",
+    ]);
+
+    // C0k: korter en gerichter. De chip blijft staan (aria-pressed), de andere ook.
+    await goals.getByRole("button", { name: "Korter en gerichter" }).click();
+    await expect(goals.getByRole("button", { name: "Korter en gerichter" })).toHaveAttribute("aria-pressed", "true");
+    await expect(goals.getByRole("button", { name: "Weten waar iedereen mee bezig is" })).toBeVisible();
+    await expect(
+      log(page)
+        .locator("div")
+        .filter({ hasText: /^Korter en gerichter$/ }),
+    ).toBeVisible();
+    await expectAssistant(page, /Ik ging uit van 1 uur\. Hoeveel tijd hebben jullie meestal\?/);
+    await expect(
+      page.getByRole("main").getByRole("listitem").filter({ hasText: "Doel: korter en gerichter" }),
+    ).toBeVisible();
+    await expect(page.getByRole("main").getByLabel("Totaal 60 minuten")).toBeVisible();
+    const box = assistant(page).getByRole("textbox");
+    await expect(box).toBeFocused();
+    await expect(box).toHaveAttribute("placeholder", "Of typ: we hebben meestal 40 minuten");
+    await assistant(page).getByRole("button", { name: "45 min" }).click();
+    await expect(page.getByRole("main").getByLabel("Totaal 45 minuten")).toBeVisible();
+
+    // C0l: een tweede doel. Elke naam wordt deelnemer én punt in het rondje.
+    await goals.getByRole("button", { name: "Weten waar iedereen mee bezig is" }).click();
+    const round = page.getByRole("region", { name: "Rondje per persoon" });
+    await expect(round).toContainText("nieuw");
+    await expect(round).toContainText("Elk kort: waar ben je mee bezig, en waar loop je vast?");
+    await expect(box).toHaveAttribute("placeholder", "Voornamen van de deelnemers");
+    await expectAssistant(page, /Wie zit erbij\? Voornamen volstaan\./);
+    await say(page, "Sofie en Jan");
+    // Tina zat er al bij (uit de zin), Sofie en Jan komen erbij.
+    await expect(round.getByRole("listitem")).toHaveCount(3);
+    // Typen laat de chips verdwijnen.
+    await expect(goals).toHaveCount(0);
   });
 
   test("vrije tekst werkt ook zonder eerst te kiezen", async ({ page }) => {

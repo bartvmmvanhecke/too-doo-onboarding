@@ -59,5 +59,6 @@ export function bundleToMeeting(b: GuestBundle): Omit<Meeting, "id"> {
     invited: false,
     held: false,
     origin: "a",
+    ...(m.goals?.length ? { goals: [...m.goals] } : {}),
   };
 }

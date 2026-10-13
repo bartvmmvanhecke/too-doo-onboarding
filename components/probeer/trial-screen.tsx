@@ -16,6 +16,7 @@ import {
   ProviderChoice,
   START_LABEL,
 } from "@/components/probeer/entry-blocks";
+import { GoalChips } from "@/components/probeer/goal-chips";
 import { connectAccount } from "@/components/probeer/save-guest";
 import { TellSuggestions } from "@/components/probeer/tell-suggestions";
 import { TrialSidebar, SHARED } from "@/components/probeer/trial-sidebar";
@@ -35,6 +36,7 @@ import {
   type StartChoice,
 } from "@/lib/assistant";
 import { appointmentOptions, seriesOptions } from "@/lib/assistant/calendar";
+import { GOAL_DURATIONS, type MeetingGoal } from "@/lib/assistant/goals";
 import { formatShortDate } from "@/lib/date";
 import { LISTEN_DELAY, SAMPLE_TRANSCRIPT } from "@/lib/extract";
 import { hasGuestWork, useGuestStore } from "@/lib/guest-store";
@@ -173,6 +175,7 @@ export function TrialScreen({ onSave }: { onSave: (intent: SaveIntent, trigger: 
   const entry = useGuestStore((s) => s.entry);
   const tellPath = entry === "meeting" || entry === "empty";
   const replyFrom = useGuestStore((s) => s.replyFrom);
+  const goalChips = useGuestStore((s) => s.goalChips);
   const transitionPlayed = useGuestStore((s) => s.transitionPlayed);
   const sso = useSsoLogin();
   const consent = useCalendarConsent();
@@ -189,7 +192,12 @@ export function TrialScreen({ onSave }: { onSave: (intent: SaveIntent, trigger: 
   const [focusRequest, setFocusRequest] = useState(0);
   const focusInput = () => setFocusRequest((n) => n + 1);
   /** Wat nu in het chatveld staat; een voorbeeldsuggestie vult het via `fill`. */
-  const [draft, setDraft] = useState("");
+  const [draft, setDraftState] = useState("");
+  const setDraft = useCallback((text: string) => {
+    setDraftState(text);
+    // Typen laat de doelchips verdwijnen (C0j–C0m).
+    if (text.trim()) useGuestStore.getState().hideGoalChips();
+  }, []);
   const [fill, setFill] = useState<{ text: string; at: number }>();
 
   // Stap 0: welkom → (terugtrekken → aandokken) → app. De overgang speelt één keer per gast.
@@ -375,6 +383,13 @@ export function TrialScreen({ onSave }: { onSave: (intent: SaveIntent, trigger: 
     send({ type: "calendar-field", fields: [field] }, field === "when" ? "Uit agenda halen" : "Deelnemers uit agenda");
   };
 
+  /** Een doelchip (C0j–C0m): links aanpassen, vervolgvraag, en de focus in het chatveld. */
+  const pickGoal = (goal: MeetingGoal, label: string) => {
+    if (busy) return;
+    track("assistant_goal_chosen", { doel: goal });
+    if (send({ type: "goal", goal }, label, { applyNow: true })) focusInput();
+  };
+
   const showExample = () => {
     track("assistant_entry_chosen", { ingang: "example" });
     router.push("/voorbeeld?van=probeer");
@@ -443,17 +458,44 @@ export function TrialScreen({ onSave }: { onSave: (intent: SaveIntent, trigger: 
     case "provider":
       controls = <ProviderChoice busy={busy} connecting={connecting} onCalendar={connectCalendar} />;
       break;
-    case "topics":
-      controls = (
-        <Button
-          variant="link"
-          size="sm"
-          className="min-h-11 self-start px-0 text-sm font-bold"
-          onClick={() => send({ type: "skip-topics" }, "Laat zo")}
-        >
-          Laat zo
-        </Button>
-      );
+    case "goal":
+      // De vervolgvraag van het laatst gekozen doel: snelkeuzes of een kleine hintregel (C0j–C0m).
+      switch (pending.followUp) {
+        case "follow-through":
+          controls = (
+            <p className="text-[13px] text-ink-3">Bv. “Sofie belt de staal-leverancier, Jan maakt de offerte”</p>
+          );
+          break;
+        case "focus":
+          controls = (
+            <Chips
+              label="Hoeveel tijd"
+              disabled={busy}
+              options={GOAL_DURATIONS.map((o) => ({ value: String(o.value), label: o.label }))}
+              onSelect={(v, l) => send({ type: "goal-duration", minutes: Number(v) }, l)}
+            />
+          );
+          break;
+        case "status":
+          controls = (
+            <p className="flex flex-wrap items-center text-[13px] text-ink-3">
+              Bv. “Sofie, Jan en Tania” ·
+              <Button
+                variant="link"
+                size="sm"
+                disabled={busy}
+                onClick={() => fromCalendar("participants")}
+                className="min-h-11 px-1 text-[13px] font-bold"
+              >
+                of haal ze uit je agenda
+              </Button>
+            </p>
+          );
+          break;
+        case "decide":
+          controls = <p className="text-[13px] text-ink-3">Bv. “kiezen we een andere staal-leverancier?”</p>;
+          break;
+      }
       break;
     case "when-who":
       controls = (
@@ -646,20 +688,30 @@ export function TrialScreen({ onSave }: { onSave: (intent: SaveIntent, trigger: 
   // Een opname wordt eerst uitgeschreven (inspreken, of een geluidsbestand).
   if (listening || reading === RECORDING) controls = <Preparing label={RECORDING} />;
 
+  const goalPlaceholder: Record<MeetingGoal, string> = {
+    "follow-through": "Plak notities of typ wat openstaat",
+    focus: "Of typ: we hebben meestal 40 minuten",
+    status: "Voornamen van de deelnemers",
+    decide: "Typ de beslissing die nodig is",
+  };
   const placeholder =
-    pending.kind === "notes"
-      ? "Plak je notities hier"
-      : welcome && pending.kind === "entry"
-        ? "Of typ meteen, bv. ons wekelijks productieoverleg"
-        : pending.kind === "entry" || pending.kind === "sentence" || pending.kind === "pick-meeting"
-          ? "Bijv. ons wekelijks productieoverleg: orders, problemen en planning"
-          : pending.kind === "when-who"
-            ? "Bijv. elke maandag om 8u met Jan, Sofie en Karim"
-            : pending.kind === "confirm-meeting"
-              ? "Bijv. het duurt anderhalf uur"
-              : step === 2
-                ? "Bijv. Karim belt, tegen woensdag"
-                : "Vraag of zeg iets";
+    pending.kind === "goal"
+      ? pending.followUp
+        ? goalPlaceholder[pending.followUp]
+        : "Zeg wat er beter kan"
+      : pending.kind === "notes"
+        ? "Plak je notities hier"
+        : welcome && pending.kind === "entry"
+          ? "Of typ meteen, bv. ons wekelijks productieoverleg"
+          : pending.kind === "entry" || pending.kind === "sentence" || pending.kind === "pick-meeting"
+            ? "Bijv. ons wekelijks productieoverleg: orders, problemen en planning"
+            : pending.kind === "when-who"
+              ? "Bijv. elke maandag om 8u met Jan, Sofie en Karim"
+              : pending.kind === "confirm-meeting"
+                ? "Bijv. het duurt anderhalf uur"
+                : step === 2
+                  ? "Bijv. Karim belt, tegen woensdag"
+                  : "Vraag of zeg iets";
 
   const meetingNames = [...others.map((o) => o.meeting.name ?? "Overleg"), ...(meeting.name ? [meeting.name] : [])];
   // Het antwoord dat de overgang startte, komt pas na de afsluiter; intussen "Ik zet je overleg klaar…".
@@ -758,8 +810,13 @@ export function TrialScreen({ onSave }: { onSave: (intent: SaveIntent, trigger: 
           onOpenChange={setOpen}
           controls={held !== null || intro ? null : controls}
           onFileDrop={busy ? null : readFile}
+          renderBelow={(m) =>
+            m.card === "goals" && (
+              <GoalChips visible={!!goalChips} chosen={meeting.goals ?? []} disabled={busy} onPick={pickGoal} />
+            )
+          }
           renderCard={(card: NonNullable<Message["card"]>, isLast) =>
-            !isLast ? null : card === "summary" ? (
+            !isLast || card === "goals" ? null : card === "summary" ? (
               <SummaryCard />
             ) : card === "mail" ? (
               <MailCard />

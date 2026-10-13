@@ -404,7 +404,34 @@ function TrialHeader({ trial, participants }: { trial: TrialView; participants: 
             {participants.length === 0 && (
               <FromCalendar trial={trial} field="participants" label="Deelnemers uit agenda" />
             )}
+            {!!trial.totalMinutes && (
+              <>
+                <span aria-hidden className={muted}>
+                  ·
+                </span>
+                <span
+                  key={trial.totalMinutes}
+                  aria-label={`Totaal ${trial.totalMinutes} minuten`}
+                  className="goal-flash rounded-lg px-1.5 py-0.5 tabular-nums"
+                >
+                  {trial.totalMinutes} min
+                </span>
+              </>
+            )}
           </div>
+          {!!trial.goals?.length && (
+            // Gekozen doelen (C0j–C0m): één pill per doel.
+            <ul aria-label="Doelen van dit overleg" className="flex flex-wrap gap-1.5">
+              {trial.goals.map((goal) => (
+                <li
+                  key={goal}
+                  className="goal-flash rounded-full bg-brand-soft px-2.5 py-1 text-[13px] font-semibold text-brand"
+                >
+                  Doel: {goal}
+                </li>
+              ))}
+            </ul>
+          )}
         </div>
         <StartButton enabled={trial.canStart} onStart={() => startRun(meeting.id)} />
       </div>

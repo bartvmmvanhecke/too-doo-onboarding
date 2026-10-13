@@ -246,6 +246,7 @@ export function AssistantPanel({
   messages,
   typing,
   renderCard,
+  renderBelow,
   controls,
   input,
   open,
@@ -266,6 +267,8 @@ export function AssistantPanel({
   messages: Message[];
   typing: boolean;
   renderCard?: (card: NonNullable<Message["card"]>, isLast: boolean) => ReactNode;
+  /** Onder de bubbel van een bericht, bv. de doelchips onder de doelvraag (C0j–C0m). */
+  renderBelow?: (message: Message) => ReactNode;
   controls?: ReactNode;
   input: AssistantInputProps;
   open: boolean;
@@ -371,6 +374,7 @@ export function AssistantPanel({
                     <RichText text={m.text} />
                     {m.card && renderCard?.(m.card, i === lastWithCard(m.card))}
                   </Bubble>
+                  {renderBelow?.(m)}
                 </Fragment>
               ))}
               {typing && (typingLabel ? <Preparing label={typingLabel} /> : <TypingDots />)}

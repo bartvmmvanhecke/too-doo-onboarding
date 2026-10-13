@@ -46,6 +46,18 @@ export interface TrialView {
   done?: boolean;
   /** Afsluiter op het notitiepad: de teller van de openstaande acties loopt op. */
   countUp?: boolean;
+  /** Gekozen doelen (C0j–C0m), in kleine letters: een pill "Doel: …" onder de titel. */
+  goals?: string[];
+  /** "Afspraken worden echt uitgevoerd" (C0j): "Openstaande acties" gemarkeerd met "eerst". */
+  actionsFirst?: boolean;
+  /** Thema's die een doel toevoegde (label "nieuw"). */
+  newBlockIds?: Set<string>;
+  /** "Rondje per persoon": zonder punten gestippelde plekken per deelnemer (C0l). */
+  roundBlockIds?: Set<string>;
+  /** "Korter en gerichter" (C0k): ook een thema zonder agendapunten toont duur en doel. */
+  blockMeta?: boolean;
+  /** Totale tijd van de agenda in de datumregel (C0k). */
+  totalMinutes?: number | null;
 }
 
 export interface MeetingCtx {

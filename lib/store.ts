@@ -101,6 +101,11 @@ export interface Meeting extends MeetingSchedule {
   origin?: "b" | "a";
   /** Voorbeeldvergadering op /voorbeeld: wordt nooit bewaard. */
   example?: boolean;
+  /**
+   * Doelen uit de doelvraag van Variant A (C0j–C0m), bv. "focus".
+   * TODO(api): er bestaat nog geen veld voor het doel van een overleg.
+   */
+  goals?: string[];
 }
 
 export type ExtractionTab = "plak" | "inspreken" | "typen";

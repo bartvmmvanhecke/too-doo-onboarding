@@ -18,17 +18,25 @@ function saveDocument(meeting: Meeting) {
   const decisionIds = new Set(guest.decisions.map((d) => d.id));
   const items = (block: Meeting["blocks"][number]) => block.items.filter((i) => !decisionIds.has(i.id));
   const varia = meeting.blocks.find((b) => b.id === VARIA_BLOCK);
+  const actionsBlock = meeting.blocks.find((b) => b.kind === "actions");
   useGuestStore.setState({
+    // Links iets bewerkt: de doelchips verdwijnen (C0j–C0m).
+    goalChips: false,
     meeting: {
       ...guest.meeting,
+      ...(guest.meeting.actionsDuration !== undefined ? { actionsDuration: actionsBlock?.duration ?? null } : {}),
       topics: meeting.blocks
         .filter((b) => b.kind !== "actions" && b.id !== VARIA_BLOCK)
         .map((b) => ({
+          // Wat enkel de gast-state kent (rondje, label "nieuw"), blijft behouden.
+          ...guest.meeting.topics.find((t) => t.id === b.id),
           id: b.id,
           text: b.title,
           kind: b.kind,
           duration: b.duration,
           presenterId: b.presenterId,
+          ...(b.purposes ? { purposes: b.purposes } : {}),
+          ...(b.subtitle !== undefined ? { subtitle: b.subtitle } : {}),
           items: items(b),
         })),
       variaItems: varia ? items(varia) : [],

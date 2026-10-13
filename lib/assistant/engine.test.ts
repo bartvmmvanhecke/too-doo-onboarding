@@ -62,9 +62,7 @@ describe("elke vraag één keer", () => {
       { type: "text", text: "???" },
       { type: "text", text: "!!!" },
     ]);
-    expect(
-      said.filter((t) => t.includes("Waar willen jullie in die meeting vooral vooruitgang op boeken?")),
-    ).toHaveLength(1);
+    expect(said.filter((t) => t.includes("Of zeg wat er beter kan, dan stem ik het af."))).toHaveLength(1);
     expectNoRepeatedQuestion(said);
   });
 
@@ -241,7 +239,7 @@ describe("ingangen blijven bereikbaar", () => {
       { type: "entry", entry: "meeting" },
       { type: "text", text: "teamoverleg" },
     ]);
-    expect(state.pending.kind).toBe("topics");
+    expect(state.pending.kind).toBe("goal");
     let r = respond(state, { type: "calendar-field", fields: ["when"] }, REF);
     expect(r.messages[0].text).toBe("Outlook of Google?");
     r = respond(
@@ -254,7 +252,7 @@ describe("ingangen blijven bereikbaar", () => {
     expect(state.meeting).toMatchObject({ name: "Teamoverleg", weekday: 1, time: 480, recurrence: "weekly" });
     expect(state.meeting.participants).toHaveLength(0);
     // Vertelpad: de assistent gaat verder met zijn open vraag, niet met wanneer of wie.
-    expect(state.pending.kind).toBe("topics");
+    expect(state.pending.kind).toBe("goal");
     expect(r.flash).toEqual(["when"]);
   });
 

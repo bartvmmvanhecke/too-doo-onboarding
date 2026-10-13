@@ -7,6 +7,7 @@ export type TrackEvent =
   | "trial_app_opened"
   | "assistant_entry_chosen"
   | "assistant_message_sent"
+  | "assistant_goal_chosen"
   | "meeting_parsed"
   | "meeting_confirmed"
   | "actions_extracted"

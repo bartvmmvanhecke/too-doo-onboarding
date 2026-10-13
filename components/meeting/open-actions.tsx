@@ -159,6 +159,14 @@ export function OpenActionsBlock({
       hideGrip={!!trial}
       tone={trial ? (meeting.actions.length === 0 ? "dashed" : trial.confirming ? "proposal" : undefined) : undefined}
       hideMenu={!!trial}
+      // "Afspraken worden echt uitgevoerd" (C0j): bovenaan, gemarkeerd met "eerst".
+      ring={!!trial?.actionsFirst}
+      flash={!!trial?.flash.has("block:actions")}
+      badge={
+        trial?.actionsFirst && (
+          <span className="rounded-md bg-brand-soft px-2 py-0.5 text-xs font-semibold text-brand">eerst</span>
+        )
+      }
       onFileDrop={trial && meeting.actions.length === 0 ? (trial.onFileDrop ?? undefined) : undefined}
       aside={
         trial ? (

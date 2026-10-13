@@ -3,6 +3,7 @@
  * deze types blijven dezelfde als hij later een echte LLM-aanroep wordt.
  */
 import type { Purpose, Entry, BlockKind } from "@/lib/agenda";
+import type { MeetingGoal } from "@/lib/assistant/goals";
 import type { ISODate } from "@/lib/date";
 import type { Recurrence } from "@/lib/meeting";
 import type { Person } from "@/lib/mock-data";
@@ -37,6 +38,14 @@ export interface GuestTopic {
   items?: GuestItem[];
   /** Wie het thema brengt. */
   presenterId?: string | null;
+  /** Doel van een thema zonder agendapunten ("Korter en gerichter", C0k). */
+  purposes?: Purpose[];
+  /** Korte uitleg onder de titel (C0l, C0m); **vet** wordt vet getoond. */
+  subtitle?: string;
+  /** Label "nieuw": door een doel toegevoegd (C0l). */
+  isNew?: boolean;
+  /** "Rondje per persoon": elke deelnemer wordt er een punt in; leeg = gestippelde plekken (C0l). */
+  round?: boolean;
 }
 
 /** Het overleg in opbouw. Null = (nog) niet gezegd. */
@@ -60,6 +69,10 @@ export interface GuestMeeting {
   variaPresenterId?: string | null;
   /** Nog niet bevestigd met "Klopt". */
   proposed: boolean;
+  /** Doelen uit de doelvraag (C0j–C0m), in de volgorde waarin ze gekozen werden. */
+  goals?: MeetingGoal[];
+  /** Tijd voor "Openstaande acties" ("Korter en gerichter", C0k). */
+  actionsDuration?: Minutes | null;
   /** Uit de agenda overgenomen (label "uit Outlook"). */
   source?: CalendarProvider | null;
 }
@@ -129,8 +142,13 @@ export type Pending =
   | { kind: "sentence" }
   /** Na de zin (C1): "Wanneer gaat het door en wie zit erbij?" in één vraag. */
   | { kind: "when-who" }
-  /** Te vage zin (C1): "Waar willen jullie in die meeting vooral vooruitgang op boeken?" */
+  /** Te vage zin (C1): "Waar willen jullie in die meeting vooral vooruitgang op boeken?" (vervallen) */
   | { kind: "topics" }
+  /**
+   * Te vage zin (C0j–C0m): de vrijblijvende doelvraag met vier doelen. `followUp`: de vervolgvraag van het
+   * laatst gekozen doel, waarop het volgende antwoord slaat.
+   */
+  | { kind: "goal"; followUp: MeetingGoal | null }
   | { kind: "name" }
   | { kind: "day" }
   | { kind: "time" }
@@ -163,7 +181,7 @@ export interface Message {
   /** **vet** wordt vet getoond. */
   text: string;
   /** Kaart onder het bericht, berekend uit de huidige state. */
-  card?: "summary" | "mail" | "dropzone";
+  card?: "summary" | "mail" | "dropzone" | "goals";
 }
 
 /** Een overleg dat al klaarstaat ("Nog een overleg toevoegen"). */
@@ -181,6 +199,8 @@ export interface AssistantState extends GuestBundle {
   others: GuestBundle[];
   /** De herinnering "Heb je notities van de vorige keer?" kwam al (één keer, ook na herladen). */
   notesReminderShown: boolean;
+  /** De vier doelchips staan onder de doelvraag; weg zodra de gebruiker typt of links iets bewerkt. */
+  goalChips?: boolean;
 }
 
 export type AssistantInput =
@@ -206,7 +226,11 @@ export type AssistantInput =
   /** Antwoord op "Dit lijken notities…": verwerken of als gewoon bericht behandelen. */
   | { type: "paste"; process: boolean }
   /** "Laat zo" op de vraag naar onderwerpen. */
-  | { type: "skip-topics" };
+  | { type: "skip-topics" }
+  /** Een doelchip onder de doelvraag (C0j–C0m). */
+  | { type: "goal"; goal: MeetingGoal }
+  /** Een snelkeuze bij "Hoeveel tijd hebben jullie meestal?" (C0k). */
+  | { type: "goal-duration"; minutes: Minutes };
 
 export type AssistantEvent = [
   name: "meeting_parsed" | "meeting_confirmed" | "actions_extracted" | "first_action_with_owner" | "meeting_ready",

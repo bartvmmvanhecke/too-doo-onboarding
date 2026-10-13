@@ -106,15 +106,21 @@ describe("respond", () => {
     ]);
   });
 
-  it("teamoverleg: wanneer en wie worden niet gevraagd; zonder onderwerpen één verduidelijkende vraag", () => {
+  it("teamoverleg: wanneer en wie worden niet gevraagd; zonder onderwerpen de vrijblijvende doelvraag", () => {
     let r = respond(start(), { type: "text", text: "teamoverleg met Els en Bram" }, REF);
-    expect(r.state.pending).toEqual({ kind: "topics" });
-    expect(r.messages.map((m) => m.text)).toEqual([
-      "Je teamoverleg staat klaar als concept. **Waar willen jullie in die meeting vooral vooruitgang op boeken?**",
+    expect(r.state.pending).toEqual({ kind: "goal", followUp: null });
+    expect(r.state.goalChips).toBe(true);
+    expect(r.messages).toEqual([
+      {
+        from: "assistant",
+        text: "Je teamoverleg staat klaar. Pas het links aan zoals je wil. **Of zeg wat er beter kan, dan stem ik het af.**",
+        card: "goals",
+      },
     ]);
+    // Vrije tekst zonder doel: gewone input (onderwerpen op de agenda).
     r = respond(r.state, { type: "text", text: "planning, veiligheid en klanten" }, REF);
     expect(r.state.meeting.topics).toHaveLength(3);
-    expect(r.state.pending.kind).toBe("notes");
+    expect(r.state.goalChips).toBe(false);
     expect(r.state.meeting.weekday).toBeNull();
   });
 

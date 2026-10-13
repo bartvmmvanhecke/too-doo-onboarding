@@ -133,6 +133,7 @@ export function AgendaItemRow({
       }}
       className={cn(
         "group relative flex min-h-14 flex-wrap items-center gap-x-1 rounded-[12px] border border-line-soft bg-white py-1 pr-1.5 pl-2",
+        trial?.flash.has(`item:${item.id}`) && "goal-flash",
         dropAt === "before" && "shadow-[0_-3px_0_var(--brand)]",
         dropAt === "after" && "shadow-[0_3px_0_var(--brand)]",
       )}
@@ -330,6 +331,11 @@ function BlockMenu({ block, onRename }: { block: AgendaBlock; onRename: () => vo
   );
 }
 
+/** "**vet**" in een korte uitleg onder de titel (Variant A, C0m). */
+function boldText(text: string): ReactNode {
+  return text.split("**").map((part, i) => (i % 2 === 1 ? <strong key={i}>{part}</strong> : part));
+}
+
 /** Kop en sleepgedrag die alle kaartblokken delen. */
 export function BlockCard({
   block,
@@ -349,6 +355,8 @@ export function BlockCard({
   onFileDrop,
   onItemDrop,
   hideGrip,
+  flash,
+  ring,
 }: {
   block: AgendaBlock;
   index: number;
@@ -377,6 +385,10 @@ export function BlockCard({
   onItemDrop?: (itemId: string) => void;
   /** Variant A: "Openstaande acties" blijft bovenaan en is niet versleepbaar. */
   hideGrip?: boolean;
+  /** Variant A: net aangepast door een doel, korte highlight (C0j–C0m). */
+  flash?: boolean;
+  /** Variant A: gemarkeerd met een primaire ring ("eerst", C0j). */
+  ring?: boolean;
 }) {
   const { meeting } = useMeeting();
   const { updateBlock } = useMeetingOps();
@@ -435,6 +447,8 @@ export function BlockCard({
         tinted && "bg-row-hover",
         tone === "dashed" && "border-[1.5px] border-dashed border-line bg-white",
         tone === "proposal" && "border-2 border-proposal-line bg-brand-selected",
+        ring && "ring-2 ring-primary",
+        flash && "goal-flash",
         dropAt === "before" && "shadow-[0_-3px_0_var(--brand)]",
         dropAt === "after" && "shadow-[0_3px_0_var(--brand)]",
       )}
@@ -529,6 +543,12 @@ export function TopicsBlock({
   const inputId = `add-${block.id}`;
   const hintId = `${inputId}-hint`;
   const showInput = adding || focusInput;
+  const isNew = !!trial?.newBlockIds?.has(block.id);
+  const round = !!trial?.roundBlockIds?.has(block.id);
+  // "Korter en gerichter" (C0k): een thema zonder agendapunten heeft zelf een duur en een doel.
+  // Varia (geen eigen tijd) blijft zonder.
+  const themeMeta =
+    !!trial?.blockMeta && block.items.length === 0 && (block.duration !== null || !!block.purposes?.length);
 
   const summary = !expanded
     ? block.items.length === 0
@@ -548,9 +568,12 @@ export function TopicsBlock({
       bodyId={`block-${block.id}`}
       tinted
       tone={trial ? (trial.empty ? "dashed" : proposed ? "proposal" : undefined) : undefined}
+      flash={!!trial?.flash.has(`block:${block.id}`)}
       badge={
-        proposed && (
-          <span className="rounded-md bg-brand-soft px-2 py-0.5 text-xs font-semibold text-brand">voorstel</span>
+        (proposed || isNew) && (
+          <span className="rounded-md bg-brand-soft px-2 py-0.5 text-xs font-semibold text-brand">
+            {isNew ? "nieuw" : "voorstel"}
+          </span>
         )
       }
       aside={
@@ -562,9 +585,21 @@ export function TopicsBlock({
             onPick={(presenterId) => updateBlock(meeting.id, block.id, { presenterId })}
           />
           {summary && <span className="px-1 text-[13px] whitespace-nowrap text-ink-3 tabular-nums">{summary}</span>}
+          {themeMeta && (
+            <>
+              <PurposePicker
+                value={block.purposes ?? []}
+                onChange={(purposes) => updateBlock(meeting.id, block.id, { purposes })}
+              />
+              <DurationPicker
+                value={block.duration}
+                onChange={(duration) => updateBlock(meeting.id, block.id, { duration })}
+              />
+            </>
+          )}
         </>
       }
-      meta={block.subtitle && <p className="px-1 text-[13px] text-ink-3">{block.subtitle}</p>}
+      meta={block.subtitle && <p className="px-1 text-[13px] text-ink-3">{boldText(block.subtitle)}</p>}
       onItemDrop={(itemId) => moves.dropItem(itemId, block.id, block.items.length)}
     >
       {presenter && <span className="sr-only">Presentator: {presenter.name}</span>}
@@ -601,6 +636,20 @@ export function TopicsBlock({
           ),
         )}
       </ul>
+      {round && block.items.length === 0 && (
+        // "Rondje per persoon" zonder deelnemers: gestippelde plekken van 3 min (C0l).
+        <ul aria-label="Nog geen deelnemers in het rondje" className="flex flex-col gap-2">
+          {[1, 2, 3].map((n) => (
+            <li
+              key={n}
+              className="flex min-h-12 items-center justify-between rounded-[12px] border-[1.5px] border-dashed border-line bg-white px-3 text-sm text-ink-3"
+            >
+              <span>Deelnemer {n}</span>
+              <span className="tabular-nums">3 min</span>
+            </li>
+          ))}
+        </ul>
+      )}
       {block.items.length === 0 && (
         // Leeg thema tijdens het slepen van een agendapunt: hier kan het neergezet worden.
         <div

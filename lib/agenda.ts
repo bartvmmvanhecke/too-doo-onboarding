@@ -77,6 +77,8 @@ export interface AgendaBlock {
   /** Pauze, of de tijd voor "Openstaande acties". */
   duration: Minutes | null;
   items: AgendaItem[];
+  /** Variant A: doel van een thema zonder agendapunten ("Korter en gerichter"). */
+  purposes?: Purpose[];
 }
 
 /** Een lopende vergadering. Stappen zijn agendapunten of het blok "Openstaande acties". */

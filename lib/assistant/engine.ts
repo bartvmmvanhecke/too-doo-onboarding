@@ -416,7 +416,7 @@ export function ownerQuestion(text: string): string {
 const hasOwner = (a: GuestAction) => !!a.ownerId;
 
 function nextOwnerQuestion(d: Draft, afterAnswer: boolean) {
-  const open = d.state.actions.find((a) => a.confirmed && !a.ownerId && !a.ownerLater);
+  const open = d.state.actions.find((a) => (a.confirmed || a.reviewStatus === "open") && !a.ownerId && !a.ownerLater);
   if (open) return void ask(d, { kind: "owner", actionId: open.id }, ownerQuestion(open.text));
   setPending(d, { kind: "place-actions" });
   if (afterAnswer) d.messages.push(say("Dat was alles. Zet ze op de agenda wanneer je wilt."));

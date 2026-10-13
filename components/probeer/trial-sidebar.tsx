@@ -17,6 +17,9 @@ const item =
   "flex min-h-11 items-center rounded-[10px] px-3 py-2.5 text-base font-semibold text-nav-ink no-underline hover:bg-white/10 hover:text-white";
 
 function NavItems({ meetingNames }: { meetingNames: string[] }) {
+  const actions = useGuestStore((s) => s.actions);
+  const open = actions.filter((a) => a.reviewStatus === "open").length;
+  const count = open || actions.filter((a) => a.confirmed && !a.done).length;
   const soon = (label: string) => (
     <a
       href={`#${label.toLowerCase()}`}
@@ -27,6 +30,7 @@ function NavItems({ meetingNames }: { meetingNames: string[] }) {
       }}
     >
       {label}
+      {label === "Acties" && count > 0 && <span className={cn("ml-auto rounded-full px-2 py-0.5 text-xs", open ? "bg-[var(--review-count-bg)] text-[var(--review-count-ink)]" : "bg-white/15 text-white")}>{count}</span>}
     </a>
   );
   return (

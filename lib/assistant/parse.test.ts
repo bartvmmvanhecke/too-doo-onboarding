@@ -160,7 +160,8 @@ describe("respond", () => {
 
     r = respond(r.state, { type: "place-actions" }, REF);
     expect(r.state.step).toBe(3);
-    expect(r.messages.at(-1)?.text).toContain("**Zal ik Jan, Sofie en Karim hun actie nu al mailen?**");
+    expect(r.state.actions.every((a) => !a.confirmed && a.reviewStatus === "open")).toBe(true);
+    expect(r.messages.at(-1)?.text).not.toContain("hun actie nu al mailen");
   });
 
   it("via notities eerst: naam uit de kopregel, daarna enkel vragen wat ontbreekt", () => {

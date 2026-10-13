@@ -184,6 +184,7 @@ export function trialPeople(b: GuestBundle, me: { name: string } | null): Person
 
 /** Het overleg in opbouw als `Meeting`, met vaste id's zodat het detailscherm stabiel blijft. */
 export function trialMeeting(b: GuestBundle, _opts: { confirming: boolean }): Meeting {
+  void _opts;
   const m = b.meeting;
   const actions: Action[] = b.actions
     .filter((a) => a.confirmed && a.text.trim())
@@ -192,7 +193,7 @@ export function trialMeeting(b: GuestBundle, _opts: { confirming: boolean }): Me
       what: a.text,
       ownerId: a.ownerId === ME ? USER_PERSON_ID : a.ownerId,
       deadline: a.deadline ? formatShortDate(a.deadline) : "",
-      // Stap 2: "uitgevinkt" = klopt niet (valt weg bij "Zet ze op de agenda").
+      // Alleen expliciet bevestigde voorstellen zijn echte acties.
       done: !!a.done,
     }));
   return {

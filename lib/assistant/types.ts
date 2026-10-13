@@ -2,7 +2,7 @@
  * In- en uitvoer van de assistent in Variant A (SPEC-LAZY.md §4). De assistent is regelgebaseerd;
  * deze types blijven dezelfde als hij later een echte LLM-aanroep wordt.
  */
-import type { Purpose } from "@/lib/agenda";
+import type { Purpose, Entry, BlockKind } from "@/lib/agenda";
 import type { ISODate } from "@/lib/date";
 import type { Recurrence } from "@/lib/meeting";
 import type { Person } from "@/lib/mock-data";
@@ -16,6 +16,7 @@ export const ME = "me";
 
 /** Doel, eigenaars en duur van een agendapunt, zoals in het detailscherm. */
 export interface GuestItemMeta {
+  entries?: Entry[];
   purposes?: Purpose[];
   ownerIds?: string[];
   duration?: Minutes | null;
@@ -29,6 +30,8 @@ export interface GuestItem extends GuestItemMeta {
 
 /** Een thema (blok) van de agenda, met de agendapunten eronder. */
 export interface GuestTopic {
+  kind?: BlockKind;
+  duration?: Minutes | null;
   id: string;
   text: string;
   items?: GuestItem[];

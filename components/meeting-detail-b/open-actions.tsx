@@ -4,20 +4,35 @@ import { RefreshCw } from "lucide-react";
 import { Avatar } from "@/components/avatar";
 import { daysLate } from "@/lib/agenda";
 import { formatShortDate } from "@/lib/date";
-import { useStore, type Meeting } from "@/lib/store";
+import { useMeeting, useMeetingOps } from "@/components/meeting/meeting-context";
+import { type Meeting } from "@/lib/store";
 import type { Person } from "@/lib/mock-data";
 
 export function OpenActions({ meeting, people }: { meeting: Meeting; people: Person[] }) {
+  const { trial } = useMeeting();
+  const ops = useMeetingOps();
   const [all, setAll] = useState(false);
-  const open = meeting.actions.filter((a) => !a.done);
+  const open = meeting.actions.filter((a) => trial?.confirming || !a.done);
   const late = open.filter((a) => daysLate(a.deadline)).length;
   return (
-    <section className="mb-6 border-b border-line pb-5" aria-label="Openstaande acties">
+    <section
+      className="mb-6 border-b border-line pb-5"
+      aria-label="Openstaande acties"
+      onDragOver={(e) => {
+        if (trial?.onFileDrop) e.preventDefault();
+      }}
+      onDrop={(e) => {
+        if (trial?.onFileDrop && e.dataTransfer.files[0]) {
+          e.preventDefault();
+          trial.onFileDrop(e.dataTransfer.files[0]);
+        }
+      }}
+    >
       <div className="flex flex-wrap items-center gap-2 mb-3">
         <RefreshCw size={16} aria-hidden />
         <h2 className="font-semibold">Openstaande acties</h2>
         <span className="text-xs text-ink-3">
-          {open.length} open
+          {open.length} {trial?.confirming ? "voorstellen · vink aan wat klopt" : "open"}
           {late > 0 && (
             <>
               {" "}
@@ -27,7 +42,8 @@ export function OpenActions({ meeting, people }: { meeting: Meeting; people: Per
         </span>
         <span className="ml-auto text-xs text-ink-3">komen vanzelf terug tot ze af zijn</span>
       </div>
-      {!open.length && (
+      {!open.length && trial?.emptyActions}
+      {!open.length && !trial?.emptyActions && (
         <p className="text-sm text-ink-3">
           Nog niets open. Acties die je noteert, komen hier vanzelf terug tot ze af zijn.
         </p>
@@ -39,9 +55,9 @@ export function OpenActions({ meeting, people }: { meeting: Meeting; people: Per
           <label key={a.id} className="flex min-h-11 items-center gap-2 text-sm">
             <input
               type="checkbox"
-              aria-label={`Actie afronden: ${a.what}`}
-              checked={a.done}
-              onChange={() => useStore.getState().toggleAction(meeting.id, a.id)}
+              aria-label={`${trial?.confirming ? "Actie bevestigen" : "Actie afronden"}: ${a.what}`}
+              checked={trial?.confirming ? !a.done : a.done}
+              onChange={() => ops.toggleAction(meeting.id, a.id)}
             />
             <span className="flex-1">
               {a.what}{" "}

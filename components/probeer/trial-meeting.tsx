@@ -1,5 +1,8 @@
 "use client";
 
+import { useSearchParams } from "next/navigation";
+import { MeetingDetailB } from "@/components/meeting-detail-b/meeting-detail-b";
+import { trialDocumentOps, currentTrialMeeting } from "@/lib/trial-document";
 import { useMemo } from "react";
 import { CircleCheck } from "lucide-react";
 import type { MeetingOps, TrialView } from "@/components/meeting/meeting-context";
@@ -121,6 +124,7 @@ export function TrialMeeting({
   /** "Start met een lege meeting" (C1d): andere uitleg in een leeg blok "Openstaande acties". */
   emptyPath?: boolean;
 }) {
+  const params = useSearchParams();
   const meeting = useGuestStore((s) => s.meeting);
   const actions = useGuestStore((s) => s.actions);
   const decisions = useGuestStore((s) => s.decisions);
@@ -133,7 +137,7 @@ export function TrialMeeting({
   const bundle = { meeting, actions, decisions };
   const shown = trialMeeting(bundle, { confirming });
   const people = trialPeople(bundle, account ? { name: `${account.firstName} ${account.lastName}` } : null);
-  const ops = useMemo(() => trialOps(onStart), [onStart]);
+  const ops = useMemo(() => trialDocumentOps(trialOps(onStart)), [onStart]);
   const empty = !meeting.name && !meeting.weekday && meeting.participants.length === 0 && actions.length === 0;
   const when = whenText(meeting);
   const day = weekdayName(meeting);
@@ -201,7 +205,11 @@ export function TrialMeeting({
       {others.length > 0 && (
         <p className="text-sm text-ink-2">Ook klaar: {others.map((o) => o.meeting.name).join(", ")}</p>
       )}
-      <MeetingDetail meeting={shown} trial={{ view, ops, people }} />
+      {params.get("variant") === "b" ? (
+        <MeetingDetailB meeting={shown} trial={{ view, ops, people, getCurrentMeeting: currentTrialMeeting }} />
+      ) : (
+        <MeetingDetail meeting={shown} trial={{ view, ops, people }} />
+      )}
     </div>
   );
 }

@@ -6,6 +6,7 @@ import { FlaskConical, List, RotateCcw, Shuffle, type LucideIcon } from "lucide-
 import { openDemoSettings } from "@/components/demo/demo-bar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { useGuestStore } from "@/lib/guest-store";
 import { GUEST_STORAGE_KEY } from "@/lib/guest-store";
 import { STORAGE_KEY, useStore } from "@/lib/store";
 import { useHydrated } from "@/lib/use-hydrated";
@@ -42,7 +43,7 @@ const MENU_ITEMS: MenuItem[] = [
 /**
  * Prototype-element (SPEC-LAZY.md §1.1): vaste knop rechtsboven met een klein menu (Herstart demo,
  * Demo-instellingen).
- * Layouts houden rechtsboven ruimte vrij, zodat hij niets overlapt. Variant B blijft bereikbaar via /prototype.
+ * Layouts houden rechtsboven ruimte vrij, zodat hij niets overlapt. De detailvariant is ook tijdens onboarding te kiezen.
  * Op stap 3 (/acties) staat er links naast een "Toon alternatief voor stap 3"-knop om tussen beide versies te wisselen.
  */
 export function PrototypeNav() {
@@ -50,7 +51,8 @@ export function PrototypeNav() {
   const params = useSearchParams();
   const detail = /^\/app\/overleg\/[^/]+$/.test(pathname);
   const meeting = useStore((s) => s.meetings.find((m) => m.id === pathname.split("/").at(-1)));
-  const showVariant = detail && !meeting?.run;
+  const trialVisible = useGuestStore((s) => s.transitionPlayed);
+  const showVariant = (detail && !meeting?.run) || (pathname === "/probeer" && trialVisible);
   const variantB = params.get("variant") === "b";
   const hydrated = useHydrated();
   const step3Variant = useStore((s) => s.step3Variant);

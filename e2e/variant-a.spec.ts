@@ -40,6 +40,9 @@ async function connectOutlook(page: Page) {
   await start(page, "Haal het uit mijn agenda");
   await expectAssistant(page, "Outlook of Google?");
   await assistant(page).getByRole("group", { name: "Agenda kiezen" }).getByRole("button", { name: "Outlook" }).click();
+  await expect(page.getByRole("dialog").getByText("Gert Janssens", { exact: true })).toBeVisible();
+  await page.getByRole("dialog").getByRole("button", { name: "Doorgaan", exact: true }).click();
+  await page.getByRole("dialog").getByRole("button", { name: "Accepteren", exact: true }).click();
 }
 
 /** Bericht 1 en 2 na het vertelpad (Stap 1, C1). */

@@ -713,7 +713,8 @@ export function DocumentEditor({ meeting, simplified = false }: { meeting: Meeti
       }
     >
       {simplified && (
-        <div className="pointer-events-none relative z-10 mb-2 flex justify-end sm:mb-0">
+        <div className="relative z-10 mb-2 flex flex-wrap items-center justify-between gap-2">
+          <h2 className="font-semibold">Agendapunten</h2>
           <Popover
             open={templatesOpen}
             onOpenChange={(open) => {

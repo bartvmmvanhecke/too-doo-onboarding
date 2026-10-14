@@ -1119,14 +1119,6 @@ html[data-onboarding-fade="in"] body {
 .onboarding-notepad .document-row > svg {
   display: none;
 }
-@media (min-width: 640px) {
-  .onboarding-notepad-empty > div:first-child {
-    margin-bottom: -44px;
-  }
-  .onboarding-notepad-empty > div:nth-child(2) > div > div > .document-row:first-child {
-    padding-right: 190px;
-  }
-}
 
 /* Keep agenda properties beside their title in the onboarding document. */
 .onboarding-notepad .document-row.group > [data-line-source] {

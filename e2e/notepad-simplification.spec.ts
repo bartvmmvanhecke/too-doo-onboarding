@@ -5,6 +5,7 @@ test("onboarding document: writing, templates, undo, persistence and mobile", as
   await page.getByRole("button", { name: /^Start met een lege vergadering/ }).click();
   const editor = page.locator(".onboarding-notepad");
   await expect(editor).toBeVisible();
+  await expect(editor.getByRole("heading", { name: "Agendapunten", exact: true })).toBeVisible();
   const input = editor.getByLabel("Nieuw agendapunt", { exact: true }).first();
   await expect(
     page.getByRole("button", { name: "Nieuwe vergadering. Naam van de vergadering aanpassen", exact: true }),

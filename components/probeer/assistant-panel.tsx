@@ -278,7 +278,8 @@ export function AssistantPanel({
   /** Onder de bubbel van een bericht, bv. de doelchips onder de doelvraag (C0j–C0m). */
   renderBelow?: (message: Message) => ReactNode;
   controls?: ReactNode;
-  input: AssistantInputProps;
+  /** Het chatveld onderaan; zonder (het startscherm) geen invoer. */
+  input?: AssistantInputProps;
   open: boolean;
   onOpenChange: (open: boolean) => void;
   /** Een bestand slepen op het hele paneel verwerkt het als notities. */
@@ -387,10 +388,10 @@ export function AssistantPanel({
             </div>
             {!typing && controls && <div className="flex flex-col gap-3 px-4 pt-3">{controls}</div>}
             {/* Ruimte onderaan: de demo-knop rechtsonder bedekt zo niets blijvend. */}
-            <div ref={endRef} aria-hidden className="h-16 shrink-0" />
+            <div ref={endRef} aria-hidden className={cn("shrink-0", hasIntro ? "h-0" : "h-16")} />
           </div>
 
-          <AssistantInput {...input} />
+          {input && <AssistantInput {...input} />}
 
           {drop.over && (
             <div

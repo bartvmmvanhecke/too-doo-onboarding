@@ -198,6 +198,9 @@ export function TrialScreen({ onSave }: { onSave: (intent: SaveIntent, trigger: 
     if (text.trim()) useGuestStore.getState().hideGoalChips();
   }, []);
   const [fill, setFill] = useState<{ text: string; at: number }>();
+  /** De zin in "Vertel het me" en de focusaanvraag bij een klik op die kaart. */
+  const [sentence, setSentence] = useState("");
+  const [tellFocus, setTellFocus] = useState(0);
   /** De gekozen kaart op het startscherm; "Vertel het me" staat standaard geselecteerd. */
   const [selected, setSelected] = useState<StartChoice>(() =>
     startPath === "notes" ? "notes" : startPath === "agenda" ? "calendar" : "meeting",
@@ -415,6 +418,23 @@ export function TrialScreen({ onSave }: { onSave: (intent: SaveIntent, trigger: 
       else startEmptyMeeting();
     }, 800);
   }, [uiRequest, router]);
+
+  /** "Maak mijn agenda": de zin uit "Vertel het me" wordt meteen het overleg. */
+  const tellSentence = () => {
+    const text = sentence.trim();
+    if (busy || !text) return;
+    useGuestStore.getState().setStartPath("tell");
+    track("assistant_entry_chosen", { ingang: "meeting", bron: "welkom" });
+    send({ type: "text", text }, text);
+  };
+
+  /** Een kaart op het startscherm: "Vertel het me" klapt open, de twee andere starten hun flow. */
+  const chooseCard = (c: StartChoice) => {
+    if (busy) return;
+    setSelected(c);
+    if (c === "meeting") setTellFocus((n) => n + 1);
+    else choose(c, WELCOME_LABEL[c], "welkom");
+  };
 
   /** "Start met een lege vergadering" (C1d): geen overgang, meteen de app met de assistent ingeklapt. */
   const startEmpty = () => {
@@ -704,17 +724,15 @@ export function TrialScreen({ onSave }: { onSave: (intent: SaveIntent, trigger: 
         : "Zeg wat er beter kan"
       : pending.kind === "notes"
         ? "Plak je notities hier"
-        : welcome && pending.kind === "entry"
-          ? "Of typ meteen, bv. ons wekelijks productieoverleg"
-          : pending.kind === "entry" || pending.kind === "sentence" || pending.kind === "pick-meeting"
-            ? "Bijv. ons wekelijks productieoverleg: orders, problemen en planning"
-            : pending.kind === "when-who"
-              ? "Bijv. elke maandag om 8u met Jan, Sofie en Karim"
-              : pending.kind === "confirm-meeting"
-                ? "Bijv. het duurt anderhalf uur"
-                : step === 2
-                  ? "Bijv. Karim belt, tegen woensdag"
-                  : "Vraag of zeg iets";
+        : pending.kind === "entry" || pending.kind === "sentence" || pending.kind === "pick-meeting"
+          ? "Bijv. ons wekelijks productieoverleg: orders, problemen en planning"
+          : pending.kind === "when-who"
+            ? "Bijv. elke maandag om 8u met Jan, Sofie en Karim"
+            : pending.kind === "confirm-meeting"
+              ? "Bijv. het duurt anderhalf uur"
+              : step === 2
+                ? "Bijv. Karim belt, tegen woensdag"
+                : "Vraag of zeg iets";
 
   const meetingNames = [...others.map((o) => o.meeting.name ?? "Overleg"), ...(meeting.name ? [meeting.name] : [])];
   // Het antwoord dat de overgang startte, komt pas na de afsluiter; intussen "Ik zet je overleg klaar…".
@@ -722,7 +740,10 @@ export function TrialScreen({ onSave }: { onSave: (intent: SaveIntent, trigger: 
   const held = hold ?? (readyToDock ? replyFrom : null);
   const shown = held !== null ? conversation.slice(0, held) : conversation;
   const preparing = anim !== null || held !== null || (typing && slow && !transitionPlayed);
-  const intro = welcome && !hasGuestWork({ conversation });
+  // Het keuzepaneel blijft staan tot het eerste antwoord er is; bij "Vertel het me" tot de overgang.
+  const firstChoice = conversation.filter((m) => m.from === "user").length === 1;
+  const intro =
+    welcome && (!hasGuestWork({ conversation }) || (firstChoice && (typing || readyToDock || phase === "retreat")));
 
   return (
     <LayoutGroup>
@@ -801,17 +822,19 @@ export function TrialScreen({ onSave }: { onSave: (intent: SaveIntent, trigger: 
                 selected={selected}
                 disabled={busy}
                 retreat={phase === "retreat"}
-                onChoose={(c) => {
-                  setSelected(c);
-                  if (c !== "meeting") choose(c, WELCOME_LABEL[c], "welkom");
-                }}
+                sentence={sentence}
+                onSentenceChange={setSentence}
+                onTell={tellSentence}
+                telling={startPath === "tell" && (typing || readyToDock || anim !== null)}
+                focusRequest={tellFocus}
+                onChoose={chooseCard}
                 onEmpty={startEmpty}
                 onExample={() => track("assistant_entry_chosen", { ingang: "example" })}
               />
             ) : undefined
           }
           messages={intro ? [] : shown}
-          typing={typing || preparing}
+          typing={!intro && (typing || preparing)}
           typingLabel={preparing ? PREPARING : null}
           open={open}
           onOpenChange={setOpen}
@@ -831,22 +854,27 @@ export function TrialScreen({ onSave }: { onSave: (intent: SaveIntent, trigger: 
               <NotesDropzone busy={busy} reading={reading} onFile={readFile} onListen={listen} />
             ) : null
           }
-          input={{
-            label: "Bericht aan de assistent",
-            placeholder,
-            onSend: sendText,
-            onMic: welcome ? undefined : listen,
-            listening,
-            disabled: busy || anim !== null,
-            focusRequest,
-            fill,
-            onDraftChange: setDraft,
-            plus: {
-              onPasteNotes: () => choose("notes", "Notities plakken", "menu"),
-              onFile: readFile,
-              onCalendar: () => choose("calendar", "Agenda koppelen", "menu"),
-            },
-          }}
+          // Op het startscherm geen chatveld: de tekstinvoer zit in "Vertel het me".
+          input={
+            intro
+              ? undefined
+              : {
+                  label: "Bericht aan de assistent",
+                  placeholder,
+                  onSend: sendText,
+                  onMic: welcome ? undefined : listen,
+                  listening,
+                  disabled: busy || anim !== null,
+                  focusRequest,
+                  fill,
+                  onDraftChange: setDraft,
+                  plus: {
+                    onPasteNotes: () => choose("notes", "Notities plakken", "menu"),
+                    onFile: readFile,
+                    onCalendar: () => choose("calendar", "Agenda koppelen", "menu"),
+                  },
+                }
+          }
         />
       </div>
     </LayoutGroup>

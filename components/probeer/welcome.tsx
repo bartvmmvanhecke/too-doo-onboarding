@@ -1,9 +1,9 @@
 "use client";
 
-import type { ReactNode } from "react";
+import { useEffect, useRef, type ReactNode } from "react";
 import Link from "next/link";
-import { AnimatePresence, motion } from "framer-motion";
-import { CalendarDays, ChevronRight, FileText, MessageCircle, Sparkles } from "lucide-react";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
+import { ArrowRight, CalendarDays, ChevronRight, FileText, Loader2, MessageCircle, Sparkles } from "lucide-react";
 import { MeetingToActionIllustration } from "@/components/onboarding/MeetingToActionIllustration";
 import { SHARED } from "@/components/probeer/trial-sidebar";
 import { Button } from "@/components/ui/button";
@@ -209,6 +209,81 @@ function ChoiceCard({
   );
 }
 
+/**
+ * "Vertel het me", opengeklapt: een zichtbaar label, een tekstvak van twee regels en "Maak mijn agenda".
+ * De focus gaat enkel naar het tekstvak bij een klik op de kaart (`focusRequest`), niet bij het laden.
+ */
+function TellForm({
+  value,
+  onChange,
+  onSubmit,
+  busy,
+  focusRequest,
+}: {
+  value: string;
+  onChange: (text: string) => void;
+  onSubmit: () => void;
+  busy: boolean;
+  focusRequest: number;
+}) {
+  const fieldRef = useRef<HTMLTextAreaElement>(null);
+  const focused = useRef(focusRequest);
+  useEffect(() => {
+    if (focusRequest === focused.current) return;
+    focused.current = focusRequest;
+    fieldRef.current?.focus();
+  }, [focusRequest]);
+  const submit = () => {
+    if (busy) return;
+    if (!value.trim()) return fieldRef.current?.focus();
+    onSubmit();
+  };
+  return (
+    <form
+      onSubmit={(e) => {
+        e.preventDefault();
+        submit();
+      }}
+      className="flex flex-col gap-2 px-5 pb-5"
+    >
+      <label htmlFor="welkom-zin" className="text-sm font-bold text-ink-2">
+        Over welk overleg gaat het?
+      </label>
+      <div className="flex flex-wrap items-end justify-end gap-3">
+        <textarea
+          ref={fieldRef}
+          id="welkom-zin"
+          rows={2}
+          value={value}
+          disabled={busy}
+          placeholder="Bv. ons wekelijks productieoverleg met het teamhoofd en planning"
+          onChange={(e) => onChange(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" && !e.shiftKey) {
+              e.preventDefault();
+              submit();
+            }
+          }}
+          className="min-h-[68px] min-w-0 flex-[1_1_220px] resize-none rounded-xl border border-line bg-white px-3 py-2.5 text-[15px] leading-normal text-ink outline-none placeholder:text-ink-3 focus-visible:border-brand focus-visible:shadow-[0_0_0_1px_var(--brand)] disabled:opacity-60"
+        />
+        <Button type="submit" size="md" className="min-h-11" aria-disabled={busy}>
+          {busy ? (
+            <>
+              <Loader2 className="size-4 animate-spin" aria-hidden />
+              Ik zet je agenda klaar…
+            </>
+          ) : (
+            <>
+              Maak mijn agenda
+              <ArrowRight className="size-4" aria-hidden />
+            </>
+          )}
+        </Button>
+      </div>
+    </form>
+  );
+}
+
 /** Secundaire link onder de keuzes: vet, primair, niet onderlijnd (wel bij hover). */
 const secondary =
   "inline-flex min-h-11 cursor-pointer items-center text-[15px] font-bold text-primary no-underline hover:text-brand-hover hover:underline disabled:cursor-not-allowed disabled:opacity-60";
@@ -221,6 +296,11 @@ export function WelcomeIntro({
   selected,
   disabled,
   retreat,
+  sentence,
+  onSentenceChange,
+  onTell,
+  telling,
+  focusRequest,
   onChoose,
   onEmpty,
   onExample,
@@ -228,10 +308,20 @@ export function WelcomeIntro({
   selected: StartChoice;
   disabled: boolean;
   retreat: boolean;
+  /** De zin in "Vertel het me". */
+  sentence: string;
+  onSentenceChange: (text: string) => void;
+  /** "Maak mijn agenda". */
+  onTell: () => void;
+  /** De zin wordt verwerkt: de knop toont dat de agenda klaargezet wordt. */
+  telling: boolean;
+  /** Telt op bij een klik op "Vertel het me": de focus naar het tekstvak. */
+  focusRequest: number;
   onChoose: (choice: StartChoice) => void;
   onEmpty: () => void;
   onExample: () => void;
 }) {
+  const reduce = useReducedMotion();
   return (
     <motion.div
       animate={{ opacity: retreat ? 0 : 1 }}
@@ -259,7 +349,30 @@ export function WelcomeIntro({
               selected={selected === c.value}
               disabled={disabled}
               onClick={() => onChoose(c.value)}
-            />
+            >
+              {c.value === "meeting" && (
+                <AnimatePresence initial={false}>
+                  {selected === "meeting" && (
+                    <motion.div
+                      key="vertel"
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: "auto", opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      transition={reduce ? { duration: 0 } : { duration: 0.2, ease: DOCK_EASE }}
+                      className="overflow-hidden"
+                    >
+                      <TellForm
+                        value={sentence}
+                        onChange={onSentenceChange}
+                        onSubmit={onTell}
+                        busy={telling}
+                        focusRequest={focusRequest}
+                      />
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              )}
+            </ChoiceCard>
           ))}
         </div>
         <div className="mt-1 flex flex-wrap gap-x-6 gap-y-1 border-t border-line-faint pt-3">

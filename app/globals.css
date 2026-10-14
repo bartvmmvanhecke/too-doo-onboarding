@@ -1105,6 +1105,7 @@ html[data-onboarding-fade="in"] body {
 .onboarding-notepad .document-row > span:has([data-slot="popover-trigger"]) {
   opacity: 0;
 }
+.onboarding-notepad .document-row > span[data-document-filled="true"],
 .onboarding-notepad .document-row:hover > button[aria-label="Dicteren"],
 .onboarding-notepad .document-row:focus-within > button[aria-label="Dicteren"],
 .onboarding-notepad .document-row:hover > span,

@@ -154,3 +154,35 @@ test("previous agenda: keyboard preview, latest meeting, titles without old note
   await expect(page.getByText("Vertrouwelijke oude notitie", { exact: true })).toHaveCount(0);
   await expect(page.getByText("Oude voltooide actie", { exact: true })).toHaveCount(0);
 });
+
+test("ingevulde agenda controls blijven zichtbaar na blur en herladen", async ({ page }) => {
+  await page.goto("/probeer?variant=b");
+  await page.getByRole("button", { name: /^Start met een lege vergadering/ }).click();
+  const editor = page.locator(".onboarding-notepad");
+  const input = editor.getByLabel("Nieuw agendapunt", { exact: true }).first();
+  await input.fill("Planning");
+  await input.press("Enter");
+  const title = editor.getByRole("textbox", { name: /^Agendapunt in/ }).first();
+  const controls = editor.locator("[data-document-filled]").first();
+  await page.getByRole("heading", { name: "Openstaande acties", exact: true }).click();
+  await page.mouse.move(0, 0);
+  await expect(controls).toHaveCSS("opacity", "0");
+  await title.focus();
+  await editor.getByRole("button", { name: "Duur toevoegen", exact: true }).click();
+  await page.getByRole("button", { name: "20", exact: true }).click();
+  await page.getByRole("heading", { name: "Openstaande acties", exact: true }).click();
+  await page.mouse.move(0, 0);
+  await expect(controls).toHaveAttribute("data-document-filled", "true");
+  await expect(controls).toHaveCSS("opacity", "1");
+  await page.reload();
+  await expect(editor.getByRole("button", { name: "Duur: 20 minuten. Wijzigen" })).toBeVisible();
+  await page.getByRole("heading", { name: "Openstaande acties", exact: true }).click();
+  await page.mouse.move(0, 0);
+  await expect(controls).toHaveCSS("opacity", "1");
+  await page.screenshot({ path: "screenshots/notepad-filled-controls.png", fullPage: true });
+  await editor.getByRole("button", { name: "Duur: 20 minuten. Wijzigen" }).click();
+  await page.getByRole("button", { name: "Geen duur", exact: true }).click();
+  await page.getByRole("heading", { name: "Openstaande acties", exact: true }).click();
+  await page.mouse.move(0, 0);
+  await expect(controls).toHaveCSS("opacity", "0");
+});

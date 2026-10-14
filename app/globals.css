@@ -1113,6 +1113,7 @@ html[data-onboarding-fade="in"] body {
   opacity: 1;
 }
 .onboarding-notepad .document-row input {
+  padding-inline: 0;
   font-size: 15px;
 }
 .onboarding-notepad .document-row > span[aria-hidden],

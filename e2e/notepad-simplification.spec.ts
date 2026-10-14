@@ -14,7 +14,7 @@ test("onboarding document: writing, templates, undo, persistence and mobile", as
   await page.getByRole("heading", { name: "Openstaande acties", exact: true }).click();
   await page.mouse.move(0, 0);
   await page.screenshot({ path: "screenshots/notepad-empty.png", fullPage: true });
-  await expect(input).toHaveAttribute("placeholder", "+ Wat wil je bespreken? Typ of plak je agenda...");
+  await expect(input).toHaveAttribute("placeholder", "+ typ of plak een nieuwe agendapunt");
   await expect(editor.getByText("Staal-leverancier opnieuw te laat")).toHaveCount(0);
   await input.click();
   await expect(input).toBeFocused();

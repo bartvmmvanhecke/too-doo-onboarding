@@ -370,11 +370,7 @@ export function DocumentEditor({ meeting, simplified = false }: { meeting: Meeti
               else refs.current.delete(id);
             }}
             placeholder={
-              simplified
-                ? content
-                  ? "Nieuw agendapunt…"
-                  : "+ Wat wil je bespreken? Typ of plak je agenda..."
-                : "Typ een agendapunt…"
+              simplified ? (indented ? "Notitie…" : "+ typ of plak een nieuwe agendapunt") : "Typ een agendapunt…"
             }
             purposes={temp.purposes}
             update={patch}

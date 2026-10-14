@@ -232,6 +232,15 @@ const LAYOUT = {
       "panel:sticky panel:top-0 panel:h-dvh panel:w-[400px] panel:shrink-0 panel:rounded-none panel:border-t-0 panel:border-l panel:shadow-none",
     head: "panel:py-4 panel:pr-24",
   },
+  /**
+   * Startscherm: het brede keuzepaneel (± 520 px) met schaduw naar links, het helderste vlak van het scherm.
+   * Onder 900 px staat het in de flow, bovenaan en schermvullend, met het navy vlak eronder.
+   */
+  welcome: {
+    panel:
+      "max-panel:static max-panel:order-first max-panel:h-auto max-panel:min-h-dvh max-panel:rounded-none max-panel:border-t-0 max-panel:shadow-none panel:sticky panel:top-0 panel:h-dvh panel:min-w-0 panel:flex-[1_1_520px] panel:rounded-none panel:border-t-0 panel:shadow-[-24px_0_48px_var(--onboarding-panel-shadow)]",
+    head: "panel:py-4 panel:pr-24",
+  },
 } as const;
 
 /**
@@ -255,8 +264,8 @@ export function AssistantPanel({
   layout = "app",
   header,
   intro,
-  fullScreen,
   typingLabel,
+  morphFrom,
 }: {
   subtitle: string;
   /** "⋯" in de kop (C1f), bv. een voorbeeldagenda of de assistent sluiten. */
@@ -270,7 +279,8 @@ export function AssistantPanel({
   /** Onder de bubbel van een bericht, bv. de doelchips onder de doelvraag (C0j–C0m). */
   renderBelow?: (message: Message) => ReactNode;
   controls?: ReactNode;
-  input: AssistantInputProps;
+  /** Het chatveld onderaan; zonder (het startscherm) geen invoer. */
+  input?: AssistantInputProps;
   open: boolean;
   onOpenChange: (open: boolean) => void;
   /** Een bestand slepen op het hele paneel verwerkt het als notities. */
@@ -278,16 +288,20 @@ export function AssistantPanel({
   /**
    * "app": kolom rechts vanaf 1024 px (de app na bewaren). "trial": vanaf 900 px, zodat het paneel op het
    * welkomstscherm en in de proefomgeving op exact dezelfde plek en breedte staat (SPEC-LAZY.md §4, Stap 0).
+   * "welcome": het brede keuzepaneel van het startscherm; hetzelfde element versmalt bij de overgang.
    */
-  layout?: "app" | "trial";
+  layout?: "app" | "trial" | "welcome";
   /** Eigen kop in plaats van "Assistent · …" (welkomstscherm: logo en Inloggen). */
   header?: ReactNode;
   /** Inhoud vóór het gesprek, bv. de welkomstkop en de keuzes. */
   intro?: ReactNode;
-  /** Onder 900 px het volledige scherm in plaats van een half onderblad (welkomstscherm). */
-  fullScreen?: boolean;
   /** In plaats van de typ-indicator, bv. "Ik zet je overleg klaar…". */
   typingLabel?: string | null;
+  /**
+   * Overgang startscherm → app: de breedte (px) van het keuzepaneel vlak voor de overgang. Hetzelfde paneel
+   * versmalt dan in 500 ms naar de breedte van het assistentpaneel, en de schaduw gaat naar de rand.
+   */
+  morphFrom?: number | null;
 }) {
   const endRef = useRef<HTMLDivElement>(null);
   const drop = useFileDrop((file) => onFileDrop?.(file), !!onFileDrop);
@@ -302,6 +316,27 @@ export function AssistantPanel({
 
   const c = LAYOUT[layout];
   const reduce = useReducedMotion();
+
+  // Vóór het eerste beeld van de app-layout: terug naar de oude breedte, dan met een CSS-transitie naar de
+  // breedte uit de klassen. Geen moment zonder of met twee panelen; na afloop gewoon de klassen.
+  const asideRef = useRef<HTMLElement>(null);
+  useLayoutEffect(() => {
+    const el = asideRef.current;
+    if (!el || !morphFrom) return;
+    el.style.transition = "none";
+    el.style.width = `${morphFrom}px`;
+    el.style.boxShadow = "-24px 0 48px var(--onboarding-panel-shadow)";
+    el.style.borderLeftColor = "transparent";
+    void el.offsetWidth;
+    el.style.transition = ["width", "box-shadow", "border-left-color"]
+      .map((p) => `${p} 500ms cubic-bezier(0.4, 0, 0.2, 1)`)
+      .join(", ");
+    el.style.width = "";
+    el.style.boxShadow = "";
+    el.style.borderLeftColor = "";
+    const done = setTimeout(() => (el.style.transition = ""), 550);
+    return () => clearTimeout(done);
+  }, [morphFrom]);
   const transition: Transition = reduce ? { duration: 0 } : { duration: 0.25, ease: [0.65, 0, 0.35, 1] };
 
   return (
@@ -317,6 +352,7 @@ export function AssistantPanel({
       ) : (
         <motion.aside
           key="paneel"
+          ref={asideRef}
           aria-label="Assistent"
           data-assistant-panel
           {...drop.handlers}
@@ -329,7 +365,6 @@ export function AssistantPanel({
           className={cn(
             "fixed inset-x-0 bottom-0 z-30 flex h-[55dvh] flex-col rounded-t-2xl border-t border-line-soft bg-white shadow-[0_-12px_32px_rgba(22,33,58,0.14)]",
             c.panel,
-            fullScreen && "max-panel:top-0 max-panel:h-dvh max-panel:rounded-none max-panel:border-t-0",
           )}
         >
           {header ?? (
@@ -360,7 +395,14 @@ export function AssistantPanel({
             </div>
           )}
 
-          <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
+          <div
+            // Van keuzepaneel naar gesprek: de inhoud crossfadet, het paneel blijft staan.
+            key={hasIntro ? "intro" : "gesprek"}
+            className={cn(
+              "flex min-h-0 flex-1 flex-col overflow-y-auto",
+              !hasIntro && "animate-in duration-300 fade-in motion-reduce:animate-none",
+            )}
+          >
             {intro}
             <div
               role="log"
@@ -381,10 +423,10 @@ export function AssistantPanel({
             </div>
             {!typing && controls && <div className="flex flex-col gap-3 px-4 pt-3">{controls}</div>}
             {/* Ruimte onderaan: de demo-knop rechtsonder bedekt zo niets blijvend. */}
-            <div ref={endRef} aria-hidden className="h-16 shrink-0" />
+            <div ref={endRef} aria-hidden className={cn("shrink-0", hasIntro ? "h-0" : "h-16")} />
           </div>
 
-          <AssistantInput {...input} />
+          {input && <AssistantInput {...input} />}
 
           {drop.over && (
             <div

@@ -83,13 +83,20 @@ const CASES: { name: string; path: string; setup?: (page: import("@playwright/te
     },
   },
   { name: "prototype", path: "/prototype" },
-  { name: "variant A: welkomstscherm", path: "/probeer" },
+  {
+    name: "variant A: welkomstscherm",
+    path: "/probeer",
+    // De illustratie beweegt één keer bij het laden (tot ± 1,9 s); meten in de eindtoestand.
+    setup: async (page) => {
+      await page.waitForFunction(() => document.getAnimations().every((a) => a.playState !== "running"));
+    },
+  },
   {
     name: "variant A: ⋯-menu van de assistent",
     path: "/probeer",
     setup: async (page) => {
       await page
-        .getByRole("textbox", { name: "Bericht aan de assistent" })
+        .getByRole("textbox", { name: "Over welk overleg gaat het?" })
         .fill("Ons productieoverleg: orders, problemen en planning");
       await page.keyboard.press("Enter");
       await page.getByRole("button", { name: "Klopt" }).waitFor();
@@ -103,15 +110,15 @@ const CASES: { name: string; path: string; setup?: (page: import("@playwright/te
     setup: async (page) => {
       await page.getByRole("button", { name: "Start met een lege vergadering" }).click();
       await page.getByRole("button", { name: "Account maken", exact: true }).waitFor();
-      // De inkomende app is al zichtbaar terwijl het welkomstscherm nog uitfade.
-      await page.getByRole("button", { name: "Start met een lege vergadering" }).waitFor({ state: "detached" });
+      // Na de overgang staat de titel in bewerkmodus, met de focus erin.
+      await expect(page.getByRole("textbox", { name: "Naam van de vergadering aanpassen" })).toBeFocused();
     },
   },
   {
     name: "variant A: notities gekozen, +-menu open",
     path: "/probeer",
     setup: async (page) => {
-      await page.getByRole("button", { name: /^Gebruik notities van een vorige vergadering/ }).click();
+      await page.getByRole("button", { name: /^Gebruik eerdere notities/ }).click();
       await page.getByRole("button", { name: "Kies bestand" }).waitFor();
       await page.getByRole("button", { name: "Toevoegen: notities, bestand of agenda" }).click();
       await page.getByRole("menu", { name: "Toevoegen" }).waitFor();
@@ -122,7 +129,7 @@ const CASES: { name: string; path: string; setup?: (page: import("@playwright/te
     path: "/probeer",
     setup: async (page) => {
       await page
-        .getByRole("textbox", { name: "Bericht aan de assistent" })
+        .getByRole("textbox", { name: "Over welk overleg gaat het?" })
         .fill(
           "Ons productieoverleg, elke maandag om 8u met Jan, Sofie, Pieter en Karim: lopende orders, problemen en planning.",
         );
@@ -135,7 +142,7 @@ const CASES: { name: string; path: string; setup?: (page: import("@playwright/te
     path: "/probeer",
     setup: async (page) => {
       await page
-        .getByRole("textbox", { name: "Bericht aan de assistent" })
+        .getByRole("textbox", { name: "Over welk overleg gaat het?" })
         .fill("Ons productieoverleg, elke maandag om 8u met Jan, Sofie, Pieter en Karim: orders en planning");
       await page.keyboard.press("Enter");
       await page.getByRole("button", { name: "Klopt" }).click();

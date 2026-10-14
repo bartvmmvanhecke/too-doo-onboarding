@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
+import { flushSync } from "react-dom";
 import { useRouter } from "next/navigation";
 import { LayoutGroup, motion, useReducedMotion } from "framer-motion";
 import { CalendarDays, FileUp, LayoutList, Mic, PanelRightClose } from "lucide-react";
@@ -18,7 +19,9 @@ import {
 import { GoalChips } from "@/components/probeer/goal-chips";
 import { connectAccount } from "@/components/probeer/save-guest";
 import { TellSuggestions } from "@/components/probeer/tell-suggestions";
-import { TrialSidebar, SHARED } from "@/components/probeer/trial-sidebar";
+import { TrialSidebar } from "@/components/probeer/trial-sidebar";
+import { DOCK, DOCK_AT, DOCK_DONE } from "@/components/probeer/dock";
+import { crossfade, openWithTransition } from "@/components/probeer/onboarding-transition";
 import { WELCOME_LABEL, WelcomeChoices, WelcomeHeader, WelcomeIntro, WelcomeStage } from "@/components/probeer/welcome";
 import { Button } from "@/components/ui/button";
 import {
@@ -38,10 +41,11 @@ import { appointmentOptions, seriesOptions } from "@/lib/assistant/calendar";
 import { GOAL_DURATIONS, type MeetingGoal } from "@/lib/assistant/goals";
 import { formatShortDate } from "@/lib/date";
 import { LISTEN_DELAY, SAMPLE_TRANSCRIPT } from "@/lib/extract";
-import { hasGuestWork, useGuestStore } from "@/lib/guest-store";
+import { WELCOME_MESSAGES, hasGuestWork, useGuestStore } from "@/lib/guest-store";
 import { notesFileKind, readNotesFile } from "@/lib/notes-file";
 import { useCalendarConsent, useSsoLogin } from "@/lib/simulate";
 import { useStore, type SaveIntent } from "@/lib/store";
+import { TRIAL_MEETING_ID } from "@/lib/trial-meeting";
 import { track } from "@/lib/track";
 import { cn, lowerFirst } from "@/lib/utils";
 
@@ -147,12 +151,41 @@ function MailCard() {
   );
 }
 
-/** "Start met een lege vergadering" (C1d): geen overgang, meteen de app met de assistent gesloten. */
+/** "Start met een lege vergadering" (C1d): de standaardagenda; de overgang naar de app volgt vanzelf. */
 function startEmptyMeeting() {
   track("assistant_entry_chosen", { ingang: "empty" });
   useGuestStore.getState().startEmpty();
-  // De titel "Nieuwe vergadering" meteen in bewerkmodus, zodra het overleg er staat.
-  setTimeout(() => useGuestStore.setState((s) => ({ editRequest: s.editRequest + 1 })), 50);
+}
+
+/** Zonder het welkomstbericht: in de app is de zin van de gebruiker (of de vraag) het eerste bericht. */
+function withoutWelcome(messages: Message[]): Message[] {
+  const [first, ...rest] = messages;
+  return first?.from === "assistant" && first.text === WELCOME_MESSAGES[0].text ? rest : messages;
+}
+
+/**
+ * Na de overgang: de focus op de titel van de meeting detail, niet meer in het verdwenen keuzepaneel. Bij een
+ * lege vergadering gaat de titel in bewerkmodus (en krijgt het invoerveld de focus).
+ */
+function landInApp() {
+  // Werkt de gebruiker al in de meeting detail (klik tijdens de overgang): de focus daar laten.
+  const active = document.activeElement;
+  if (active && active !== document.body && !active.closest("[data-assistant-panel]")) return;
+  if (useGuestStore.getState().startPath === "empty") {
+    useGuestStore.setState((s) => ({ editRequest: s.editRequest + 1 }));
+    return;
+  }
+  requestAnimationFrame(() => {
+    const title = document.querySelector<HTMLElement>(`#${TRIAL_MEETING_ID} h1`);
+    if (!title) return;
+    title.tabIndex = -1;
+    title.focus({ preventScroll: true });
+  });
+}
+
+/** De breedte van het keuzepaneel vlak voor de overgang. */
+function panelWidth(): number | null {
+  return document.querySelector("[data-assistant-panel]")?.getBoundingClientRect().width ?? null;
 }
 
 /** Variant A · de proefomgeving op /probeer (C1–C4): zijbalk, overleg in opbouw, assistent. */
@@ -198,6 +231,13 @@ export function TrialScreen({ onSave }: { onSave: (intent: SaveIntent, trigger: 
     if (text.trim()) useGuestStore.getState().hideGoalChips();
   }, []);
   const [fill, setFill] = useState<{ text: string; at: number }>();
+  /** De zin in "Vertel het me" en de focusaanvraag bij een klik op die kaart. */
+  const [sentence, setSentence] = useState("");
+  const [tellFocus, setTellFocus] = useState(0);
+  /** De gekozen kaart op het startscherm; "Vertel het me" staat standaard geselecteerd. */
+  const [selected, setSelected] = useState<StartChoice>(() =>
+    startPath === "notes" ? "notes" : startPath === "agenda" ? "calendar" : "meeting",
+  );
 
   // Stap 0: welkom → (terugtrekken → aandokken) → app. De overgang speelt één keer per gast.
   const reduce = useReducedMotion();
@@ -208,9 +248,19 @@ export function TrialScreen({ onSave }: { onSave: (intent: SaveIntent, trigger: 
   const [hold, setHold] = useState<number | null>(null);
   const [slow, setSlow] = useState(false);
   const docking = useRef(false);
+  /** Breedte van het keuzepaneel bij de start van de overgang; het versmalt van daar naar 400 px. */
+  const [morphWidth, setMorphWidth] = useState<number | null>(null);
   const phase = anim ?? (transitionPlayed ? "app" : "welcome");
   const welcome = phase === "welcome" || phase === "retreat";
-  const shared = !reduce && anim !== null;
+  /**
+   * Hoe de overgang speelt, bepaald bij de start: "morph" (breed scherm, de zijbalk staat er), of een crossfade
+   * van 150 ms (reduced motion) of 200 ms (smal scherm, daar is de app-layout anders).
+   */
+  const [dockMode, setDockMode] = useState<"morph" | 150 | 200>("morph");
+  const shared = dockMode === "morph" && anim !== null;
+  const fadeMs = dockMode === "morph" ? null : dockMode;
+  /** Geen View Transitions in de browser: dan fadet de app-layout zelf in. */
+  const [fadeIn, setFadeIn] = useState(false);
 
   useEffect(openTrial, []);
 
@@ -234,7 +284,8 @@ export function TrialScreen({ onSave }: { onSave: (intent: SaveIntent, trigger: 
   }, [typing, transitionPlayed]);
 
   // De inhoud is klaar (titel en agenda uit de zin, acties uit de notities, of de reekslijst uit de agenda):
-  // dan pas de overgang. Totaal ± 700 ms; bij reduced motion een crossfade van 200 ms.
+  // dan pas de overgang. Totaal ± 700 ms (0–150 ms links leegmaken; 150–650 ms vlak → zijbalk, contentvlak
+  // schuift in, paneel versmalt); bij reduced motion een crossfade.
   // Bij "Vertel het me" is elke verwerkte zin genoeg, ook zonder herkende naam: de titel wordt dan
   // "Je eerste overleg" en de assistent vraagt in de app wat ontbreekt.
   const sentenceDone = startPath === "tell" && !["entry", "sentence", "provider", "paste"].includes(pending.kind);
@@ -252,20 +303,53 @@ export function TrialScreen({ onSave }: { onSave: (intent: SaveIntent, trigger: 
     docking.current = true;
     const g = useGuestStore.getState();
     const from = g.replyFrom;
-    const timers: [number, () => void][] = reduce
-      ? [
-          [0, () => (setHold(from), setAnim("docking"))],
-          [200, () => (g.setTransitionPlayed(), setAnim(null), setDone(true))],
-          [500, () => setHold(null)],
-          [1400, () => setDone(false)],
-        ]
-      : [
-          [0, () => (setHold(from), setAnim("retreat"))],
-          [150, () => (setAnim("docking"), useGuestStore.setState({ flash: ["name"], flashAt: Date.now() }))],
-          [700, () => (g.setTransitionPlayed(), setAnim(null), setDone(true))],
-          [1000, () => setHold(null)],
-          [1900, () => setDone(false)],
-        ];
+    const mode = reduce ? 150 : window.matchMedia("(min-width: 1024px)").matches ? "morph" : 200;
+    const timers: [number, () => void][] =
+      mode !== "morph"
+        ? [
+            [
+              0,
+              () => {
+                const swap = () =>
+                  flushSync(() => {
+                    setHold(from);
+                    setDockMode(mode);
+                    setAnim("docking");
+                  });
+                if (crossfade(swap, mode)) return;
+                // Zonder View Transitions: de app-layout fadet in (200 ms).
+                setFadeIn(true);
+                swap();
+              },
+            ],
+            [
+              mode,
+              () => (
+                g.setTransitionPlayed(),
+                setAnim(null),
+                setDone(useGuestStore.getState().startPath !== "empty"),
+                landInApp()
+              ),
+            ],
+            [500, () => setHold(null)],
+            [1400, () => setDone(false)],
+          ]
+        : [
+            [0, () => (setHold(from), setDockMode(mode), setMorphWidth(panelWidth()), setAnim("retreat"))],
+            [DOCK_AT, () => (setAnim("docking"), useGuestStore.setState({ flash: ["name"], flashAt: Date.now() }))],
+            [
+              DOCK_DONE,
+              () => (
+                g.setTransitionPlayed(),
+                setAnim(null),
+                setMorphWidth(null),
+                setDone(useGuestStore.getState().startPath !== "empty"),
+                landInApp()
+              ),
+            ],
+            [1000, () => setHold(null)],
+            [1900, () => setDone(false)],
+          ];
     // Geen cleanup: ook verborgen (Activity) moet de overgang gewoon aflopen.
     for (const [ms, fn] of timers) setTimeout(fn, ms);
   }, [readyToDock, reduce, transitionPlayed, anim]);
@@ -412,7 +496,24 @@ export function TrialScreen({ onSave }: { onSave: (intent: SaveIntent, trigger: 
     }, 800);
   }, [uiRequest, router]);
 
-  /** "Start met een lege vergadering" (C1d): geen overgang, meteen de app met de assistent ingeklapt. */
+  /** "Maak mijn agenda": de zin uit "Vertel het me" wordt meteen het overleg. */
+  const tellSentence = () => {
+    const text = sentence.trim();
+    if (busy || !text) return;
+    useGuestStore.getState().setStartPath("tell");
+    track("assistant_entry_chosen", { ingang: "meeting", bron: "welkom" });
+    send({ type: "text", text }, text);
+  };
+
+  /** Een kaart op het startscherm: "Vertel het me" klapt open, de twee andere starten hun flow. */
+  const chooseCard = (c: StartChoice) => {
+    if (busy) return;
+    setSelected(c);
+    if (c === "meeting") setTellFocus((n) => n + 1);
+    else choose(c, WELCOME_LABEL[c], "welkom");
+  };
+
+  /** "Start met een lege vergadering" (C1d): de standaardagenda, met dezelfde overgang naar de app. */
   const startEmpty = () => {
     if (!busy) startEmptyMeeting();
   };
@@ -700,17 +801,15 @@ export function TrialScreen({ onSave }: { onSave: (intent: SaveIntent, trigger: 
         : "Zeg wat er beter kan"
       : pending.kind === "notes"
         ? "Plak je notities hier"
-        : welcome && pending.kind === "entry"
-          ? "Of typ meteen, bv. ons wekelijks productieoverleg"
-          : pending.kind === "entry" || pending.kind === "sentence" || pending.kind === "pick-meeting"
-            ? "Bijv. ons wekelijks productieoverleg: orders, problemen en planning"
-            : pending.kind === "when-who"
-              ? "Bijv. elke maandag om 8u met Jan, Sofie en Karim"
-              : pending.kind === "confirm-meeting"
-                ? "Bijv. het duurt anderhalf uur"
-                : step === 2
-                  ? "Bijv. Karim belt, tegen woensdag"
-                  : "Vraag of zeg iets";
+        : pending.kind === "entry" || pending.kind === "sentence" || pending.kind === "pick-meeting"
+          ? "Bijv. ons wekelijks productieoverleg: orders, problemen en planning"
+          : pending.kind === "when-who"
+            ? "Bijv. elke maandag om 8u met Jan, Sofie en Karim"
+            : pending.kind === "confirm-meeting"
+              ? "Bijv. het duurt anderhalf uur"
+              : step === 2
+                ? "Bijv. Karim belt, tegen woensdag"
+                : "Vraag of zeg iets";
 
   const meetingNames = [...others.map((o) => o.meeting.name ?? "Overleg"), ...(meeting.name ? [meeting.name] : [])];
   // Het antwoord dat de overgang startte, komt pas na de afsluiter; intussen "Ik zet je overleg klaar…".
@@ -718,21 +817,27 @@ export function TrialScreen({ onSave }: { onSave: (intent: SaveIntent, trigger: 
   const held = hold ?? (readyToDock ? replyFrom : null);
   const shown = held !== null ? conversation.slice(0, held) : conversation;
   const preparing = anim !== null || held !== null || (typing && slow && !transitionPlayed);
-  const intro = welcome && !hasGuestWork({ conversation });
+  // Het keuzepaneel blijft staan tot het eerste antwoord er is; bij "Vertel het me" tot de overgang.
+  const firstChoice = conversation.filter((m) => m.from === "user").length === 1;
+  const intro =
+    welcome && (!hasGuestWork({ conversation }) || (firstChoice && (typing || readyToDock || phase === "retreat")));
 
   return (
     <LayoutGroup>
       <div className="flex min-h-dvh flex-col bg-app text-ink panel:flex-row">
         {welcome ? (
-          <WelcomeStage retreat={phase === "retreat"} shared={!reduce} />
+          <WelcomeStage selected={selected} retreat={phase === "retreat"} shared={!reduce} />
         ) : (
           <motion.div
-            data-docking={anim === "docking" && !reduce ? "" : undefined}
-            initial={reduce && anim ? { opacity: 0 } : false}
+            data-docking={shared ? "" : undefined}
+            // Reduced motion of smal scherm: geen schuiven of krimpen, enkel een crossfade naar de app-layout.
+            initial={anim && fadeMs && fadeIn ? { opacity: 0 } : false}
             animate={{ opacity: 1 }}
-            transition={{ duration: 0.2 }}
+            transition={{ duration: 0.2, ease: "linear" }}
             className="flex min-w-0 flex-1 flex-col lg:flex-row"
           >
+            {/* De zijbalk (het navy vlak landt hier), dan het contentvlak met de lichte band en de afgeronde
+                hoek linksboven, zoals de app. Tijdens de overgang schuift het contentvlak in. */}
             <TrialSidebar
               meetingNames={meetingNames}
               canSave={step === 3 || others.length > 0}
@@ -740,32 +845,42 @@ export function TrialScreen({ onSave }: { onSave: (intent: SaveIntent, trigger: 
               onSave={() => onSave("save", "zijbalk")}
               shared={shared}
             />
-            <main
-              className={cn("min-w-0 flex-1 px-4 pt-5 sm:px-8 panel:pb-10", open ? "pb-[60dvh]" : "pb-16 panel:pr-24")}
+            <motion.div
+              initial={shared ? { opacity: 0, x: 24 } : false}
+              animate={{ opacity: 1, x: 0 }}
+              transition={DOCK}
+              className="relative flex min-w-0 flex-1 flex-col lg:pt-4"
             >
-              <div className="mx-auto w-full max-w-[860px]">
-                {/* Het detailscherm gebruikt de UI-context van de app (modal "Andere overlegmomenten"). */}
-                <AppUiProvider>
-                  <TrialMeeting
-                    flash={flash}
-                    editRequest={editRequest}
-                    busy={busy}
-                    onNotesFile={readFile}
-                    onEdited={onEdited}
-                    onStart={onStart}
-                    onFromCalendar={fromCalendar}
-                    titleLayoutId={shared ? SHARED.title : undefined}
-                    done={done}
-                    countUp={startPath === "notes" && (anim !== null || done)}
-                    emptyPath={startPath === "empty"}
-                  />
-                </AppUiProvider>
-              </div>
-            </main>
+              <div aria-hidden className="absolute inset-x-0 top-0 hidden h-12 bg-app-band lg:block" />
+              <main
+                className={cn(
+                  "relative min-w-0 flex-1 bg-app px-4 pt-5 sm:px-8 lg:rounded-tl-[24px] lg:pt-7 panel:pb-10",
+                  open ? "pb-[60dvh]" : "pb-16 panel:pr-24",
+                )}
+              >
+                <div className="mx-auto w-full max-w-[860px]">
+                  {/* Het detailscherm gebruikt de UI-context van de app (modal "Andere overlegmomenten"). */}
+                  <AppUiProvider>
+                    <TrialMeeting
+                      flash={flash}
+                      editRequest={editRequest}
+                      busy={busy}
+                      onNotesFile={readFile}
+                      onEdited={onEdited}
+                      onStart={onStart}
+                      onFromCalendar={fromCalendar}
+                      done={done}
+                      countUp={startPath === "notes" && (anim !== null || done)}
+                      emptyPath={startPath === "empty"}
+                    />
+                  </AppUiProvider>
+                </div>
+              </main>
+            </motion.div>
           </motion.div>
         )}
         <AssistantPanel
-          layout="trial"
+          layout={welcome ? "welcome" : "trial"}
           subtitle="stelt voor, jij beslist"
           menu={
             welcome
@@ -787,20 +902,35 @@ export function TrialScreen({ onSave }: { onSave: (intent: SaveIntent, trigger: 
           }
           closedHint={!closedHintShown}
           onClosedHintDone={useGuestStore.getState().setClosedHintShown}
-          header={welcome ? <WelcomeHeader onLogin={() => onSave("login", "welkom")} /> : undefined}
+          header={
+            welcome ? (
+              <WelcomeHeader retreat={phase === "retreat"} onLogin={() => onSave("login", "welkom")} />
+            ) : undefined
+          }
           intro={
             intro ? (
               <WelcomeIntro
+                selected={selected}
                 disabled={busy}
-                onChoose={(c) => choose(c, WELCOME_LABEL[c], "welkom")}
+                retreat={phase === "retreat"}
+                sentence={sentence}
+                onSentenceChange={setSentence}
+                onTell={tellSentence}
+                telling={startPath === "tell" && (typing || readyToDock || anim !== null)}
+                focusRequest={tellFocus}
+                onChoose={chooseCard}
                 onEmpty={startEmpty}
-                onExample={() => track("assistant_entry_chosen", { ingang: "example" })}
+                onExample={() => {
+                  if (busy) return;
+                  track("assistant_entry_chosen", { ingang: "example" });
+                  openWithTransition("/voorbeeld?van=probeer", router.push, !!reduce);
+                }}
               />
             ) : undefined
           }
-          fullScreen={welcome}
-          messages={intro ? [] : shown}
-          typing={typing || preparing}
+          messages={intro ? [] : withoutWelcome(shown)}
+          morphFrom={anim === "docking" && shared ? morphWidth : null}
+          typing={!intro && (typing || preparing)}
           typingLabel={preparing ? PREPARING : null}
           open={open}
           onOpenChange={setOpen}
@@ -820,22 +950,27 @@ export function TrialScreen({ onSave }: { onSave: (intent: SaveIntent, trigger: 
               <NotesDropzone busy={busy} reading={reading} onFile={readFile} onListen={listen} />
             ) : null
           }
-          input={{
-            label: "Bericht aan de assistent",
-            placeholder,
-            onSend: sendText,
-            onMic: welcome ? undefined : listen,
-            listening,
-            disabled: busy || anim !== null,
-            focusRequest,
-            fill,
-            onDraftChange: setDraft,
-            plus: {
-              onPasteNotes: () => choose("notes", "Notities plakken", "menu"),
-              onFile: readFile,
-              onCalendar: () => choose("calendar", "Agenda koppelen", "menu"),
-            },
-          }}
+          // Op het startscherm geen chatveld: de tekstinvoer zit in "Vertel het me".
+          input={
+            intro
+              ? undefined
+              : {
+                  label: "Bericht aan de assistent",
+                  placeholder,
+                  onSend: sendText,
+                  onMic: welcome ? undefined : listen,
+                  listening,
+                  disabled: busy || anim !== null,
+                  focusRequest,
+                  fill,
+                  onDraftChange: setDraft,
+                  plus: {
+                    onPasteNotes: () => choose("notes", "Notities plakken", "menu"),
+                    onFile: readFile,
+                    onCalendar: () => choose("calendar", "Agenda koppelen", "menu"),
+                  },
+                }
+          }
         />
       </div>
     </LayoutGroup>

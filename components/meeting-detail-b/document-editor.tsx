@@ -514,11 +514,16 @@ export function DocumentEditor({ meeting, simplified = false }: { meeting: Meeti
             }}
             data-b-grip={item.id}
             aria-label={`Verplaats ${item.text}`}
-            className={rowGrip}
+            className={`${rowGrip} ${simplified ? "onboarding-item-handle inline-flex items-center justify-center" : ""}`}
           >
-            <GripVertical size={14} />
+            {simplified && (
+              <span aria-hidden className="onboarding-item-bullet">
+                •
+              </span>
+            )}
+            <GripVertical size={14} aria-hidden className={simplified ? "onboarding-item-grip" : undefined} />
           </button>
-          <span aria-hidden>•</span>
+          {!simplified && <span aria-hidden>•</span>}
           <TokenInput
             id={item.id}
             text={text}
@@ -704,7 +709,7 @@ export function DocumentEditor({ meeting, simplified = false }: { meeting: Meeti
     <div
       className={
         simplified
-          ? `onboarding-notepad ${content || hasCustomBlocks ? "" : "onboarding-notepad-empty"} flex min-h-[380px] flex-col`
+          ? `onboarding-notepad ${content || hasCustomBlocks ? "" : "onboarding-notepad-empty"} flex min-h-0 flex-1 flex-col`
           : undefined
       }
     >

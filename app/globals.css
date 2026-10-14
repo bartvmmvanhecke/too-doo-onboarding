@@ -1138,3 +1138,39 @@ html[data-onboarding-fade="in"] body {
 .onboarding-notepad .document-row > span[data-document-filled] {
   max-width: 100%;
 }
+
+/* Fill the available onboarding document height without constraining longer agendas. */
+@media (min-width: 900px) {
+  main:has(.onboarding-notepad) {
+    display: flex;
+    flex-direction: column;
+    padding-bottom: 16px;
+  }
+  main:has(.onboarding-notepad) > div {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+  }
+  main:has(.onboarding-notepad) #proefomgeving {
+    flex: 1;
+  }
+  .meeting-document:has(> .onboarding-notepad) {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+  }
+}
+.onboarding-notepad .onboarding-item-handle {
+  visibility: visible;
+}
+.onboarding-notepad .onboarding-item-grip {
+  display: none;
+}
+.onboarding-notepad .document-row:hover .onboarding-item-bullet,
+.onboarding-notepad .document-row:focus-within .onboarding-item-bullet {
+  display: none;
+}
+.onboarding-notepad .document-row:hover .onboarding-item-grip,
+.onboarding-notepad .document-row:focus-within .onboarding-item-grip {
+  display: block;
+}

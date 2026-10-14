@@ -171,6 +171,12 @@ test("ingevulde agenda controls blijven zichtbaar na blur en herladen", async ({
   await page.getByRole("heading", { name: "Openstaande acties", exact: true }).click();
   await page.mouse.move(0, 0);
   await expect(controls).toHaveCSS("opacity", "0");
+  const handle = editor.locator(".onboarding-item-handle").first();
+  await expect(handle.locator(".onboarding-item-bullet")).toBeVisible();
+  await expect(handle.locator(".onboarding-item-grip")).toBeHidden();
+  await handle.hover();
+  await expect(handle.locator(".onboarding-item-bullet")).toBeHidden();
+  await expect(handle.locator(".onboarding-item-grip")).toBeVisible();
   await title.focus();
   await editor.getByRole("button", { name: "Duur toevoegen", exact: true }).click();
   await page.getByRole("button", { name: "20", exact: true }).click();
@@ -219,5 +225,8 @@ test("assistant opens as an inset rounded frame below the blue band", async ({ p
   await expect(panel).toBeVisible();
   await expect(panel).toHaveCSS("border-bottom-right-radius", "16px");
   await expect(panel).toHaveCSS("opacity", "1");
+  const notepad = page.locator(".meeting-document:has(> .onboarding-notepad)");
+  const notepadBox = await notepad.boundingBox();
+  expect(Math.abs(900 - notepadBox!.y - notepadBox!.height - 16)).toBeLessThanOrEqual(1);
   await page.screenshot({ path: "screenshots/assistant-frame.png", fullPage: true });
 });

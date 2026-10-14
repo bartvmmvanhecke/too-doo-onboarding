@@ -4,7 +4,7 @@ import { useEffect, useRef, type ReactNode } from "react";
 import Link from "next/link";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { ArrowRight, CalendarDays, ChevronRight, FileText, Loader2, MessageCircle, Sparkles } from "lucide-react";
-import { MeetingToActionIllustration } from "@/components/onboarding/MeetingToActionIllustration";
+import { MeetingToActionStill } from "@/components/onboarding/meeting-to-action-still";
 import { SHARED } from "@/components/probeer/trial-sidebar";
 import { Button } from "@/components/ui/button";
 import type { StartChoice } from "@/lib/assistant/types";
@@ -63,7 +63,7 @@ export function WelcomeStage({
         className="flex flex-1 flex-col items-center justify-center gap-10 pt-8"
       >
         <div className="hidden w-full justify-center min-[1200px]:flex">
-          <MeetingToActionIllustration />
+          <MeetingToActionStill />
         </div>
         <div className="flex max-w-[480px] flex-col gap-2 text-center">
           <p className="text-[26px] leading-tight font-extrabold">Wat je afspreekt, gebeurt ook.</p>

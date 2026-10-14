@@ -53,8 +53,8 @@ export function MeetingDetailB({
           <MeetingHeaderB hint={null} onShowHint={() => {}} onInvite={() => setInvite(true)} onAddAction={addAction} />
           {!trial && <ReviewHint />}
           <div className="meeting-document meeting-document-fill">
-            <OpenActions meeting={meeting} people={people} />
-            <DocumentEditor meeting={meeting} />
+            <OpenActions meeting={meeting} people={people} simplified={!!trial} />
+            <DocumentEditor meeting={meeting} simplified={!!trial} />
           </div>
           {!trial && (
             <InviteDialog

@@ -229,7 +229,7 @@ const LAYOUT = {
   },
   trial: {
     panel:
-      "panel:sticky panel:top-0 panel:h-dvh panel:w-[400px] panel:shrink-0 panel:rounded-none panel:border-t-0 panel:border-l panel:shadow-none",
+      "panel:sticky panel:inset-x-auto panel:top-4 panel:mx-4 panel:mt-4 panel:mb-4 panel:h-[calc(100dvh-32px)] panel:w-[400px] panel:shrink-0 panel:shadow-none lg:top-8 lg:mt-8 lg:h-[calc(100dvh-48px)] lg:max-h-[calc(100dvh-48px)]",
     head: "panel:py-4 panel:pr-24",
   },
   /**
@@ -363,7 +363,9 @@ export function AssistantPanel({
           transition={transition}
           style={{ transformOrigin: "bottom right" }}
           className={cn(
-            "fixed inset-x-0 bottom-0 z-30 flex h-[55dvh] flex-col rounded-t-2xl border-t border-line-soft bg-white shadow-[0_-12px_32px_rgba(22,33,58,0.14)]",
+            layout === "trial"
+              ? "fixed inset-x-4 bottom-4 z-30 flex h-[55dvh] max-h-[calc(100dvh-32px)] flex-col overflow-hidden rounded-2xl border border-line-soft bg-white shadow-[0_-12px_32px_rgba(22,33,58,0.14)]"
+              : "fixed inset-x-0 bottom-0 z-30 flex h-[55dvh] flex-col rounded-t-2xl border-t border-line-soft bg-white shadow-[0_-12px_32px_rgba(22,33,58,0.14)]",
             c.panel,
           )}
         >

@@ -96,7 +96,10 @@ export function LineFields({
   return (
     <>
       {trial ? (
-        <span className="flex flex-wrap items-center gap-1">
+        <span
+          className="flex flex-wrap items-center gap-1"
+          data-document-filled={item.ownerIds.length > 0 || item.duration !== null || item.purposes.length > 0}
+        >
           <PurposePicker value={item.purposes} onChange={(purposes) => update({ purposes })} />
           <OwnersPicker value={item.ownerIds} onChange={(ownerIds) => update({ ownerIds })} />
           <DurationPicker value={item.duration} onChange={(duration) => update({ duration })} />

@@ -1127,3 +1127,21 @@ html[data-onboarding-fade="in"] body {
     padding-right: 190px;
   }
 }
+
+/* Keep agenda properties beside their title in the onboarding document. */
+.onboarding-notepad .document-row.group > [data-line-source] {
+  flex: 0 1 auto;
+  min-width: 0;
+  max-width: 100%;
+  width: max-content;
+}
+.onboarding-notepad .document-row.group > [data-line-source] input {
+  display: block;
+  field-sizing: content;
+  width: auto;
+  min-width: 6ch;
+  max-width: 100%;
+}
+.onboarding-notepad .document-row > span[data-document-filled] {
+  max-width: 100%;
+}

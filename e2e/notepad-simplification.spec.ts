@@ -179,6 +179,11 @@ test("ingevulde agenda controls blijven zichtbaar na blur en herladen", async ({
   await page.getByRole("heading", { name: "Openstaande acties", exact: true }).click();
   await page.mouse.move(0, 0);
   await expect(controls).toHaveCSS("opacity", "1");
+  const titleBox = await title.boundingBox();
+  const controlsBox = await controls.boundingBox();
+  expect(controlsBox!.x).toBeGreaterThanOrEqual(titleBox!.x + titleBox!.width);
+  expect(controlsBox!.x - (titleBox!.x + titleBox!.width)).toBeLessThanOrEqual(16);
+  expect(Math.abs(controlsBox!.y - titleBox!.y)).toBeLessThan(16);
   await page.screenshot({ path: "screenshots/notepad-filled-controls.png", fullPage: true });
   await editor.getByRole("button", { name: "Duur: 20 minuten. Wijzigen" }).click();
   await page.getByRole("button", { name: "Geen duur", exact: true }).click();

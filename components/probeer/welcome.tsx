@@ -1,105 +1,137 @@
 "use client";
 
+import type { ReactNode } from "react";
 import Link from "next/link";
 import { AnimatePresence, motion } from "framer-motion";
-import { CalendarDays, Check, ChevronRight, FileText, MessageCircle } from "lucide-react";
+import { CalendarDays, ChevronRight, FileText, MessageCircle, Sparkles } from "lucide-react";
 import { MeetingToActionIllustration } from "@/components/onboarding/MeetingToActionIllustration";
 import { SHARED } from "@/components/probeer/trial-sidebar";
 import { Button } from "@/components/ui/button";
 import type { StartChoice } from "@/lib/assistant/types";
+import { cn } from "@/lib/utils";
 
-const EASE = [0.65, 0, 0.35, 1] as const;
+/** Ease van de overgang naar de app (± 700 ms). */
+export const DOCK_EASE = [0.4, 0, 0.2, 1] as const;
+/** Laag 2 (150–650 ms): het blauwe vlak krimpt tot de zijbalk, het logo landt. */
+export const DOCK = { duration: 0.5, ease: DOCK_EASE };
+/** Laag 1 (0–150 ms): links leegmaken; het logo blijft staan. */
+const CLEAR = { duration: 0.15, ease: DOCK_EASE };
+
+/** De uitlegzin links wisselt met de gekozen optie. */
+const EXPLAIN: Record<StartChoice, string> = {
+  meeting: "Eén zin is genoeg. Wij maken er een agenda van die je meteen kunt bijwerken.",
+  notes: "Uit je vorige notities halen we de agendapunten, acties en beslissingen die nog openstaan.",
+  calendar: "Kies een overleg uit je agenda. Titel, datum en deelnemers staan dan al klaar.",
+};
 
 /**
- * Welkom, links (SPEC-LAZY.md §4, Stap 0; C0f): blauw verloop met logo en zin, de geanimeerde illustratie en
- * de slottekst, als één gecentreerd blok. Bij de overgang (`retreat`) trekken de kaarten zich terug en
- * vervagen de teksten; paneel, logo en agendakaart zijn gedeelde elementen die in de app landen.
- * Onder 900 px geen illustratie.
+ * Startscherm, links: bewust rustig. Eén vlak navy met het logo linksboven, de illustratie en één headline met
+ * een uitlegzin die meewisselt met de gekozen optie. Het keuzepaneel rechts is het hoofdvlak.
+ * Bij de overgang (`retreat`) vervaagt alles behalve het logo; vlak en logo zijn gedeelde elementen die in de
+ * zijbalk van de app landen. Onder 900 px staat dit vlak onder het paneel, zonder illustratie.
  */
-export function WelcomeStage({ retreat, shared }: { retreat: boolean; shared: boolean }) {
+export function WelcomeStage({
+  selected,
+  retreat,
+  shared,
+}: {
+  selected: StartChoice;
+  retreat: boolean;
+  shared: boolean;
+}) {
   return (
     <section
       aria-label="Wat too-doo doet"
-      className="relative isolate hidden min-h-dvh flex-1 flex-col items-center justify-center gap-11 overflow-hidden px-12 py-10 text-white panel:flex"
+      className="relative isolate order-last flex min-w-0 flex-col px-6 py-8 text-white panel:order-none panel:min-h-dvh panel:flex-[999_1_560px] panel:px-14 panel:py-10"
     >
       <motion.div
         aria-hidden
         layoutId={shared ? SHARED.panel : undefined}
-        transition={{ duration: 0.4, ease: EASE }}
-        className="absolute inset-0 -z-10 bg-[radial-gradient(circle_at_85%_20%,var(--welcome-glow)_0%,transparent_45%),linear-gradient(160deg,var(--welcome-from)_0%,var(--welcome-mid)_55%,var(--welcome-to)_100%)]"
+        transition={DOCK}
+        className="absolute inset-0 -z-10 bg-onboarding-ground"
       />
-      <div className="flex flex-col items-center gap-2 text-center">
-        <motion.span
-          layoutId={shared ? SHARED.logo : undefined}
-          transition={{ duration: 0.4, ease: EASE }}
-          className="text-[40px] leading-none font-extrabold"
-        >
-          too-<span className="text-welcome-accent">doo</span>
-        </motion.span>
-        <AnimatePresence>
-          {!retreat && (
-            <motion.span exit={{ opacity: 0 }} transition={{ duration: 0.2 }} className="text-[17px] text-nav-ink">
-              Van losse punten in je overleg naar duidelijke opvolging.
-            </motion.span>
-          )}
-        </AnimatePresence>
-      </div>
-      <div className="flex w-full justify-center">
-        <MeetingToActionIllustration
-          retreat={retreat}
-          renderAgenda={(card) => (
-            <motion.div layoutId={shared ? SHARED.title : undefined} transition={{ duration: 0.4, ease: EASE }}>
-              {card}
-            </motion.div>
-          )}
-        />
-      </div>
-      <AnimatePresence>
-        {!retreat && (
-          <motion.div
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.2 }}
-            className="flex max-w-[480px] flex-col gap-1.5 text-center"
-          >
-            <span className="text-[26px] leading-tight font-extrabold">Wat je afspreekt, gebeurt ook.</span>
-            <span className="text-[15px] leading-normal text-nav-ink">
-              Uit elk agendapunt komen acties en beslissingen. Wat af is, verdwijnt. Wat volgt, staat al klaar.
-            </span>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      <motion.span
+        layoutId={shared ? SHARED.logo : undefined}
+        transition={DOCK}
+        className="self-start text-[22px] leading-none font-extrabold"
+      >
+        too-<span className="text-welcome-accent">doo</span>
+      </motion.span>
+      <motion.div
+        animate={retreat ? { opacity: 0, scale: 0.98 } : { opacity: 1, scale: 1 }}
+        transition={CLEAR}
+        className="flex flex-1 flex-col items-center justify-center gap-10 pt-8"
+      >
+        <div className="hidden w-full justify-center min-[1200px]:flex">
+          <MeetingToActionIllustration />
+        </div>
+        <div className="flex max-w-[480px] flex-col gap-2 text-center">
+          <p className="text-[26px] leading-tight font-extrabold">Wat je afspreekt, gebeurt ook.</p>
+          {/* Korte crossfade (150 ms) bij het wisselen; beide zinnen in dezelfde cel, geen andere beweging. */}
+          <div className="grid">
+            <AnimatePresence initial={false}>
+              <motion.p
+                key={selected}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.15, ease: "linear" }}
+                className="[grid-area:1/1] text-[15px] leading-normal text-onboarding-ink"
+              >
+                {EXPLAIN[selected]}
+              </motion.p>
+            </AnimatePresence>
+          </div>
+        </div>
+      </motion.div>
     </section>
   );
 }
 
-/** Kop van het assistentpaneel op het welkomstscherm: logo en "Inloggen". */
-export function WelcomeHeader({ onLogin }: { onLogin: () => void }) {
+/** Bovenaan rechts in het keuzepaneel: "Al een account? Inloggen". Verdwijnt bij de overgang. */
+export function WelcomeHeader({ onLogin, retreat }: { onLogin: () => void; retreat: boolean }) {
   return (
-    <div className="flex items-center gap-3 border-b border-line-soft py-3 pr-20 pl-6 panel:py-4 panel:pr-24">
-      <span className="flex-1 text-[22px] font-extrabold text-logo">too-doo</span>
-      <Button variant="link" size="sm" className="min-h-11 px-1 text-sm font-bold underline" onClick={onLogin}>
+    <motion.div
+      animate={{ opacity: retreat ? 0 : 1 }}
+      transition={CLEAR}
+      className="flex items-center justify-end gap-1 pt-3 pr-20 pl-6 text-[15px] text-ink-2 panel:pt-4 panel:pr-24"
+    >
+      Al een account?
+      <Button variant="link" size="sm" className="min-h-11 px-1 text-[15px] font-bold" onClick={onLogin}>
         Inloggen
       </Button>
-    </div>
+    </motion.div>
   );
 }
 
-const CHOICES: { value: StartChoice; label: string; hint: string; icon: typeof MessageCircle }[] = [
-  { value: "meeting", label: "Vertel het me", hint: "Beschrijf je vergadering in één zin", icon: MessageCircle },
+const CHOICES: {
+  value: StartChoice;
+  label: string;
+  hint: string;
+  icon: typeof MessageCircle;
+  badge?: string;
+}[] = [
+  {
+    value: "meeting",
+    label: "Vertel het me",
+    hint: "Beschrijf je vergadering in één zin",
+    icon: MessageCircle,
+    badge: "Snelst",
+  },
   {
     value: "notes",
-    label: "Gebruik notities van een vorige vergadering",
+    label: "Gebruik eerdere notities",
     hint: "Plak tekst, upload een bestand of spreek in",
     icon: FileText,
   },
-  { value: "calendar", label: "Haal het uit mijn agenda", hint: "Outlook of Google, optioneel", icon: CalendarDays },
+  { value: "calendar", label: "Haal het uit mijn agenda", hint: "Outlook of Google", icon: CalendarDays },
 ];
 
 export const WELCOME_LABEL: Record<StartChoice, string> = Object.fromEntries(
   CHOICES.map((c) => [c.value, c.label]),
 ) as Record<StartChoice, string>;
 
-/** De drie keuzes (C0f), in deze volgorde; na een mislukte agendakoppeling enkel de twee andere. */
+/** Na een mislukte agendakoppeling vraagt de assistent opnieuw hoe je wil starten: enkel de twee andere. */
 export function WelcomeChoices({
   choices = CHOICES.map((c) => c.value),
   disabled,
@@ -111,75 +143,134 @@ export function WelcomeChoices({
 }) {
   return (
     <div role="group" aria-label="Manier van starten" className="flex flex-col gap-2.5">
-      {CHOICES.filter((c) => choices.includes(c.value)).map(({ value, label, hint, icon: Icon }) => (
-        <button
-          key={value}
-          type="button"
-          disabled={disabled}
-          onClick={() => onChoose(value)}
-          className="flex min-h-16 cursor-pointer items-center gap-3.5 rounded-[14px] border border-track bg-white px-4 py-2.5 text-left text-ink hover:bg-app disabled:cursor-not-allowed disabled:opacity-60"
-        >
-          <span className="flex size-10 shrink-0 items-center justify-center rounded-[10px] bg-brand-soft">
-            <Icon className="size-5 text-brand" aria-hidden />
-          </span>
-          <span className="flex flex-1 flex-col">
-            <span className="text-base font-extrabold">{label}</span>
-            <span className="text-[13px] text-ink-2">{hint}</span>
-          </span>
-          <ChevronRight className="size-4 shrink-0 text-ink-subtle" strokeWidth={2.5} aria-hidden />
-        </button>
+      {CHOICES.filter((c) => choices.includes(c.value)).map((c) => (
+        <ChoiceCard key={c.value} choice={c} selected={false} disabled={disabled} onClick={() => onChoose(c.value)} />
       ))}
     </div>
   );
 }
 
-/** Welkomstkop, keuzes en de twee secundaire links (C0f), bovenaan in het assistentpaneel. */
-export function WelcomeIntro({
+/**
+ * Eén keuzekaart: een echte knop met `aria-pressed`. Geselecteerd = 2 px primaire rand (1 px rand + 1 px ring,
+ * zodat niets verschuift), `--primary-tint` en een zachte schaduw. `children` klapt open onder de knop.
+ */
+function ChoiceCard({
+  choice: { label, hint, icon: Icon, badge },
+  selected,
   disabled,
+  onClick,
+  children,
+}: {
+  choice: (typeof CHOICES)[number];
+  selected: boolean;
+  disabled?: boolean;
+  onClick: () => void;
+  children?: ReactNode;
+}) {
+  return (
+    <div
+      className={cn(
+        "rounded-[14px] border transition-[background-color,box-shadow,border-color] duration-150",
+        selected
+          ? "border-primary bg-primary-tint shadow-[0_0_0_1px_var(--primary),0_8px_24px_var(--choice-shadow)]"
+          : "border-track bg-white hover:bg-app",
+      )}
+    >
+      <button
+        type="button"
+        aria-pressed={selected}
+        disabled={disabled}
+        onClick={onClick}
+        className="flex min-h-11 w-full cursor-pointer items-center gap-4 rounded-[14px] px-5 py-[18px] text-left text-ink disabled:cursor-not-allowed disabled:opacity-60"
+      >
+        <span
+          className={cn(
+            "flex size-11 shrink-0 items-center justify-center rounded-xl",
+            selected ? "bg-white" : "bg-brand-soft",
+          )}
+        >
+          <Icon className="size-5 text-brand" aria-hidden />
+        </span>
+        <span className="flex min-w-0 flex-1 flex-col gap-0.5">
+          <span className="flex flex-wrap items-center gap-2 text-base font-extrabold">
+            {label}
+            {badge && (
+              <span className="rounded-full bg-brand-tint px-2 py-0.5 text-xs font-extrabold text-brand-hover">
+                {badge}
+              </span>
+            )}
+          </span>
+          <span className="text-sm text-ink-2">{hint}</span>
+        </span>
+        {!badge && <ChevronRight className="size-5 shrink-0 text-ink-subtle" strokeWidth={2.5} aria-hidden />}
+      </button>
+      {children}
+    </div>
+  );
+}
+
+/** Secundaire link onder de keuzes: vet, primair, niet onderlijnd (wel bij hover). */
+const secondary =
+  "inline-flex min-h-11 cursor-pointer items-center text-[15px] font-bold text-primary no-underline hover:text-brand-hover hover:underline disabled:cursor-not-allowed disabled:opacity-60";
+
+/**
+ * Het keuzepaneel: label "Assistent", kop, de drie keuzekaarten en de twee secundaire links. Verticaal
+ * gecentreerd; bij de overgang (`retreat`) vervaagt de inhoud, het paneel zelf blijft staan.
+ */
+export function WelcomeIntro({
+  selected,
+  disabled,
+  retreat,
   onChoose,
   onEmpty,
   onExample,
 }: {
+  selected: StartChoice;
   disabled: boolean;
+  retreat: boolean;
   onChoose: (choice: StartChoice) => void;
   onEmpty: () => void;
   onExample: () => void;
 }) {
   return (
-    <div className="flex flex-1 flex-col justify-center gap-3.5 px-6 pt-8 pb-5">
-      <span className="flex items-center gap-2.5">
-        <span aria-hidden className="flex size-9 items-center justify-center rounded-full bg-brand">
-          <Check className="size-[18px] text-white" strokeWidth={2.5} />
+    <motion.div
+      animate={{ opacity: retreat ? 0 : 1 }}
+      transition={CLEAR}
+      className="flex flex-1 flex-col justify-center px-6 py-8 panel:px-14 panel:py-10"
+    >
+      <div className="flex w-full max-w-[600px] flex-col gap-4">
+        <span className="flex items-center gap-2.5">
+          <span aria-hidden className="flex size-9 items-center justify-center rounded-full bg-brand-tint">
+            <Sparkles className="size-[18px] text-brand" strokeWidth={2.25} />
+          </span>
+          <span className="text-sm font-extrabold text-ink-2">Assistent</span>
         </span>
-        <span className="text-sm font-extrabold text-ink-2">Assistent</span>
-      </span>
-      <h1 className="text-[26px] leading-tight font-extrabold">
-        Welkom bij Too-doo.
-        <br />
-        Laten we je eerste overleg klaarzetten.
-      </h1>
-      <p className="text-base text-ink-2">Kies wat je al bij de hand hebt. Je kunt alles later aanpassen.</p>
-      <div className="pt-1.5">
-        <WelcomeChoices disabled={disabled} onChoose={onChoose} />
+        <h1 className="text-[30px] leading-[1.15] font-extrabold tracking-[-0.5px] panel:text-[36px]">
+          Laten we je eerste overleg klaarzetten.
+        </h1>
+        <p className="text-[17px] leading-normal text-ink-2">
+          Kies wat je al bij de hand hebt. Je kunt alles later aanpassen.
+        </p>
+        <div role="group" aria-label="Manier van starten" className="flex flex-col gap-3 pt-2">
+          {CHOICES.map((c) => (
+            <ChoiceCard
+              key={c.value}
+              choice={c}
+              selected={selected === c.value}
+              disabled={disabled}
+              onClick={() => onChoose(c.value)}
+            />
+          ))}
+        </div>
+        <div className="mt-1 flex flex-wrap gap-x-6 gap-y-1 border-t border-line-faint pt-3">
+          <button type="button" disabled={disabled} className={secondary} onClick={onEmpty}>
+            Start met een lege vergadering
+          </button>
+          <Link href="/voorbeeld?van=probeer" onClick={onExample} className={secondary}>
+            Bekijk eerst een voorbeeld
+          </Link>
+        </div>
       </div>
-      <div className="mt-1 flex flex-wrap gap-x-5 gap-y-1 border-t border-line-faint pt-2.5">
-        <Button
-          variant="link"
-          size="sm"
-          disabled={disabled}
-          className="min-h-11 px-0 text-[15px] font-bold underline"
-          onClick={onEmpty}
-        >
-          Start met een lege vergadering
-        </Button>
-        <Link
-          href="/voorbeeld?van=probeer"
-          onClick={onExample}
-          className="inline-flex min-h-11 items-center text-[15px] font-bold"
-        >
-          Bekijk eerst een voorbeeld
-        </Link>
-      </div>
-    </div>
+    </motion.div>
   );
 }

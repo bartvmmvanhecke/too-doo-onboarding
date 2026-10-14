@@ -232,6 +232,15 @@ const LAYOUT = {
       "panel:sticky panel:top-0 panel:h-dvh panel:w-[400px] panel:shrink-0 panel:rounded-none panel:border-t-0 panel:border-l panel:shadow-none",
     head: "panel:py-4 panel:pr-24",
   },
+  /**
+   * Startscherm: het brede keuzepaneel (± 520 px) met schaduw naar links, het helderste vlak van het scherm.
+   * Onder 900 px staat het in de flow, bovenaan en schermvullend, met het navy vlak eronder.
+   */
+  welcome: {
+    panel:
+      "max-panel:static max-panel:order-first max-panel:h-auto max-panel:min-h-dvh max-panel:rounded-none max-panel:border-t-0 max-panel:shadow-none panel:sticky panel:top-0 panel:h-dvh panel:min-w-0 panel:flex-[1_1_520px] panel:rounded-none panel:border-t-0 panel:shadow-[-24px_0_48px_var(--onboarding-panel-shadow)]",
+    head: "panel:py-4 panel:pr-24",
+  },
 } as const;
 
 /**
@@ -255,7 +264,6 @@ export function AssistantPanel({
   layout = "app",
   header,
   intro,
-  fullScreen,
   typingLabel,
 }: {
   subtitle: string;
@@ -278,14 +286,13 @@ export function AssistantPanel({
   /**
    * "app": kolom rechts vanaf 1024 px (de app na bewaren). "trial": vanaf 900 px, zodat het paneel op het
    * welkomstscherm en in de proefomgeving op exact dezelfde plek en breedte staat (SPEC-LAZY.md §4, Stap 0).
+   * "welcome": het brede keuzepaneel van het startscherm; hetzelfde element versmalt bij de overgang.
    */
-  layout?: "app" | "trial";
+  layout?: "app" | "trial" | "welcome";
   /** Eigen kop in plaats van "Assistent · …" (welkomstscherm: logo en Inloggen). */
   header?: ReactNode;
   /** Inhoud vóór het gesprek, bv. de welkomstkop en de keuzes. */
   intro?: ReactNode;
-  /** Onder 900 px het volledige scherm in plaats van een half onderblad (welkomstscherm). */
-  fullScreen?: boolean;
   /** In plaats van de typ-indicator, bv. "Ik zet je overleg klaar…". */
   typingLabel?: string | null;
 }) {
@@ -329,7 +336,6 @@ export function AssistantPanel({
           className={cn(
             "fixed inset-x-0 bottom-0 z-30 flex h-[55dvh] flex-col rounded-t-2xl border-t border-line-soft bg-white shadow-[0_-12px_32px_rgba(22,33,58,0.14)]",
             c.panel,
-            fullScreen && "max-panel:top-0 max-panel:h-dvh max-panel:rounded-none max-panel:border-t-0",
           )}
         >
           {header ?? (

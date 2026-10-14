@@ -74,6 +74,20 @@
   --avatar-warm-bg: #f2c9a8;
   --avatar-warm-ink: #6a3412;
 
+  /*
+   * Onboarding-startscherm (/probeer): één rustig, vlak navy links (sluit aan op de donkerste tint van de
+   * app-zijbalk), het witte keuzepaneel rechts als hoofdvlak.
+   */
+  --onboarding-ground: #12224f;
+  --onboarding-ink: #b9c6e2;
+  --onboarding-card: rgba(255, 255, 255, 0.07);
+  --onboarding-card-line: rgba(255, 255, 255, 0.14);
+  --onboarding-card-ink: rgba(255, 255, 255, 0.86);
+  --onboarding-link: rgba(255, 255, 255, 0.28);
+  --onboarding-panel-shadow: rgba(0, 0, 0, 0.18);
+  --primary-tint: #eef3fe;
+  --choice-shadow: rgba(11, 95, 216, 0.14);
+
   --nav-from: #123a80;
   --nav-to: #0c2a5e;
   --nav-ink: #d5e2f7;
@@ -171,6 +185,9 @@
 
 @theme inline {
   --color-welcome-accent: var(--welcome-accent);
+  --color-onboarding-ground: var(--onboarding-ground);
+  --color-onboarding-ink: var(--onboarding-ink);
+  --color-primary-tint: var(--primary-tint);
   --font-sans: var(--font-nunito), system-ui, sans-serif;
   --font-site: var(--font-rubik), Arial, sans-serif;
 

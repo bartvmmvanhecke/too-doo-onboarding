@@ -18,7 +18,7 @@ import {
 import { GoalChips } from "@/components/probeer/goal-chips";
 import { connectAccount } from "@/components/probeer/save-guest";
 import { TellSuggestions } from "@/components/probeer/tell-suggestions";
-import { TrialSidebar, SHARED } from "@/components/probeer/trial-sidebar";
+import { TrialSidebar } from "@/components/probeer/trial-sidebar";
 import { WELCOME_LABEL, WelcomeChoices, WelcomeHeader, WelcomeIntro, WelcomeStage } from "@/components/probeer/welcome";
 import { Button } from "@/components/ui/button";
 import {
@@ -198,6 +198,10 @@ export function TrialScreen({ onSave }: { onSave: (intent: SaveIntent, trigger: 
     if (text.trim()) useGuestStore.getState().hideGoalChips();
   }, []);
   const [fill, setFill] = useState<{ text: string; at: number }>();
+  /** De gekozen kaart op het startscherm; "Vertel het me" staat standaard geselecteerd. */
+  const [selected, setSelected] = useState<StartChoice>(() =>
+    startPath === "notes" ? "notes" : startPath === "agenda" ? "calendar" : "meeting",
+  );
 
   // Stap 0: welkom → (terugtrekken → aandokken) → app. De overgang speelt één keer per gast.
   const reduce = useReducedMotion();
@@ -724,7 +728,7 @@ export function TrialScreen({ onSave }: { onSave: (intent: SaveIntent, trigger: 
     <LayoutGroup>
       <div className="flex min-h-dvh flex-col bg-app text-ink panel:flex-row">
         {welcome ? (
-          <WelcomeStage retreat={phase === "retreat"} shared={!reduce} />
+          <WelcomeStage selected={selected} retreat={phase === "retreat"} shared={!reduce} />
         ) : (
           <motion.div
             data-docking={anim === "docking" && !reduce ? "" : undefined}
@@ -754,7 +758,6 @@ export function TrialScreen({ onSave }: { onSave: (intent: SaveIntent, trigger: 
                     onEdited={onEdited}
                     onStart={onStart}
                     onFromCalendar={fromCalendar}
-                    titleLayoutId={shared ? SHARED.title : undefined}
                     done={done}
                     countUp={startPath === "notes" && (anim !== null || done)}
                     emptyPath={startPath === "empty"}
@@ -765,7 +768,7 @@ export function TrialScreen({ onSave }: { onSave: (intent: SaveIntent, trigger: 
           </motion.div>
         )}
         <AssistantPanel
-          layout="trial"
+          layout={welcome ? "welcome" : "trial"}
           subtitle="stelt voor, jij beslist"
           menu={
             welcome
@@ -787,18 +790,26 @@ export function TrialScreen({ onSave }: { onSave: (intent: SaveIntent, trigger: 
           }
           closedHint={!closedHintShown}
           onClosedHintDone={useGuestStore.getState().setClosedHintShown}
-          header={welcome ? <WelcomeHeader onLogin={() => onSave("login", "welkom")} /> : undefined}
+          header={
+            welcome ? (
+              <WelcomeHeader retreat={phase === "retreat"} onLogin={() => onSave("login", "welkom")} />
+            ) : undefined
+          }
           intro={
             intro ? (
               <WelcomeIntro
+                selected={selected}
                 disabled={busy}
-                onChoose={(c) => choose(c, WELCOME_LABEL[c], "welkom")}
+                retreat={phase === "retreat"}
+                onChoose={(c) => {
+                  setSelected(c);
+                  if (c !== "meeting") choose(c, WELCOME_LABEL[c], "welkom");
+                }}
                 onEmpty={startEmpty}
                 onExample={() => track("assistant_entry_chosen", { ingang: "example" })}
               />
             ) : undefined
           }
-          fullScreen={welcome}
           messages={intro ? [] : shown}
           typing={typing || preparing}
           typingLabel={preparing ? PREPARING : null}

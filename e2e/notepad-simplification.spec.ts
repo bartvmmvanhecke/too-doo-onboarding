@@ -64,7 +64,10 @@ test("onboarding document: writing, templates, undo, persistence and mobile", as
     await expect(items.first()).toHaveValue("Offerte aangepast");
     await expect(editor.locator("input:focus")).not.toHaveValue("");
   }
-  await page.getByRole("button", { name: "Ongedaan maken", exact: true }).last().click();
+  await page
+    .locator('[data-sonner-toast][data-front="true"]')
+    .getByRole("button", { name: "Ongedaan maken", exact: true })
+    .click();
   await expect(items).toHaveCount(9);
   await page.reload();
   await expect(items.first()).toHaveValue("Offerte aangepast");
@@ -190,4 +193,30 @@ test("ingevulde agenda controls blijven zichtbaar na blur en herladen", async ({
   await page.getByRole("heading", { name: "Openstaande acties", exact: true }).click();
   await page.mouse.move(0, 0);
   await expect(controls).toHaveCSS("opacity", "0");
+});
+
+test("assistant opens as an inset rounded frame below the blue band", async ({ page }) => {
+  await page.goto("/probeer?variant=b");
+  await page.getByRole("button", { name: /^Start met een lege vergadering/ }).click();
+  const panel = page.getByRole("complementary", { name: "Assistent", exact: true });
+  await expect(panel).toBeVisible();
+  await expect(panel).toHaveCSS("border-top-left-radius", "16px");
+  await expect(panel).toHaveCSS("border-bottom-right-radius", "16px");
+  for (const width of [1440, 960, 390]) {
+    await page.setViewportSize({ width, height: 900 });
+    const box = await panel.boundingBox();
+    expect(Math.abs(width - box!.x - box!.width - 16)).toBeLessThanOrEqual(1);
+    expect(Math.abs(900 - box!.y - box!.height - 16)).toBeLessThanOrEqual(1);
+    if (width >= 1024) expect(box!.y).toBe(32);
+    else if (width >= 900) expect(box!.y).toBe(16);
+    else expect(box!.x).toBe(16);
+    await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+  }
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await panel.getByRole("button", { name: "Assistent sluiten", exact: true }).click();
+  await page.getByRole("button", { name: "Assistent openen", exact: true }).click();
+  await expect(panel).toBeVisible();
+  await expect(panel).toHaveCSS("border-bottom-right-radius", "16px");
+  await expect(panel).toHaveCSS("opacity", "1");
+  await page.screenshot({ path: "screenshots/assistant-frame.png", fullPage: true });
 });

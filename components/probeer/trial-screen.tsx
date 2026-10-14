@@ -824,7 +824,15 @@ export function TrialScreen({ onSave }: { onSave: (intent: SaveIntent, trigger: 
 
   return (
     <LayoutGroup>
-      <div className="flex min-h-dvh flex-col bg-app text-ink panel:flex-row">
+      <div className="relative flex min-h-dvh flex-col bg-app text-ink panel:flex-row">
+        {!welcome && (
+          <div
+            aria-hidden
+            data-assistant-top-band
+            style={{ backgroundSize: "calc(100vw - 220px) 100%", backgroundPosition: "right" }}
+            className="pointer-events-none absolute top-0 right-0 hidden h-4 w-[432px] bg-app-band lg:block"
+          />
+        )}
         {welcome ? (
           <WelcomeStage selected={selected} retreat={phase === "retreat"} shared={!reduce} />
         ) : (
@@ -851,7 +859,11 @@ export function TrialScreen({ onSave }: { onSave: (intent: SaveIntent, trigger: 
               transition={DOCK}
               className="relative flex min-w-0 flex-1 flex-col lg:pt-4"
             >
-              <div aria-hidden className="absolute inset-x-0 top-0 hidden h-12 bg-app-band lg:block" />
+              <div
+                aria-hidden
+                style={{ backgroundSize: "calc(100vw - 220px) 100%" }}
+                className="absolute inset-x-0 top-0 hidden h-12 bg-app-band lg:block"
+              />
               <main
                 className={cn(
                   "relative min-w-0 flex-1 bg-app px-4 pt-5 sm:px-8 lg:rounded-tl-[24px] lg:pt-7 panel:pb-10",

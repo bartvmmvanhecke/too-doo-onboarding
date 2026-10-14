@@ -3,7 +3,7 @@ import { useRef, useState, useEffect, useLayoutEffect, type KeyboardEvent } from
 import { toast } from "sonner";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandList, CommandItem } from "@/components/ui/command";
-import { Plus, GripVertical } from "lucide-react";
+import { Plus, GripVertical, ChevronDown } from "lucide-react";
 import { newBlock, blockDuration, type AgendaBlock, type AgendaItem, type EntryKind, type Entry } from "@/lib/agenda";
 import { SuggestionCards } from "./suggestions";
 import type { Suggestion } from "@/lib/meeting-suggestions";
@@ -713,7 +713,7 @@ export function DocumentEditor({ meeting, simplified = false }: { meeting: Meeti
       }
     >
       {simplified && (
-        <div className="relative z-10 mb-2 flex justify-end sm:mb-0">
+        <div className="pointer-events-none relative z-10 mb-2 flex justify-end sm:mb-0">
           <Popover
             open={templatesOpen}
             onOpenChange={(open) => {
@@ -722,8 +722,12 @@ export function DocumentEditor({ meeting, simplified = false }: { meeting: Meeti
             }}
           >
             <PopoverTrigger asChild>
-              <button type="button" className="min-h-11 px-2 text-xs text-ink-3 hover:text-ink">
+              <button
+                type="button"
+                className="pointer-events-auto inline-flex min-h-11 items-center gap-2 rounded-full border border-line bg-white px-3 text-xs text-ink-3 hover:bg-app hover:text-ink"
+              >
                 Gebruik een sjabloon
+                <ChevronDown size={14} aria-hidden />
               </button>
             </PopoverTrigger>
             <PopoverContent

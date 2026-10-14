@@ -1123,6 +1123,6 @@ html[data-onboarding-fade="in"] body {
     margin-bottom: -44px;
   }
   .onboarding-notepad-empty > div:nth-child(2) > div > div > .document-row:first-child {
-    padding-right: 160px;
+    padding-right: 190px;
   }
 }

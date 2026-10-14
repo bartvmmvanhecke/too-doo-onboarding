@@ -1,5 +1,7 @@
 /**
- * "Bekijk eerst een voorbeeld": naar /voorbeeld, een andere route (de app-shell met de meeting detail). Daar
+ * Overgangen vanaf het startscherm die de View Transitions API gebruiken (met fallback zonder).
+ *
+ * `openWithTransition` · "Bekijk eerst een voorbeeld": naar /voorbeeld, een andere route (de app-shell met de meeting detail). Daar
  * werkt de layout-animatie van framer-motion niet over de routegrens heen; de View Transitions API neemt het
  * over. Het navy vlak en het logo zijn gedeelde elementen (`view-transition-name`, enkel tijdens deze
  * navigatie) die in de zijbalk van de app landen; de rest crossfadet.
@@ -11,8 +13,22 @@
 
 type ViewTransition = { finished: Promise<void> };
 type DocumentWithViewTransition = Document & {
-  startViewTransition?: (update: () => Promise<void>) => ViewTransition;
+  startViewTransition?: (update: () => Promise<void> | void) => ViewTransition;
 };
+
+/**
+ * Crossfade binnen dezelfde pagina (reduced motion: 150 ms, smal scherm: 200 ms): oud en nieuw beeld
+ * overlappen via de View Transitions API. `update` moet de DOM synchroon bijwerken (flushSync).
+ * Geeft `false` zonder View Transitions; dan doet de aanroeper zelf een fade-in van 200 ms.
+ */
+export function crossfade(update: () => void, ms: 150 | 200): boolean {
+  const doc = document as DocumentWithViewTransition;
+  if (!doc.startViewTransition) return false;
+  const root = document.documentElement;
+  root.dataset.onboardingVt = ms === 150 ? "reduce" : "fade";
+  doc.startViewTransition(update).finished.finally(() => delete root.dataset.onboardingVt);
+  return true;
+}
 
 /**
  * Wacht tot de bestemming getoond kan worden (de titel van de meeting detail), maximaal `ms`. Met `setTimeout`:

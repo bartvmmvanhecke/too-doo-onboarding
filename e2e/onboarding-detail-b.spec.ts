@@ -9,6 +9,8 @@ test("onboarding: variant B zodra het overleg verschijnt, gedeelde edits en herl
   await page.keyboard.press("Escape");
   await page.getByRole("button", { name: /^Start met een lege vergadering/ }).click();
   await expect(page.getByRole("main").getByRole("heading", { level: 1 })).toBeVisible();
+  // Na de overgang (de titel staat dan in bewerkmodus) toont het prototypemenu de varianten.
+  await expect(page.getByRole("textbox", { name: "Naam van de vergadering aanpassen" })).toBeFocused();
   await page.getByRole("button", { name: "Prototype-menu" }).click();
   await page.getByRole("button", { name: "Variant B", exact: true }).click();
   await expect(page).toHaveURL(/variant=b/);
@@ -33,10 +35,10 @@ for (const variant of ["a", "b"]) {
     const errors = trackErrors(page);
     await page.goto(`/probeer?variant=${variant}`);
     await page.getByRole("button", { name: /^Vertel het me/ }).click();
-    await expect(page.getByRole("log").getByText(/^Waarover gaat je volgende overleg/)).toBeVisible();
+    const sentence = page.getByRole("complementary", { name: "Assistent" }).getByLabel("Over welk overleg gaat het?");
+    await sentence.fill("Ons productieoverleg elke maandag om 8u met Jan en Sofie: orders, problemen en planning");
+    await sentence.press("Enter");
     const chat = page.getByRole("complementary", { name: "Assistent" }).getByRole("textbox");
-    await chat.fill("Ons productieoverleg elke maandag om 8u met Jan en Sofie: orders, problemen en planning");
-    await chat.press("Enter");
     const theme = page.getByRole("main");
     await expect(theme.getByRole("heading", { level: 1 })).toBeVisible();
     if (variant === "b") {

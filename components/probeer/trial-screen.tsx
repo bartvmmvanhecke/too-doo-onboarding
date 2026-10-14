@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
+import { flushSync } from "react-dom";
 import { useRouter } from "next/navigation";
 import { LayoutGroup, motion, useReducedMotion } from "framer-motion";
 import { CalendarDays, FileUp, LayoutList, Mic, PanelRightClose } from "lucide-react";
@@ -20,7 +21,7 @@ import { connectAccount } from "@/components/probeer/save-guest";
 import { TellSuggestions } from "@/components/probeer/tell-suggestions";
 import { TrialSidebar } from "@/components/probeer/trial-sidebar";
 import { DOCK, DOCK_AT, DOCK_DONE } from "@/components/probeer/dock";
-import { openWithTransition } from "@/components/probeer/example-transition";
+import { crossfade, openWithTransition } from "@/components/probeer/onboarding-transition";
 import { WELCOME_LABEL, WelcomeChoices, WelcomeHeader, WelcomeIntro, WelcomeStage } from "@/components/probeer/welcome";
 import { Button } from "@/components/ui/button";
 import {
@@ -167,6 +168,9 @@ function withoutWelcome(messages: Message[]): Message[] {
  * lege vergadering gaat de titel in bewerkmodus (en krijgt het invoerveld de focus).
  */
 function landInApp() {
+  // Werkt de gebruiker al in de meeting detail (klik tijdens de overgang): de focus daar laten.
+  const active = document.activeElement;
+  if (active && active !== document.body && !active.closest("[data-assistant-panel]")) return;
   if (useGuestStore.getState().startPath === "empty") {
     useGuestStore.setState((s) => ({ editRequest: s.editRequest + 1 }));
     return;
@@ -248,7 +252,15 @@ export function TrialScreen({ onSave }: { onSave: (intent: SaveIntent, trigger: 
   const [morphWidth, setMorphWidth] = useState<number | null>(null);
   const phase = anim ?? (transitionPlayed ? "app" : "welcome");
   const welcome = phase === "welcome" || phase === "retreat";
-  const shared = !reduce && anim !== null;
+  /**
+   * Hoe de overgang speelt, bepaald bij de start: "morph" (breed scherm, de zijbalk staat er), of een crossfade
+   * van 150 ms (reduced motion) of 200 ms (smal scherm, daar is de app-layout anders).
+   */
+  const [dockMode, setDockMode] = useState<"morph" | 150 | 200>("morph");
+  const shared = dockMode === "morph" && anim !== null;
+  const fadeMs = dockMode === "morph" ? null : dockMode;
+  /** Geen View Transitions in de browser: dan fadet de app-layout zelf in. */
+  const [fadeIn, setFadeIn] = useState(false);
 
   useEffect(openTrial, []);
 
@@ -291,20 +303,53 @@ export function TrialScreen({ onSave }: { onSave: (intent: SaveIntent, trigger: 
     docking.current = true;
     const g = useGuestStore.getState();
     const from = g.replyFrom;
-    const timers: [number, () => void][] = reduce
-      ? [
-          [0, () => (setHold(from), setAnim("docking"))],
-          [200, () => (g.setTransitionPlayed(), setAnim(null), setDone(true), landInApp())],
-          [500, () => setHold(null)],
-          [1400, () => setDone(false)],
-        ]
-      : [
-          [0, () => (setHold(from), setMorphWidth(panelWidth()), setAnim("retreat"))],
-          [DOCK_AT, () => (setAnim("docking"), useGuestStore.setState({ flash: ["name"], flashAt: Date.now() }))],
-          [DOCK_DONE, () => (g.setTransitionPlayed(), setAnim(null), setMorphWidth(null), setDone(true), landInApp())],
-          [1000, () => setHold(null)],
-          [1900, () => setDone(false)],
-        ];
+    const mode = reduce ? 150 : window.matchMedia("(min-width: 1024px)").matches ? "morph" : 200;
+    const timers: [number, () => void][] =
+      mode !== "morph"
+        ? [
+            [
+              0,
+              () => {
+                const swap = () =>
+                  flushSync(() => {
+                    setHold(from);
+                    setDockMode(mode);
+                    setAnim("docking");
+                  });
+                if (crossfade(swap, mode)) return;
+                // Zonder View Transitions: de app-layout fadet in (200 ms).
+                setFadeIn(true);
+                swap();
+              },
+            ],
+            [
+              mode,
+              () => (
+                g.setTransitionPlayed(),
+                setAnim(null),
+                setDone(useGuestStore.getState().startPath !== "empty"),
+                landInApp()
+              ),
+            ],
+            [500, () => setHold(null)],
+            [1400, () => setDone(false)],
+          ]
+        : [
+            [0, () => (setHold(from), setDockMode(mode), setMorphWidth(panelWidth()), setAnim("retreat"))],
+            [DOCK_AT, () => (setAnim("docking"), useGuestStore.setState({ flash: ["name"], flashAt: Date.now() }))],
+            [
+              DOCK_DONE,
+              () => (
+                g.setTransitionPlayed(),
+                setAnim(null),
+                setMorphWidth(null),
+                setDone(useGuestStore.getState().startPath !== "empty"),
+                landInApp()
+              ),
+            ],
+            [1000, () => setHold(null)],
+            [1900, () => setDone(false)],
+          ];
     // Geen cleanup: ook verborgen (Activity) moet de overgang gewoon aflopen.
     for (const [ms, fn] of timers) setTimeout(fn, ms);
   }, [readyToDock, reduce, transitionPlayed, anim]);
@@ -784,10 +829,11 @@ export function TrialScreen({ onSave }: { onSave: (intent: SaveIntent, trigger: 
           <WelcomeStage selected={selected} retreat={phase === "retreat"} shared={!reduce} />
         ) : (
           <motion.div
-            data-docking={anim === "docking" && !reduce ? "" : undefined}
-            initial={reduce && anim ? { opacity: 0 } : false}
+            data-docking={shared ? "" : undefined}
+            // Reduced motion of smal scherm: geen schuiven of krimpen, enkel een crossfade naar de app-layout.
+            initial={anim && fadeMs && fadeIn ? { opacity: 0 } : false}
             animate={{ opacity: 1 }}
-            transition={{ duration: 0.2 }}
+            transition={{ duration: 0.2, ease: "linear" }}
             className="flex min-w-0 flex-1 flex-col lg:flex-row"
           >
             {/* De zijbalk (het navy vlak landt hier), dan het contentvlak met de lichte band en de afgeronde

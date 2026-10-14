@@ -55,9 +55,9 @@ function Sidebar() {
   return (
     <nav
       aria-label="Hoofdmenu"
-      className="flex flex-col gap-1 px-3.5 py-4 text-white lg:min-h-dvh lg:w-60 lg:shrink-0 lg:py-6"
+      className="vt-onboarding-ground flex flex-col gap-1 px-3.5 py-4 text-white lg:min-h-dvh lg:w-60 lg:shrink-0 lg:py-6"
     >
-      <Logo href="/app" tone="white" className="self-start px-2.5 lg:pb-4" />
+      <Logo href="/app" tone="white" className="vt-onboarding-logo self-start px-2.5 lg:pb-4" />
       <div className="flex flex-wrap gap-1 lg:flex-col">
         {bMode ? (
           <Link

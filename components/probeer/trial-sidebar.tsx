@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
+import { DOCK, SHARED } from "@/components/probeer/dock";
 import { Menu, UserRound, Clock } from "lucide-react";
 import { Logo } from "@/components/brand";
 import { Button } from "@/components/ui/button";
@@ -61,9 +62,6 @@ function NavItems({ meetingNames }: { meetingNames: string[] }) {
     </>
   );
 }
-
-/** Laag 2 (150–550 ms): het blauwe paneel krimpt tot de zijbalk, het logo landt. */
-const PANEL = { duration: 0.4, ease: [0.65, 0, 0.35, 1] as const };
 
 function SaveBox({ canSave, onSave, account }: { canSave: boolean; onSave: () => void; account: GuestAccount | null }) {
   const company = useStore((s) => s.user?.company);
@@ -128,11 +126,12 @@ function SaveBox({ canSave, onSave, account }: { canSave: boolean; onSave: () =>
 }
 
 /** Gedeelde elementen van de overgang welkom → app (SPEC-LAZY.md §4, Stap 0). */
-export const SHARED = { panel: "trial-nav", logo: "trial-logo", title: "trial-title" } as const;
+export { SHARED };
 
 /**
- * Zijbalk van de proefomgeving (zoals de app); op smalle schermen een menuknop.
- * `shared`: het blauwe paneel en het logo van het welkomstscherm landen hier (layoutId).
+ * Zijbalk van de proefomgeving, op het verloop van de app; op smalle schermen een menuknop.
+ * `shared`: het navy vlak en het logo van het startscherm landen hier (layoutId). Het vlak kleurt tijdens de
+ * overgang van `--onboarding-ground` naar het verloop, en ligt dan boven het contentvlak dat inschuift.
  */
 export function TrialSidebar({
   meetingNames,
@@ -151,21 +150,33 @@ export function TrialSidebar({
     <>
       <nav
         aria-label="Hoofdmenu"
-        className="sticky top-0 isolate hidden h-dvh w-[220px] shrink-0 flex-col gap-1 px-3.5 py-6 text-white lg:flex"
+        className={cn(
+          "sticky top-0 isolate hidden h-dvh w-[220px] shrink-0 flex-col gap-1 px-3.5 py-6 text-white lg:flex",
+          shared && "z-10",
+        )}
       >
         <motion.div
           aria-hidden
           layoutId={shared ? SHARED.panel : undefined}
-          transition={PANEL}
-          className="absolute inset-0 -z-10 bg-app-nav"
-        />
-        <motion.div layoutId={shared ? SHARED.logo : undefined} transition={PANEL} className="self-start">
+          transition={DOCK}
+          className="absolute inset-0 -z-10 bg-app-shell"
+        >
+          {shared && (
+            <motion.div
+              initial={{ opacity: 1 }}
+              animate={{ opacity: 0 }}
+              transition={DOCK}
+              className="absolute inset-0 bg-onboarding-ground"
+            />
+          )}
+        </motion.div>
+        <motion.div layoutId={shared ? SHARED.logo : undefined} transition={DOCK} className="self-start">
           <Logo href="/" tone="white" className="px-2.5 pb-5" />
         </motion.div>
         <div className="dock-nav flex flex-col gap-1">
           <NavItems meetingNames={meetingNames} />
         </div>
-        <div className="mt-auto">
+        <div className="dock-nav mt-auto">
           <SaveBox canSave={canSave} onSave={onSave} account={account} />
         </div>
       </nav>

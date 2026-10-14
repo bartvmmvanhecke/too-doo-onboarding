@@ -5,17 +5,10 @@ import Link from "next/link";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { ArrowRight, CalendarDays, ChevronRight, FileText, Loader2, MessageCircle, Sparkles } from "lucide-react";
 import { MeetingToActionStill } from "@/components/onboarding/meeting-to-action-still";
-import { SHARED } from "@/components/probeer/trial-sidebar";
+import { CLEAR, DOCK, DOCK_EASE, SHARED } from "@/components/probeer/dock";
 import { Button } from "@/components/ui/button";
 import type { StartChoice } from "@/lib/assistant/types";
 import { cn } from "@/lib/utils";
-
-/** Ease van de overgang naar de app (± 700 ms). */
-export const DOCK_EASE = [0.4, 0, 0.2, 1] as const;
-/** Laag 2 (150–650 ms): het blauwe vlak krimpt tot de zijbalk, het logo landt. */
-export const DOCK = { duration: 0.5, ease: DOCK_EASE };
-/** Laag 1 (0–150 ms): links leegmaken; het logo blijft staan. */
-const CLEAR = { duration: 0.15, ease: DOCK_EASE };
 
 /** De uitlegzin links wisselt met de gekozen optie. */
 const EXPLAIN: Record<StartChoice, string> = {
@@ -48,12 +41,12 @@ export function WelcomeStage({
         aria-hidden
         layoutId={shared ? SHARED.panel : undefined}
         transition={DOCK}
-        className="absolute inset-0 -z-10 bg-onboarding-ground"
+        className="vt-onboarding-ground absolute inset-0 -z-10 bg-onboarding-ground"
       />
       <motion.span
         layoutId={shared ? SHARED.logo : undefined}
         transition={DOCK}
-        className="self-start text-[22px] leading-none font-extrabold"
+        className="vt-onboarding-logo self-start text-[22px] leading-none font-extrabold"
       >
         too-<span className="text-welcome-accent">doo</span>
       </motion.span>
@@ -379,7 +372,16 @@ export function WelcomeIntro({
           <button type="button" disabled={disabled} className={secondary} onClick={onEmpty}>
             Start met een lege vergadering
           </button>
-          <Link href="/voorbeeld?van=probeer" onClick={onExample} className={secondary}>
+          <Link
+            href="/voorbeeld?van=probeer"
+            className={secondary}
+            onClick={(e) => {
+              // Gewone klik: met de overgang; nieuw tabblad of venster gewoon via de link.
+              if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0) return;
+              e.preventDefault();
+              onExample();
+            }}
+          >
             Bekijk eerst een voorbeeld
           </Link>
         </div>

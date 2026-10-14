@@ -351,8 +351,8 @@
 
 @media (prefers-reduced-motion: no-preference) {
   [data-docking] .dock-nav > * {
-    animation: dock-from-left 240ms cubic-bezier(0.65, 0, 0.35, 1) both;
-    animation-delay: calc(250ms + var(--dock-i, 0) * 40ms);
+    animation: dock-from-left 240ms cubic-bezier(0.4, 0, 0.2, 1) both;
+    animation-delay: calc(300ms + var(--dock-i, 0) * 30ms);
   }
 
   [data-docking] .dock-rise,
@@ -381,6 +381,51 @@
   .dock-nav > :nth-child(n + 6),
   #proefomgeving section:nth-of-type(n + 6) {
     --dock-i: 5;
+  }
+}
+
+/*
+ * Overgang startscherm → voorbeeld (View Transitions API, components/probeer/example-transition.ts): het navy
+ * vlak en het logo landen in de zijbalk van de app, de rest crossfadet. De namen gelden enkel tijdens die
+ * navigatie. Reduced motion en smalle schermen: enkel een crossfade. Zonder View Transitions: vervagen.
+ */
+html[data-onboarding-vt="morph"] .vt-onboarding-ground {
+  view-transition-name: onboarding-ground;
+}
+
+html[data-onboarding-vt="morph"] .vt-onboarding-logo {
+  view-transition-name: onboarding-logo;
+}
+
+html[data-onboarding-vt="morph"]::view-transition-group(*),
+html[data-onboarding-vt="morph"]::view-transition-old(*),
+html[data-onboarding-vt="morph"]::view-transition-new(*) {
+  animation-duration: 500ms;
+  animation-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+html[data-onboarding-vt="fade"]::view-transition-old(root),
+html[data-onboarding-vt="fade"]::view-transition-new(root) {
+  animation-duration: 200ms;
+}
+
+html[data-onboarding-vt="reduce"]::view-transition-old(root),
+html[data-onboarding-vt="reduce"]::view-transition-new(root) {
+  animation-duration: 150ms;
+}
+
+html[data-onboarding-fade="out"] body {
+  opacity: 0;
+  transition: opacity 200ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+html[data-onboarding-fade="in"] body {
+  animation: onboarding-fade-in 200ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes onboarding-fade-in {
+  from {
+    opacity: 0;
   }
 }
 

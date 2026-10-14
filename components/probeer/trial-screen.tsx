@@ -19,6 +19,8 @@ import { GoalChips } from "@/components/probeer/goal-chips";
 import { connectAccount } from "@/components/probeer/save-guest";
 import { TellSuggestions } from "@/components/probeer/tell-suggestions";
 import { TrialSidebar } from "@/components/probeer/trial-sidebar";
+import { DOCK, DOCK_AT, DOCK_DONE } from "@/components/probeer/dock";
+import { openWithTransition } from "@/components/probeer/example-transition";
 import { WELCOME_LABEL, WelcomeChoices, WelcomeHeader, WelcomeIntro, WelcomeStage } from "@/components/probeer/welcome";
 import { Button } from "@/components/ui/button";
 import {
@@ -38,10 +40,11 @@ import { appointmentOptions, seriesOptions } from "@/lib/assistant/calendar";
 import { GOAL_DURATIONS, type MeetingGoal } from "@/lib/assistant/goals";
 import { formatShortDate } from "@/lib/date";
 import { LISTEN_DELAY, SAMPLE_TRANSCRIPT } from "@/lib/extract";
-import { hasGuestWork, useGuestStore } from "@/lib/guest-store";
+import { WELCOME_MESSAGES, hasGuestWork, useGuestStore } from "@/lib/guest-store";
 import { notesFileKind, readNotesFile } from "@/lib/notes-file";
 import { useCalendarConsent, useSsoLogin } from "@/lib/simulate";
 import { useStore, type SaveIntent } from "@/lib/store";
+import { TRIAL_MEETING_ID } from "@/lib/trial-meeting";
 import { track } from "@/lib/track";
 import { cn, lowerFirst } from "@/lib/utils";
 
@@ -147,12 +150,38 @@ function MailCard() {
   );
 }
 
-/** "Start met een lege vergadering" (C1d): geen overgang, meteen de app met de assistent gesloten. */
+/** "Start met een lege vergadering" (C1d): de standaardagenda; de overgang naar de app volgt vanzelf. */
 function startEmptyMeeting() {
   track("assistant_entry_chosen", { ingang: "empty" });
   useGuestStore.getState().startEmpty();
-  // De titel "Nieuwe vergadering" meteen in bewerkmodus, zodra het overleg er staat.
-  setTimeout(() => useGuestStore.setState((s) => ({ editRequest: s.editRequest + 1 })), 50);
+}
+
+/** Zonder het welkomstbericht: in de app is de zin van de gebruiker (of de vraag) het eerste bericht. */
+function withoutWelcome(messages: Message[]): Message[] {
+  const [first, ...rest] = messages;
+  return first?.from === "assistant" && first.text === WELCOME_MESSAGES[0].text ? rest : messages;
+}
+
+/**
+ * Na de overgang: de focus op de titel van de meeting detail, niet meer in het verdwenen keuzepaneel. Bij een
+ * lege vergadering gaat de titel in bewerkmodus (en krijgt het invoerveld de focus).
+ */
+function landInApp() {
+  if (useGuestStore.getState().startPath === "empty") {
+    useGuestStore.setState((s) => ({ editRequest: s.editRequest + 1 }));
+    return;
+  }
+  requestAnimationFrame(() => {
+    const title = document.querySelector<HTMLElement>(`#${TRIAL_MEETING_ID} h1`);
+    if (!title) return;
+    title.tabIndex = -1;
+    title.focus({ preventScroll: true });
+  });
+}
+
+/** De breedte van het keuzepaneel vlak voor de overgang. */
+function panelWidth(): number | null {
+  return document.querySelector("[data-assistant-panel]")?.getBoundingClientRect().width ?? null;
 }
 
 /** Variant A · de proefomgeving op /probeer (C1–C4): zijbalk, overleg in opbouw, assistent. */
@@ -215,6 +244,8 @@ export function TrialScreen({ onSave }: { onSave: (intent: SaveIntent, trigger: 
   const [hold, setHold] = useState<number | null>(null);
   const [slow, setSlow] = useState(false);
   const docking = useRef(false);
+  /** Breedte van het keuzepaneel bij de start van de overgang; het versmalt van daar naar 400 px. */
+  const [morphWidth, setMorphWidth] = useState<number | null>(null);
   const phase = anim ?? (transitionPlayed ? "app" : "welcome");
   const welcome = phase === "welcome" || phase === "retreat";
   const shared = !reduce && anim !== null;
@@ -241,7 +272,8 @@ export function TrialScreen({ onSave }: { onSave: (intent: SaveIntent, trigger: 
   }, [typing, transitionPlayed]);
 
   // De inhoud is klaar (titel en agenda uit de zin, acties uit de notities, of de reekslijst uit de agenda):
-  // dan pas de overgang. Totaal ± 700 ms; bij reduced motion een crossfade van 200 ms.
+  // dan pas de overgang. Totaal ± 700 ms (0–150 ms links leegmaken; 150–650 ms vlak → zijbalk, contentvlak
+  // schuift in, paneel versmalt); bij reduced motion een crossfade.
   // Bij "Vertel het me" is elke verwerkte zin genoeg, ook zonder herkende naam: de titel wordt dan
   // "Je eerste overleg" en de assistent vraagt in de app wat ontbreekt.
   const sentenceDone = startPath === "tell" && !["entry", "sentence", "provider", "paste"].includes(pending.kind);
@@ -262,14 +294,14 @@ export function TrialScreen({ onSave }: { onSave: (intent: SaveIntent, trigger: 
     const timers: [number, () => void][] = reduce
       ? [
           [0, () => (setHold(from), setAnim("docking"))],
-          [200, () => (g.setTransitionPlayed(), setAnim(null), setDone(true))],
+          [200, () => (g.setTransitionPlayed(), setAnim(null), setDone(true), landInApp())],
           [500, () => setHold(null)],
           [1400, () => setDone(false)],
         ]
       : [
-          [0, () => (setHold(from), setAnim("retreat"))],
-          [150, () => (setAnim("docking"), useGuestStore.setState({ flash: ["name"], flashAt: Date.now() }))],
-          [700, () => (g.setTransitionPlayed(), setAnim(null), setDone(true))],
+          [0, () => (setHold(from), setMorphWidth(panelWidth()), setAnim("retreat"))],
+          [DOCK_AT, () => (setAnim("docking"), useGuestStore.setState({ flash: ["name"], flashAt: Date.now() }))],
+          [DOCK_DONE, () => (g.setTransitionPlayed(), setAnim(null), setMorphWidth(null), setDone(true), landInApp())],
           [1000, () => setHold(null)],
           [1900, () => setDone(false)],
         ];
@@ -436,7 +468,7 @@ export function TrialScreen({ onSave }: { onSave: (intent: SaveIntent, trigger: 
     else choose(c, WELCOME_LABEL[c], "welkom");
   };
 
-  /** "Start met een lege vergadering" (C1d): geen overgang, meteen de app met de assistent ingeklapt. */
+  /** "Start met een lege vergadering" (C1d): de standaardagenda, met dezelfde overgang naar de app. */
   const startEmpty = () => {
     if (!busy) startEmptyMeeting();
   };
@@ -758,6 +790,8 @@ export function TrialScreen({ onSave }: { onSave: (intent: SaveIntent, trigger: 
             transition={{ duration: 0.2 }}
             className="flex min-w-0 flex-1 flex-col lg:flex-row"
           >
+            {/* De zijbalk (het navy vlak landt hier), dan het contentvlak met de lichte band en de afgeronde
+                hoek linksboven, zoals de app. Tijdens de overgang schuift het contentvlak in. */}
             <TrialSidebar
               meetingNames={meetingNames}
               canSave={step === 3 || others.length > 0}
@@ -765,27 +799,38 @@ export function TrialScreen({ onSave }: { onSave: (intent: SaveIntent, trigger: 
               onSave={() => onSave("save", "zijbalk")}
               shared={shared}
             />
-            <main
-              className={cn("min-w-0 flex-1 px-4 pt-5 sm:px-8 panel:pb-10", open ? "pb-[60dvh]" : "pb-16 panel:pr-24")}
+            <motion.div
+              initial={shared ? { opacity: 0, x: 24 } : false}
+              animate={{ opacity: 1, x: 0 }}
+              transition={DOCK}
+              className="relative flex min-w-0 flex-1 flex-col lg:pt-4"
             >
-              <div className="mx-auto w-full max-w-[860px]">
-                {/* Het detailscherm gebruikt de UI-context van de app (modal "Andere overlegmomenten"). */}
-                <AppUiProvider>
-                  <TrialMeeting
-                    flash={flash}
-                    editRequest={editRequest}
-                    busy={busy}
-                    onNotesFile={readFile}
-                    onEdited={onEdited}
-                    onStart={onStart}
-                    onFromCalendar={fromCalendar}
-                    done={done}
-                    countUp={startPath === "notes" && (anim !== null || done)}
-                    emptyPath={startPath === "empty"}
-                  />
-                </AppUiProvider>
-              </div>
-            </main>
+              <div aria-hidden className="absolute inset-x-0 top-0 hidden h-12 bg-app-band lg:block" />
+              <main
+                className={cn(
+                  "relative min-w-0 flex-1 bg-app px-4 pt-5 sm:px-8 lg:rounded-tl-[24px] lg:pt-7 panel:pb-10",
+                  open ? "pb-[60dvh]" : "pb-16 panel:pr-24",
+                )}
+              >
+                <div className="mx-auto w-full max-w-[860px]">
+                  {/* Het detailscherm gebruikt de UI-context van de app (modal "Andere overlegmomenten"). */}
+                  <AppUiProvider>
+                    <TrialMeeting
+                      flash={flash}
+                      editRequest={editRequest}
+                      busy={busy}
+                      onNotesFile={readFile}
+                      onEdited={onEdited}
+                      onStart={onStart}
+                      onFromCalendar={fromCalendar}
+                      done={done}
+                      countUp={startPath === "notes" && (anim !== null || done)}
+                      emptyPath={startPath === "empty"}
+                    />
+                  </AppUiProvider>
+                </div>
+              </main>
+            </motion.div>
           </motion.div>
         )}
         <AssistantPanel
@@ -829,11 +874,16 @@ export function TrialScreen({ onSave }: { onSave: (intent: SaveIntent, trigger: 
                 focusRequest={tellFocus}
                 onChoose={chooseCard}
                 onEmpty={startEmpty}
-                onExample={() => track("assistant_entry_chosen", { ingang: "example" })}
+                onExample={() => {
+                  if (busy) return;
+                  track("assistant_entry_chosen", { ingang: "example" });
+                  openWithTransition("/voorbeeld?van=probeer", router.push, !!reduce);
+                }}
               />
             ) : undefined
           }
-          messages={intro ? [] : shown}
+          messages={intro ? [] : withoutWelcome(shown)}
+          morphFrom={anim === "docking" && shared ? morphWidth : null}
           typing={!intro && (typing || preparing)}
           typingLabel={preparing ? PREPARING : null}
           open={open}

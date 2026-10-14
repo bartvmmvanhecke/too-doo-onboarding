@@ -265,6 +265,7 @@ export function AssistantPanel({
   header,
   intro,
   typingLabel,
+  morphFrom,
 }: {
   subtitle: string;
   /** "⋯" in de kop (C1f), bv. een voorbeeldagenda of de assistent sluiten. */
@@ -296,6 +297,11 @@ export function AssistantPanel({
   intro?: ReactNode;
   /** In plaats van de typ-indicator, bv. "Ik zet je overleg klaar…". */
   typingLabel?: string | null;
+  /**
+   * Overgang startscherm → app: de breedte (px) van het keuzepaneel vlak voor de overgang. Hetzelfde paneel
+   * versmalt dan in 500 ms naar de breedte van het assistentpaneel, en de schaduw gaat naar de rand.
+   */
+  morphFrom?: number | null;
 }) {
   const endRef = useRef<HTMLDivElement>(null);
   const drop = useFileDrop((file) => onFileDrop?.(file), !!onFileDrop);
@@ -310,6 +316,27 @@ export function AssistantPanel({
 
   const c = LAYOUT[layout];
   const reduce = useReducedMotion();
+
+  // Vóór het eerste beeld van de app-layout: terug naar de oude breedte, dan met een CSS-transitie naar de
+  // breedte uit de klassen. Geen moment zonder of met twee panelen; na afloop gewoon de klassen.
+  const asideRef = useRef<HTMLElement>(null);
+  useLayoutEffect(() => {
+    const el = asideRef.current;
+    if (!el || !morphFrom) return;
+    el.style.transition = "none";
+    el.style.width = `${morphFrom}px`;
+    el.style.boxShadow = "-24px 0 48px var(--onboarding-panel-shadow)";
+    el.style.borderLeftColor = "transparent";
+    void el.offsetWidth;
+    el.style.transition = ["width", "box-shadow", "border-left-color"]
+      .map((p) => `${p} 500ms cubic-bezier(0.4, 0, 0.2, 1)`)
+      .join(", ");
+    el.style.width = "";
+    el.style.boxShadow = "";
+    el.style.borderLeftColor = "";
+    const done = setTimeout(() => (el.style.transition = ""), 550);
+    return () => clearTimeout(done);
+  }, [morphFrom]);
   const transition: Transition = reduce ? { duration: 0 } : { duration: 0.25, ease: [0.65, 0, 0.35, 1] };
 
   return (
@@ -325,6 +352,7 @@ export function AssistantPanel({
       ) : (
         <motion.aside
           key="paneel"
+          ref={asideRef}
           aria-label="Assistent"
           data-assistant-panel
           {...drop.handlers}
@@ -367,7 +395,14 @@ export function AssistantPanel({
             </div>
           )}
 
-          <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
+          <div
+            // Van keuzepaneel naar gesprek: de inhoud crossfadet, het paneel blijft staan.
+            key={hasIntro ? "intro" : "gesprek"}
+            className={cn(
+              "flex min-h-0 flex-1 flex-col overflow-y-auto",
+              !hasIntro && "animate-in duration-300 fade-in motion-reduce:animate-none",
+            )}
+          >
             {intro}
             <div
               role="log"

@@ -228,9 +228,8 @@ export const useGuestStore = create<GuestStore>()(
           set({
             ...reply.state,
             startPath: "empty",
-            transitionPlayed: true,
-            // C1d: de assistent start gesloten, als zwevende knop rechtsonder.
-            assistantOpen: false,
+            // De overgang naar de app volgt (TrialScreen): het keuzepaneel versmalt tot de open assistent.
+            assistantOpen: true,
             conversation: withIds(reply.messages),
             replyFrom: 0,
           });

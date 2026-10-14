@@ -1,6 +1,8 @@
 "use client";
 import { useRef, useState, useEffect, useLayoutEffect, type KeyboardEvent } from "react";
 import { toast } from "sonner";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Command, CommandList, CommandItem } from "@/components/ui/command";
 import { Plus, GripVertical } from "lucide-react";
 import { newBlock, blockDuration, type AgendaBlock, type AgendaItem, type EntryKind, type Entry } from "@/lib/agenda";
 import { SuggestionCards } from "./suggestions";
@@ -33,7 +35,10 @@ type Draft = {
   ownerId?: string | null;
   date?: string;
 };
-export function DocumentEditor({ meeting }: { meeting: Meeting }) {
+export function DocumentEditor({ meeting, simplified = false }: { meeting: Meeting; simplified?: boolean }) {
+  const [templatesOpen, setTemplatesOpen] = useState(false);
+  const [preview, setPreview] = useState<AgendaBlock[] | null>(null);
+  const insertedFocus = useRef<string | null>(null);
   const context = useMeeting();
   const people = context.people.filter((p) => meeting.participants.includes(p.id));
   const currentMeeting = () =>
@@ -58,10 +63,11 @@ export function DocumentEditor({ meeting }: { meeting: Meeting }) {
   );
   const pristine = !content && !structured && !hasCustomBlocks;
   const blocks = pristine ? [] : meeting.blocks.filter((b) => b.kind !== "actions");
-  const showExamples = !content && !draft?.text;
+  const showExamples = !simplified && !content && !draft?.text;
   useEffect(() => {
-    if (!content) refs.current.get("empty-")?.focus();
-  }, [content]);
+    if (!content && (!simplified || document.activeElement === document.body || document.activeElement === null))
+      refs.current.get("empty-")?.focus();
+  }, [content, simplified]);
   function applyFocus(id: string) {
     const el = document.getElementById(id) as HTMLInputElement | null;
     if (!el) return false;
@@ -299,6 +305,24 @@ export function DocumentEditor({ meeting }: { meeting: Meeting }) {
       />
     );
   }
+  function insertTemplate(template: AgendaBlock[]) {
+    const snapshot = currentMeeting();
+    ops.putMeeting({ ...snapshot, blocks: [...snapshot.blocks, ...template] });
+    setStructured(true);
+    setDraft(null);
+    insertedFocus.current = template.flatMap((b) => b.items)[0]?.id ?? null;
+    setTemplatesOpen(false);
+    setPreview(null);
+    const ids = new Set(template.map((b) => b.id));
+    toast("Sjabloon toegevoegd", {
+      action: {
+        label: "Ongedaan maken",
+        onClick: () => {
+          ops.putMeeting({ ...currentMeeting(), blocks: currentMeeting().blocks.filter((b) => !ids.has(b.id)) });
+        },
+      },
+    });
+  }
   function draftRow(blockId: string, afterId?: string) {
     const active = draft?.blockId === blockId && draft.afterId === afterId;
     const baseId = `empty-${blockId}`;
@@ -345,7 +369,13 @@ export function DocumentEditor({ meeting }: { meeting: Meeting }) {
               if (el) refs.current.set(id, el);
               else refs.current.delete(id);
             }}
-            placeholder="Typ een agendapunt…"
+            placeholder={
+              simplified
+                ? content
+                  ? "Nieuw agendapunt…"
+                  : "+ Wat wil je bespreken? Typ of plak je agenda..."
+                : "Typ een agendapunt…"
+            }
             purposes={temp.purposes}
             update={patch}
             add={add}
@@ -424,7 +454,7 @@ export function DocumentEditor({ meeting }: { meeting: Meeting }) {
             <LineFields item={temp} people={people} update={patch} add={add} focus={() => focus(id)} />
           ) : (
             <>
-              <span className="text-[10px] text-ink-3">Tab voor een notitie</span>
+              {!simplified && <span className="text-[10px] text-ink-3">Tab voor een notitie</span>}
               {/* Zelfde plek als de toevoegen-+ van een agendapunt (LineFields). */}
               <Plus size={16} aria-hidden className="invisible shrink-0" />
             </>
@@ -675,166 +705,275 @@ export function DocumentEditor({ meeting }: { meeting: Meeting }) {
     );
   }
   return (
-    <div>
-      <input
-        ref={documentFile}
-        type="file"
-        className="sr-only"
-        tabIndex={-1}
-        aria-label="Document toevoegen"
-        onChange={(e) => {
-          const file = e.target.files?.[0];
-          const itemId = documentParent.current;
-          if (file && itemId)
-            ops.addEntry(meeting.id, itemId, {
-              kind: "document",
-              text: file.name,
-              size: file.size,
-              ownerId: null,
-              date: "",
-            });
-          e.target.value = "";
-          if (itemId) focus(itemId);
-        }}
-      />
-      <p className="sr-only" aria-live="polite">
-        {announcement}
-      </p>
-      {blocks.map((b) => (
-        <section
-          key={b.id}
-          className="mb-5"
-          onDragOver={(e) => e.preventDefault()}
-          onDrop={(e) => {
-            e.preventDefault();
-            const itemId = e.dataTransfer.getData("text/agenda-item");
-            const blockId = e.dataTransfer.getData("text/agenda-block");
-            if (itemId && b.kind === "topics") ops.moveItem(meeting.id, itemId, b.id, b.items.length);
-            if (blockId) {
-              const from = meeting.blocks.findIndex((x) => x.id === blockId);
-              const to = meeting.blocks.indexOf(b);
-              ops.moveBlock(meeting.id, blockId, Math.max(0, to - (from < to ? 1 : 0)));
-            }
-            setAnnouncement("Agenda verplaatst");
-          }}
-        >
-          {b.kind === "break" ? (
-            <div className="flex items-center gap-3 text-xs text-ink-3">
-              <hr className="flex-1 border-line" />
-              Pauze · {b.duration} min
-              <hr className="flex-1 border-line" />
-            </div>
-          ) : (
-            <>
-              {b.title && (
-                <div className="document-row flex items-center gap-2">
-                  <button
-                    type="button"
-                    draggable
-                    aria-label={`Verplaats blok ${b.title}`}
-                    className="document-reveal min-h-11 w-5"
-                    onDragStart={(e) => e.dataTransfer.setData("text/agenda-block", b.id)}
-                    onKeyDown={(e) => {
-                      if (e.key === "ArrowUp" || e.key === "ArrowDown") {
-                        e.preventDefault();
-                        ops.moveBlock(
-                          meeting.id,
-                          b.id,
-                          Math.max(0, meeting.blocks.indexOf(b) + (e.key === "ArrowUp" ? -1 : 1)),
-                        );
-                        setAnnouncement(`${b.title} verplaatst`);
-                      }
-                    }}
-                  >
-                    <GripVertical size={14} aria-hidden />
+    <div
+      className={
+        simplified
+          ? `onboarding-notepad ${content || hasCustomBlocks ? "" : "onboarding-notepad-empty"} flex min-h-[380px] flex-col`
+          : undefined
+      }
+    >
+      {simplified && (
+        <div className="relative z-10 mb-2 flex justify-end sm:mb-0">
+          <Popover
+            open={templatesOpen}
+            onOpenChange={(open) => {
+              setTemplatesOpen(open);
+              if (!open) setPreview(null);
+            }}
+          >
+            <PopoverTrigger asChild>
+              <button type="button" className="min-h-11 px-2 text-xs text-ink-3 hover:text-ink">
+                Gebruik een sjabloon
+              </button>
+            </PopoverTrigger>
+            <PopoverContent
+              className="app-theme max-w-[calc(100vw-24px)] w-80"
+              onCloseAutoFocus={(e) => {
+                if (insertedFocus.current) {
+                  e.preventDefault();
+                  focus(insertedFocus.current);
+                  insertedFocus.current = null;
+                }
+              }}
+            >
+              {preview ? (
+                <div className="p-3 text-sm">
+                  <p className="mb-2 font-semibold">Agenda van vorige vergadering</p>
+                  {preview.length ? (
+                    <>
+                      <ul className="max-h-60 overflow-y-auto mb-3">
+                        {preview.flatMap((b) => [
+                          ...(b.title
+                            ? [
+                                <li key={b.id} className="font-medium mt-2">
+                                  {b.title}
+                                </li>,
+                              ]
+                            : []),
+                          ...b.items.map((i) => (
+                            <li key={i.id} className="py-1 text-ink-3">
+                              {i.text}
+                            </li>
+                          )),
+                        ])}
+                      </ul>
+                      <button type="button" className="min-h-11 text-brand" onClick={() => insertTemplate(preview)}>
+                        Agenda toevoegen
+                      </button>
+                    </>
+                  ) : (
+                    <p className="text-ink-3">Er is nog geen vorige vergadering met een agenda in deze reeks.</p>
+                  )}
+                  <button type="button" className="block min-h-11 text-ink-3" onClick={() => setPreview(null)}>
+                    Terug naar sjablonen
                   </button>
-                  <input
-                    aria-label="Bloktitel"
-                    className="flex-1 text-lg font-semibold"
-                    defaultValue={b.title}
-                    onBlur={(e) => {
-                      if (e.target.value.trim()) ops.updateBlock(meeting.id, b.id, { title: e.target.value });
-                    }}
-                    onKeyDown={(e) => {
-                      if ((e.key === "Enter" || e.key === "Backspace") && !e.currentTarget.value) {
-                        e.preventDefault();
-                        removeBlock(b);
-                      } else if (e.key === "Enter") {
-                        ops.updateBlock(meeting.id, b.id, { title: e.currentTarget.value });
-                        empty(b.id);
-                      }
-                    }}
-                  />
-                  <span className="document-reveal text-xs text-ink-3">
-                    {blockDuration(b) ? `${blockDuration(b)} min` : ""}
-                  </span>
                 </div>
+              ) : (
+                <Command loop tabIndex={0} aria-label="Sjablonen">
+                  <CommandList aria-label="Sjablonen">
+                    {DOCUMENT_TEMPLATES.map((name, index) => (
+                      <CommandItem
+                        key={name}
+                        onSelect={() => {
+                          const current = currentMeeting();
+                          if (index === 1) {
+                            const cutoffDate = current.date ?? new Date().toISOString().slice(0, 10);
+                            const previous = useStore
+                              .getState()
+                              .meetings.filter(
+                                (m) =>
+                                  m.id !== current.id &&
+                                  (current.seriesId ? m.seriesId === current.seriesId : m.name === current.name) &&
+                                  !!m.date &&
+                                  (m.date < cutoffDate ||
+                                    (m.date === cutoffDate &&
+                                      m.time !== null &&
+                                      current.time !== null &&
+                                      m.time < current.time)) &&
+                                  m.blocks.some((b) => b.items.length),
+                              )
+                              .sort(
+                                (a, b) => (b.date ?? "").localeCompare(a.date ?? "") || (b.time ?? 0) - (a.time ?? 0),
+                              )[0];
+                            setPreview(
+                              previous ? documentTemplate(name, { ...current, name: previous.name }, [previous]) : [],
+                            );
+                          } else insertTemplate(documentTemplate(name, current, useStore.getState().meetings));
+                        }}
+                      >
+                        {index === 1 ? "Agenda van vorige vergadering" : name}
+                      </CommandItem>
+                    ))}
+                  </CommandList>
+                </Command>
               )}
-              {b.items.map((i) => itemRow(i, b))}
-              {draftRow(b.id)}
-            </>
-          )}
-        </section>
-      ))}
-      {!blocks.some((b) => b.kind === "topics") && (
-        <div>
-          {showExamples && (
-            <p className="mb-4 text-lg font-semibold" style={{ color: "var(--document-placeholder)" }}>
-              {meeting.name} · {meeting.date ? weekdayLong(meeting.date) : "maandag"}
-            </p>
-          )}
-          {draftRow("")}
-          {showExamples && (
-            <div
-              className="pointer-events-none mt-3 whitespace-pre-line text-sm leading-8"
-              style={{ color: "var(--document-placeholder)" }}
-            >{`Typ, plak${supportsSpeech ? " of spreek" : ""} zoals je normaal doet…\n\n• Staal-leverancier opnieuw te laat\n• Jan maakt nieuwe offerte voor vrijdag\n• Beslissen welke orders deze week voorrang krijgen`}</div>
-          )}
+            </PopoverContent>
+          </Popover>
         </div>
       )}
-      {!content && (
-        <>
-          <p className="mt-5 text-xs text-ink-3">
-            Een titel volstaat. Eigenaar, duur en doel voeg je later toe — of nooit.
-          </p>
-          <div className="mt-5 border-t border-line pt-4">
-            <p className="mb-2 text-sm text-ink-3">Liever een vertrekpunt?</p>
-            <div className="flex flex-wrap gap-2">
-              {DOCUMENT_TEMPLATES.map((name) => (
-                <button
-                  type="button"
-                  key={name}
-                  className="document-dashed rounded-full px-3"
-                  onClick={() => {
-                    const current = currentMeeting();
-                    const template = documentTemplate(name, current, useStore.getState().meetings);
-                    ops.putMeeting({
-                      ...current,
-                      blocks: [...current.blocks.filter((b) => b.kind === "actions"), ...template],
-                    });
-                    setDraft(null);
-                    if (
-                      name === DOCUMENT_TEMPLATES[1] &&
-                      !useStore
-                        .getState()
-                        .meetings.some(
-                          (m) => m.id !== meeting.id && m.name === meeting.name && m.blocks.some((b) => b.items.length),
-                        )
-                    )
-                      toast("Geen vorige agenda beschikbaar. Een voorbeeld is ingevuld.");
-                    focus(template[0].items[0].id);
-                  }}
-                >
-                  {name}
-                </button>
-              ))}
-            </div>
+      <div className={simplified ? "flex-1" : undefined}>
+        <input
+          ref={documentFile}
+          type="file"
+          className="sr-only"
+          tabIndex={-1}
+          aria-label="Document toevoegen"
+          onChange={(e) => {
+            const file = e.target.files?.[0];
+            const itemId = documentParent.current;
+            if (file && itemId)
+              ops.addEntry(meeting.id, itemId, {
+                kind: "document",
+                text: file.name,
+                size: file.size,
+                ownerId: null,
+                date: "",
+              });
+            e.target.value = "";
+            if (itemId) focus(itemId);
+          }}
+        />
+        <p className="sr-only" aria-live="polite">
+          {announcement}
+        </p>
+        {blocks.map((b) => (
+          <section
+            key={b.id}
+            className="mb-5"
+            onDragOver={(e) => e.preventDefault()}
+            onDrop={(e) => {
+              e.preventDefault();
+              const itemId = e.dataTransfer.getData("text/agenda-item");
+              const blockId = e.dataTransfer.getData("text/agenda-block");
+              if (itemId && b.kind === "topics") ops.moveItem(meeting.id, itemId, b.id, b.items.length);
+              if (blockId) {
+                const from = meeting.blocks.findIndex((x) => x.id === blockId);
+                const to = meeting.blocks.indexOf(b);
+                ops.moveBlock(meeting.id, blockId, Math.max(0, to - (from < to ? 1 : 0)));
+              }
+              setAnnouncement("Agenda verplaatst");
+            }}
+          >
+            {b.kind === "break" ? (
+              <div className="flex items-center gap-3 text-xs text-ink-3">
+                <hr className="flex-1 border-line" />
+                Pauze · {b.duration} min
+                <hr className="flex-1 border-line" />
+              </div>
+            ) : (
+              <>
+                {b.title && (
+                  <div className="document-row flex items-center gap-2">
+                    <button
+                      type="button"
+                      draggable
+                      aria-label={`Verplaats blok ${b.title}`}
+                      className="document-reveal min-h-11 w-5"
+                      onDragStart={(e) => e.dataTransfer.setData("text/agenda-block", b.id)}
+                      onKeyDown={(e) => {
+                        if (e.key === "ArrowUp" || e.key === "ArrowDown") {
+                          e.preventDefault();
+                          ops.moveBlock(
+                            meeting.id,
+                            b.id,
+                            Math.max(0, meeting.blocks.indexOf(b) + (e.key === "ArrowUp" ? -1 : 1)),
+                          );
+                          setAnnouncement(`${b.title} verplaatst`);
+                        }
+                      }}
+                    >
+                      <GripVertical size={14} aria-hidden />
+                    </button>
+                    <input
+                      aria-label="Bloktitel"
+                      className="flex-1 text-lg font-semibold"
+                      defaultValue={b.title}
+                      onBlur={(e) => {
+                        if (e.target.value.trim()) ops.updateBlock(meeting.id, b.id, { title: e.target.value });
+                      }}
+                      onKeyDown={(e) => {
+                        if ((e.key === "Enter" || e.key === "Backspace") && !e.currentTarget.value) {
+                          e.preventDefault();
+                          removeBlock(b);
+                        } else if (e.key === "Enter") {
+                          ops.updateBlock(meeting.id, b.id, { title: e.currentTarget.value });
+                          empty(b.id);
+                        }
+                      }}
+                    />
+                    <span className="document-reveal text-xs text-ink-3">
+                      {blockDuration(b) ? `${blockDuration(b)} min` : ""}
+                    </span>
+                  </div>
+                )}
+                {b.items.map((i) => itemRow(i, b))}
+                {draftRow(b.id)}
+              </>
+            )}
+          </section>
+        ))}
+        {!blocks.some((b) => b.kind === "topics") && (
+          <div>
+            {showExamples && (
+              <p className="mb-4 text-lg font-semibold" style={{ color: "var(--document-placeholder)" }}>
+                {meeting.name} · {meeting.date ? weekdayLong(meeting.date) : "maandag"}
+              </p>
+            )}
+            {draftRow("")}
+            {showExamples && (
+              <div
+                className="pointer-events-none mt-3 whitespace-pre-line text-sm leading-8"
+                style={{ color: "var(--document-placeholder)" }}
+              >{`Typ, plak${supportsSpeech ? " of spreek" : ""} zoals je normaal doet…\n\n• Staal-leverancier opnieuw te laat\n• Jan maakt nieuwe offerte voor vrijdag\n• Beslissen welke orders deze week voorrang krijgen`}</div>
+            )}
           </div>
-        </>
-      )}
+        )}
+        {!simplified && !content && (
+          <>
+            <p className="mt-5 text-xs text-ink-3">
+              Een titel volstaat. Eigenaar, duur en doel voeg je later toe — of nooit.
+            </p>
+            <div className="mt-5 border-t border-line pt-4">
+              <p className="mb-2 text-sm text-ink-3">Liever een vertrekpunt?</p>
+              <div className="flex flex-wrap gap-2">
+                {DOCUMENT_TEMPLATES.map((name) => (
+                  <button
+                    type="button"
+                    key={name}
+                    className="document-dashed rounded-full px-3"
+                    onClick={() => {
+                      const current = currentMeeting();
+                      const template = documentTemplate(name, current, useStore.getState().meetings);
+                      ops.putMeeting({
+                        ...current,
+                        blocks: [...current.blocks.filter((b) => b.kind === "actions"), ...template],
+                      });
+                      setDraft(null);
+                      if (
+                        name === DOCUMENT_TEMPLATES[1] &&
+                        !useStore
+                          .getState()
+                          .meetings.some(
+                            (m) =>
+                              m.id !== meeting.id && m.name === meeting.name && m.blocks.some((b) => b.items.length),
+                          )
+                      )
+                        toast("Geen vorige agenda beschikbaar. Een voorbeeld is ingevuld.");
+                      focus(template[0].items[0].id);
+                    }}
+                  >
+                    {name}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </>
+        )}
+      </div>
       <p className="mt-6 border-t border-line pt-4 text-[11px] leading-relaxed text-ink-3">
-        Enter nieuw agendapunt · Tab notitie bij het punt · [] actie · # nieuw blok · @ eigenaar · 10m duur · / doel,
-        beslissing of actie.
+        {simplified
+          ? "Enter = nieuw punt · Tab = notitie · / = meer opties"
+          : "Enter nieuw agendapunt · Tab notitie bij het punt · [] actie · # nieuw blok · @ eigenaar · 10m duur · / doel, beslissing of actie."}
       </p>
     </div>
   );

@@ -348,6 +348,50 @@ test.describe("Variant A · Lazy Registration", () => {
     errors.assertNone();
   });
 
+  test("bestaande gebruiker logt via 'Inloggen' op het welkomstscherm in met e-mail en wachtwoord", async ({
+    page,
+  }) => {
+    const errors = trackErrors(page);
+    await page.goto("/probeer");
+    await assistant(page).getByRole("button", { name: "Inloggen" }).click();
+    const dialog = page.getByRole("dialog", { name: "Welkom terug. Log in op je account." });
+    await expect(dialog.getByRole("complementary", { name: "Wat we bewaren" })).toHaveCount(0);
+    await dialog.getByRole("button", { name: "Inloggen", exact: true }).click();
+    await expect(dialog.getByText("Vul je werk-e-mailadres in, bijvoorbeeld naam@bedrijf.be.")).toBeVisible();
+    await dialog.getByLabel("E-mail", { exact: true }).fill("jan.peeters@metaalwerken.be");
+    await dialog.getByRole("button", { name: "Inloggen", exact: true }).click();
+    await expect(dialog.getByText("Vul je wachtwoord in.")).toBeVisible();
+    await expect(dialog.getByLabel("Wachtwoord")).toBeFocused();
+    await dialog.getByLabel("Wachtwoord").fill("geheim123");
+    await dialog.getByRole("button", { name: "Inloggen", exact: true }).click();
+    await expect(page).toHaveURL(/\/app$/);
+    errors.assertNone();
+  });
+
+  test("wie al iets klaarzette en toch een account heeft, logt in vanuit het bewaar-modal en neemt alles mee", async ({
+    page,
+  }) => {
+    await page.goto("/probeer");
+    await say(page, "teamoverleg om de 2 weken op dinsdag om 9u met Els en Bram: planning en veiligheid");
+    await expectAssistant(page, /Je teamoverleg staat klaar\. Ik zette twee thema's klaar\./);
+    await assistant(page).getByRole("button", { name: "Klopt" }).click();
+    await expectAssistant(page, NOTES_TELL);
+    await assistant(page).getByRole("button", { name: "Ik heb niets openstaan" }).click();
+
+    await page.getByRole("navigation", { name: "Hoofdmenu" }).getByRole("button", { name: "Account maken" }).click();
+    const save = page.getByRole("dialog", { name: "Bewaar je overleg. Het blijft precies zoals het is." });
+    await save.getByRole("button", { name: "Log in", exact: true }).click();
+    const dialog = page.getByRole("dialog", { name: "Log in. Je overleg gaat mee naar je account." });
+    await expect(dialog.getByRole("complementary", { name: "Wat we bewaren" })).toContainText("Teamoverleg");
+    // Wachtwoord vergeten: inloggen kan ook met een code.
+    await dialog.getByRole("button", { name: "Wachtwoord vergeten?" }).click();
+    await dialog.getByLabel("Werk-e-mail").fill("els.janssens@bouw-peeters.be");
+    await dialog.getByRole("button", { name: "Stuur me een code" }).click();
+    for (const [i, d] of [..."123456"].entries()) await dialog.getByLabel(`Cijfer ${i + 1} van 6`).fill(d);
+    await dialog.getByRole("button", { name: "Inloggen", exact: true }).click();
+    await expect(page).toHaveURL(/\/app\/overleg\/teamoverleg\?welkom=1$/);
+  });
+
   test("herladen en terugkomen behouden de gast-state; ouder dan 7 dagen start leeg", async ({ page, context }) => {
     await page.goto("/probeer");
     await say(page, "Veiligheidsoverleg maandelijks");

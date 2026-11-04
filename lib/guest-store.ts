@@ -44,9 +44,10 @@ export type StartPath = "tell" | "notes" | "agenda" | "empty";
 /** Typ-indicator voor elk antwoord (600–900 ms). */
 export const TYPING_DELAY = 750;
 
-/** Na "Uit mijn agenda": koppelen = inloggen (SPEC-LAZY.md §4). */
+/** Na "Uit mijn agenda": koppelen = inloggen (SPEC-LAZY.md §4). Ook na inloggen met een getypte zin. */
 export interface GuestAccount {
-  provider: CalendarProvider;
+  /** Leeg wanneer er ingelogd werd zonder agenda te koppelen. */
+  provider?: CalendarProvider;
   firstName: string;
   lastName: string;
   email: string;

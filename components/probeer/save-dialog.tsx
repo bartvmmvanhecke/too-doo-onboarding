@@ -77,6 +77,19 @@ function SaveSummary({ intent }: { intent: SaveIntent }) {
   );
 }
 
+/** "Dit nemen we mee" voor een zin die nog geen overleg is. */
+function DraftSummary({ draft }: { draft: string }) {
+  return (
+    <aside aria-label="Wat we meenemen" className="flex flex-col gap-3 rounded-2xl bg-app p-5">
+      <span className="text-[13px] font-extrabold tracking-[0.4px] text-ink-3 uppercase">Dit nemen we mee</span>
+      <blockquote className="rounded-xl bg-white p-4 text-[15px] leading-normal font-semibold break-words">
+        “{draft}”
+      </blockquote>
+      <span className="text-sm text-ink-2">Na het inloggen wordt dit je agenda. Je hoeft niets opnieuw te typen.</span>
+    </aside>
+  );
+}
+
 /** Wat de proefomgeving al bevat; zonder inhoud is "inloggen" gewoon inloggen. */
 function useHasGuestContent() {
   return useGuestStore((s) => !!s.meeting.name || s.others.length > 0);
@@ -90,18 +103,25 @@ function useHasGuestContent() {
  */
 export function SaveDialog({
   intent,
+  draft = null,
   onClose,
   onSaved,
+  onKeepDraft,
 }: {
   intent: SaveIntent | null;
+  /** Wat al getypt werd maar nog geen overleg is (de zin in "Vertel het me" op het welkomstscherm). */
+  draft?: string | null;
   onClose: () => void;
   onSaved: (meetingId: string | null, intent: SaveIntent) => void;
+  /** Met een draft en verder niets: inloggen en daarna verder in de proefomgeving, de draft gaat niet verloren. */
+  onKeepDraft?: (user: User) => void;
 }) {
   const hasContent = useHasGuestContent();
+  const wide = hasContent || !!draft;
   return (
     <Dialog open={intent !== null} onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className={cn("gap-0 p-0 sm:p-0", hasContent ? "max-w-[920px]" : "max-w-[560px]")}>
-        {intent && <SaveForm intent={intent} onSaved={onSaved} />}
+      <DialogContent className={cn("gap-0 p-0 sm:p-0", wide ? "max-w-[920px]" : "max-w-[560px]")}>
+        {intent && <SaveForm intent={intent} draft={draft} onSaved={onSaved} onKeepDraft={onKeepDraft} />}
       </DialogContent>
     </Dialog>
   );
@@ -109,13 +129,19 @@ export function SaveDialog({
 
 function SaveForm({
   intent,
+  draft,
   onSaved,
+  onKeepDraft,
 }: {
   intent: SaveIntent;
+  draft: string | null;
   onSaved: (id: string | null, intent: SaveIntent) => void;
+  onKeepDraft?: (user: User) => void;
 }) {
   const meeting = useGuestStore((s) => s.meeting);
   const hasContent = useHasGuestContent();
+  // Enkel een getypte zin, nog geen overleg: die gaat mee en wordt na het inloggen je agenda.
+  const keepDraft = !hasContent && !!draft && !!onKeepDraft;
   const { start, pending } = useSsoLogin();
   // "signup": nieuw account via code (geen wachtwoord). "login": bestaand account, ook met wachtwoord.
   const [mode, setMode] = useState<"signup" | "login">(intent === "login" ? "login" : "signup");
@@ -144,7 +170,13 @@ function SaveForm({
     requestAnimationFrame(() => emailRef.current?.focus());
   };
 
-  const finish = (user: User) => onSaved(saveGuestToApp(user, intent), intent);
+  const finish = (user: User) => {
+    if (keepDraft) {
+      track("signup_completed", { methode: user.method, intent, draft: true });
+      return onKeepDraft?.(user);
+    }
+    onSaved(saveGuestToApp(user, intent), intent);
+  };
 
   const userFromEmail = (method: User["method"]): User => {
     const names = namesFromEmail(email);
@@ -204,24 +236,34 @@ function SaveForm({
     finish(userFromEmail(blocked ? "email-blocked" : "email"));
   };
 
-  const title = login
-    ? hasContent
-      ? "Log in. Je overleg gaat mee naar je account."
-      : "Welkom terug. Log in op je account."
-    : hasContent
-      ? "Bewaar je overleg. Het blijft precies zoals het is."
-      : "Maak je account aan.";
-  const description = login
-    ? hasContent
-      ? "Wat je hier al klaarzette, komt bij je bestaande overleggen te staan."
-      : "Met hetzelfde account als altijd: Microsoft, Google of je e-mail en wachtwoord."
-    : hasContent
-      ? introText(intent, weekdayName(meeting))
-      : "30 dagen gratis, geen creditcard. Geen wachtwoord nodig.";
+  const title = keepDraft
+    ? login
+      ? "Log in. Wat je typte, ben je niet kwijt."
+      : "Maak je account aan. Wat je typte, ben je niet kwijt."
+    : login
+      ? hasContent
+        ? "Log in. Je overleg gaat mee naar je account."
+        : "Welkom terug. Log in op je account."
+      : hasContent
+        ? "Bewaar je overleg. Het blijft precies zoals het is."
+        : "Maak je account aan.";
+  const description = keepDraft
+    ? "Na het inloggen maken we er meteen je agenda van, en die komt in je account te staan."
+    : login
+      ? hasContent
+        ? "Wat je hier al klaarzette, komt bij je bestaande overleggen te staan."
+        : "Met hetzelfde account als altijd: Microsoft, Google of je e-mail en wachtwoord."
+      : hasContent
+        ? introText(intent, weekdayName(meeting))
+        : "30 dagen gratis, geen creditcard. Geen wachtwoord nodig.";
   const emailError = error && !blocked ? error : null;
 
   return (
-    <div className={hasContent ? "grid gap-6 p-6 sm:p-8 md:grid-cols-[minmax(0,1fr)_300px]" : "grid gap-6 p-6 sm:p-8"}>
+    <div
+      className={
+        hasContent || keepDraft ? "grid gap-6 p-6 sm:p-8 md:grid-cols-[minmax(0,1fr)_300px]" : "grid gap-6 p-6 sm:p-8"
+      }
+    >
       <div className="flex flex-col gap-4">
         <div className="flex flex-col gap-1.5 pr-12">
           <DialogTitle className="text-[26px] leading-tight">{title}</DialogTitle>
@@ -410,13 +452,14 @@ function SaveForm({
         <div className="flex flex-wrap items-center justify-between gap-3 border-t border-line-faint pt-3">
           <DialogClose asChild>
             <Button variant="ghost" size="sm">
-              {login && !hasContent ? "Annuleren" : "Nog niet, ik kijk verder rond"}
+              {login && !hasContent && !keepDraft ? "Annuleren" : "Nog niet, ik kijk verder rond"}
             </Button>
           </DialogClose>
           {!login && <span className="text-[13px] text-ink-3">Gratis 30 dagen · geen creditcard</span>}
         </div>
       </div>
       {hasContent && <SaveSummary intent={intent} />}
+      {keepDraft && <DraftSummary draft={draft} />}
     </div>
   );
 }

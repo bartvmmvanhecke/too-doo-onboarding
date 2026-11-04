@@ -368,6 +368,26 @@ test.describe("Variant A · Lazy Registration", () => {
     errors.assertNone();
   });
 
+  test("al getypt in 'Vertel het me' en dan 'Inloggen': de zin gaat mee en wordt na het inloggen de agenda", async ({
+    page,
+  }) => {
+    const errors = trackErrors(page);
+    const text = "teamoverleg om de 2 weken op dinsdag om 9u met Els en Bram: planning en veiligheid";
+    await page.goto("/probeer");
+    await assistant(page).getByLabel("Over welk overleg gaat het?").fill(text);
+    await assistant(page).getByRole("button", { name: "Inloggen" }).click();
+    const dialog = page.getByRole("dialog", { name: "Log in. Wat je typte, ben je niet kwijt." });
+    await expect(dialog.getByRole("complementary", { name: "Wat we meenemen" })).toContainText(text);
+    await dialog.getByLabel("E-mail", { exact: true }).fill("els.janssens@bouw-peeters.be");
+    await dialog.getByLabel("Wachtwoord").fill("geheim123");
+    await dialog.getByRole("button", { name: "Inloggen", exact: true }).click();
+    await expect(dialog).toBeHidden();
+    await expectToast(page, "Ingelogd als Els. We maken nu je agenda van wat je typte.");
+    await expectAssistant(page, /Je teamoverleg staat klaar\./);
+    await expect(page).toHaveURL(/\/probeer/);
+    errors.assertNone();
+  });
+
   test("wie al iets klaarzette en toch een account heeft, logt in vanuit het bewaar-modal en neemt alles mee", async ({
     page,
   }) => {

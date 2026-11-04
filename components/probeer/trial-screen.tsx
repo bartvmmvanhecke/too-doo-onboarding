@@ -189,7 +189,17 @@ function panelWidth(): number | null {
 }
 
 /** Variant A · de proefomgeving op /probeer (C1–C4): zijbalk, overleg in opbouw, assistent. */
-export function TrialScreen({ onSave }: { onSave: (intent: SaveIntent, trigger: string) => void }) {
+/** Wat al getypt werd op het welkomstscherm, en hoe de proefomgeving er na het inloggen mee verdergaat. */
+export interface PendingDraft {
+  text: string;
+  resume: () => void;
+}
+
+export function TrialScreen({
+  onSave,
+}: {
+  onSave: (intent: SaveIntent, trigger: string, draft?: PendingDraft) => void;
+}) {
   const router = useRouter();
   const conversation = useGuestStore((s) => s.conversation);
   const pending = useGuestStore((s) => s.pending);
@@ -916,7 +926,16 @@ export function TrialScreen({ onSave }: { onSave: (intent: SaveIntent, trigger: 
           onClosedHintDone={useGuestStore.getState().setClosedHintShown}
           header={
             welcome ? (
-              <WelcomeHeader retreat={phase === "retreat"} onLogin={() => onSave("login", "welkom")} />
+              <WelcomeHeader
+                retreat={phase === "retreat"}
+                onLogin={() =>
+                  onSave(
+                    "login",
+                    "welkom",
+                    sentence.trim() ? { text: sentence.trim(), resume: tellSentence } : undefined,
+                  )
+                }
+              />
             ) : undefined
           }
           intro={

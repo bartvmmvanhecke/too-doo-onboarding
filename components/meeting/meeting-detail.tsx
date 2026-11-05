@@ -45,7 +45,7 @@ const origins = new Map<string, { blockId: string; index: number }>();
  * `announce` (Variant A): een aria-live melding na elke verplaatsing, en oppakken met het toetsenbord
  * (spatie, pijltjes, spatie; Escape annuleert).
  */
-function agendaMoves(meeting: Meeting, ops: MeetingOps, announce?: (text: string) => void): AgendaMoves {
+export function agendaMoves(meeting: Meeting, ops: MeetingOps, announce?: (text: string) => void): AgendaMoves {
   const { moveItem, moveBlock } = ops;
   const topics = meeting.blocks.filter((b) => b.kind === "topics");
   const locate = (itemId: string) => {

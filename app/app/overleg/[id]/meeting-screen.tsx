@@ -4,6 +4,7 @@ import { useEffect } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { MeetingDetail } from "@/components/meeting/meeting-detail";
 import { MeetingDetailB } from "@/components/meeting-detail-b/meeting-detail-b";
+import { MeetingOverviewDetail } from "@/components/meeting/meeting-overview-detail";
 import { SavedBanner } from "@/components/probeer/after-save";
 import { useStore } from "@/lib/store";
 
@@ -20,13 +21,15 @@ export function MeetingScreen() {
 
   if (!meeting) return null;
   return (
-    <>
+    <div data-meeting-detail className="contents">
       <SavedBanner meeting={meeting} />
       {params.get("variant") === "b" && !meeting.run ? (
         <MeetingDetailB meeting={meeting} />
-      ) : (
+      ) : meeting.run ? (
         <MeetingDetail meeting={meeting} />
+      ) : (
+        <MeetingOverviewDetail meeting={meeting} />
       )}
-    </>
+    </div>
   );
 }

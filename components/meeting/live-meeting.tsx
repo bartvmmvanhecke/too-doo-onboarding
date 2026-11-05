@@ -180,7 +180,7 @@ function LiveMeetingContent({ meeting }: { meeting: Meeting }) {
               aria-label="Verstreken vergadertijd"
               value={Math.min(Math.max(0, now - run.startedAt), Math.max(1, end - run.startedAt))}
               max={Math.max(1, end - run.startedAt)}
-              className="h-1 w-24 shrink-0"
+              className="h-1 w-24 shrink-0 overflow-hidden border-0 bg-white [&::-moz-progress-bar]:bg-green-600 [&::-webkit-progress-bar]:bg-white [&::-webkit-progress-value]:bg-green-600"
             />
           </span>
         </div>

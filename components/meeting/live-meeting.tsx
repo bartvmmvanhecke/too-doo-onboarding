@@ -1,6 +1,5 @@
 "use client";
 
-import { ChimeControl } from "./chime-control";
 import { MeetingPrototypeBar } from "@/components/prototype/meeting-prototype-bar";
 import { elapsedClock, remainingLabel, timerEnd, meetingNow } from "@/lib/meeting-clock";
 import { useEffect, useRef, useState } from "react";
@@ -164,28 +163,27 @@ function LiveMeetingContent({ meeting }: { meeting: Meeting }) {
         </p>
         <div className="flex flex-wrap items-center gap-2 text-xs">
           <span>
-            {handled} van {items.length} behandeld{otherOpen.length > 0 && ` · nog open: ${openNumbers}`}
+            {handled} van de {items.length} behandeld
           </span>
           <span
             role="status"
             className={cn(
-              "rounded-full px-3 py-2",
+              "flex min-h-11 items-center gap-3 rounded-full px-3 py-2 text-[11pt]",
               overtime ? "bg-[var(--wrap-amber-bg)] text-[var(--wrap-amber-ink)]" : "bg-white/15",
             )}
           >
-            <span className="tabular-nums">{elapsedClock(now - run.startedAt)}</span> ·{" "}
-            {overtime ? `${Math.floor((now - end) / 60000)} min over gepland einde` : remainingLabel(end - now)}
-          </span>
-          {!overtime && (
+            <span>
+              <span className="tabular-nums">{elapsedClock(now - run.startedAt)}</span> ·{" "}
+              {overtime ? `${Math.floor((now - end) / 60000)} min over gepland einde` : remainingLabel(end - now)}
+            </span>
             <progress
               aria-label="Verstreken vergadertijd"
-              value={Math.max(0, now - run.startedAt)}
+              value={Math.min(Math.max(0, now - run.startedAt), Math.max(1, end - run.startedAt))}
               max={Math.max(1, end - run.startedAt)}
-              className="h-1 w-24"
+              className="h-1 w-24 shrink-0"
             />
-          )}
+          </span>
         </div>
-        <ChimeControl />
         <Button
           variant="inverse"
           size="sm"
@@ -200,6 +198,7 @@ function LiveMeetingContent({ meeting }: { meeting: Meeting }) {
           aria-label="Afronden"
           className="ml-auto mr-10 flex min-h-11 items-center gap-2 rounded-full bg-danger px-4 text-sm font-semibold text-white hover:bg-danger/90"
         >
+          <Check aria-hidden className="size-4" />
           <span className="hidden sm:inline">Afronden</span>
           <span className="sm:hidden">Afronden</span>
         </button>

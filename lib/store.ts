@@ -87,6 +87,7 @@ export interface Meeting extends MeetingSchedule {
   id: string;
   type: string;
   participants: string[];
+  privateNotes?: { id: string; itemId: string; text: string }[];
   attendance?: { personId: string; name: string; present: boolean; role: "Deelnemer" | "Voorzitter"; guest: boolean }[];
   actions: Action[];
   blocks: AgendaBlock[];

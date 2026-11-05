@@ -205,7 +205,7 @@ function LiveMeetingContent({ meeting }: { meeting: Meeting }) {
       </header>
       <div className="flex min-h-0 flex-1 flex-col lg:flex-row">
         <aside aria-label="Vergaderagenda" className="flex shrink-0 flex-col text-white lg:w-[315px]">
-          <div className="flex gap-2 overflow-x-auto p-2 lg:flex-1 lg:flex-col lg:overflow-y-auto lg:pt-0.5">
+          <div className="flex gap-2 overflow-x-auto p-2 lg:flex-1 lg:flex-col lg:overflow-y-auto lg:pt-0.5 lg:pr-[18px]">
             {meeting.blocks
               .flatMap((b) =>
                 b.kind === "topics"
@@ -229,7 +229,7 @@ function LiveMeetingContent({ meeting }: { meeting: Meeting }) {
                     key={i.id}
                     className={cn(
                       "min-w-[260px] rounded-2xl border border-white/20 p-3 lg:min-w-0",
-                      active && "bg-white/50 text-ink ring-2 ring-brand",
+                      active && "bg-white/25 text-ink ring-2 ring-brand",
                     )}
                   >
                     <div className={cn(active && "mb-3 flex items-start justify-between gap-3")}>

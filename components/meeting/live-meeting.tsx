@@ -58,6 +58,7 @@ export function LiveMeeting({ meeting }: { meeting: Meeting }) {
   const [moving, setMoving] = useState(false);
   const activeCard = useRef<HTMLElement>(null);
   useEffect(() => {
+    activeCard.current?.querySelector<HTMLButtonElement>("button[aria-current]")?.focus();
     activeCard.current?.scrollIntoView({ block: "nearest", inline: "nearest" });
   }, [run.currentId, block?.id]);
   const editor = useRef<HTMLTextAreaElement>(null);

@@ -1,5 +1,6 @@
 "use client";
 
+import { MeetingWrapUp } from "@/components/meeting/meeting-wrap-up";
 import { MeetingStartGate } from "@/components/meeting/meeting-start-gate";
 import { useEffect } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
@@ -25,7 +26,7 @@ export function MeetingScreen() {
     <MeetingStartGate meeting={meeting}>
       <div data-meeting-detail className="contents">
         <SavedBanner meeting={meeting} />
-        {params.get("variant") === "b" && !meeting.run ? (
+        {meeting.wrapUpOpen ? (<MeetingWrapUp meeting={meeting} />) : params.get("variant") === "b" && !meeting.run ? (
           <MeetingDetailB meeting={meeting} />
         ) : meeting.run && !meeting.minimized ? (
           <LiveMeeting meeting={meeting} />

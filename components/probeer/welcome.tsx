@@ -152,17 +152,20 @@ function ChoiceCard({
   selected,
   disabled,
   onClick,
+  className,
   children,
 }: {
   choice: (typeof CHOICES)[number];
   selected: boolean;
   disabled?: boolean;
   onClick: () => void;
+  className?: string;
   children?: ReactNode;
 }) {
   return (
     <div
       className={cn(
+        className,
         "rounded-[14px] border transition-[background-color,box-shadow,border-color] duration-150",
         selected
           ? "border-primary bg-primary-tint shadow-[0_0_0_1px_var(--primary),0_8px_24px_var(--choice-shadow)]"
@@ -314,7 +317,6 @@ export function WelcomeIntro({
   onEmpty: () => void;
   onExample: () => void;
 }) {
-  const reduce = useReducedMotion();
   return (
     <motion.div
       animate={{ opacity: retreat ? 0 : 1 }}
@@ -334,16 +336,90 @@ export function WelcomeIntro({
         <p className="text-[17px] leading-normal text-ink-2">
           Kies wat je al bij de hand hebt. Je kunt alles later aanpassen.
         </p>
-        <div role="group" aria-label="Manier van starten" className="flex flex-col gap-3 pt-2">
-          {CHOICES.map((c) => (
-            <ChoiceCard
-              key={c.value}
-              choice={c}
-              selected={selected === c.value}
-              disabled={disabled}
-              onClick={() => onChoose(c.value)}
-            >
-              {c.value === "meeting" && (
+        <StartOptions
+          selected={selected}
+          disabled={disabled}
+          sentence={sentence}
+          onSentenceChange={onSentenceChange}
+          onTell={onTell}
+          telling={telling}
+          focusRequest={focusRequest}
+          onChoose={onChoose}
+          onEmpty={onEmpty}
+          onExample={onExample}
+          exampleHref="/voorbeeld?van=probeer"
+        />
+      </div>
+    </motion.div>
+  );
+}
+
+/**
+ * De vijf keuzes van het startscherm: de drie keuzekaarten en de twee secundaire links. Gedeeld door het
+ * startscherm (`stack`, Vertel het me klapt open) en de lege staat in de app (`grid`: Vertel het me staat
+ * uitgelicht en open, de twee andere kaarten naast elkaar).
+ */
+export function StartOptions({
+  layout = "stack",
+  selected,
+  disabled,
+  sentence,
+  onSentenceChange,
+  onTell,
+  telling,
+  focusRequest,
+  onChoose,
+  onEmpty,
+  onExample,
+  exampleHref,
+  exampleTag,
+}: {
+  layout?: "stack" | "grid";
+  selected: StartChoice;
+  disabled: boolean;
+  sentence: string;
+  onSentenceChange: (text: string) => void;
+  onTell: () => void;
+  telling: boolean;
+  focusRequest: number;
+  onChoose: (choice: StartChoice) => void;
+  onEmpty: () => void;
+  onExample: () => void;
+  exampleHref: string;
+  /** Grijs label naast "Bekijk eerst een voorbeeld". */
+  exampleTag?: string;
+}) {
+  const reduce = useReducedMotion();
+  const grid = layout === "grid";
+  const tellForm = (
+    <TellForm
+      value={sentence}
+      onChange={onSentenceChange}
+      onSubmit={onTell}
+      busy={telling}
+      focusRequest={focusRequest}
+    />
+  );
+  return (
+    <>
+      <div
+        role="group"
+        aria-label="Manier van starten"
+        className={grid ? "grid gap-3 pt-2 sm:grid-cols-2" : "flex flex-col gap-3 pt-2"}
+      >
+        {CHOICES.map((c) => (
+          <ChoiceCard
+            key={c.value}
+            choice={c}
+            selected={grid ? c.value === "meeting" : selected === c.value}
+            disabled={disabled}
+            onClick={() => onChoose(c.value)}
+            className={grid && c.value === "meeting" ? "sm:col-span-2" : undefined}
+          >
+            {c.value === "meeting" &&
+              (grid ? (
+                tellForm
+              ) : (
                 <AnimatePresence initial={false}>
                   {selected === "meeting" && (
                     <motion.div
@@ -354,38 +430,36 @@ export function WelcomeIntro({
                       transition={reduce ? { duration: 0 } : { duration: 0.2, ease: DOCK_EASE }}
                       className="overflow-hidden"
                     >
-                      <TellForm
-                        value={sentence}
-                        onChange={onSentenceChange}
-                        onSubmit={onTell}
-                        busy={telling}
-                        focusRequest={focusRequest}
-                      />
+                      {tellForm}
                     </motion.div>
                   )}
                 </AnimatePresence>
-              )}
-            </ChoiceCard>
-          ))}
-        </div>
-        <div className="mt-1 flex flex-wrap gap-x-6 gap-y-1 border-t border-line-faint pt-3">
-          <button type="button" disabled={disabled} className={secondary} onClick={onEmpty}>
-            Start met een lege vergadering
-          </button>
-          <Link
-            href="/voorbeeld?van=probeer"
-            className={secondary}
-            onClick={(e) => {
-              // Gewone klik: met de overgang; nieuw tabblad of venster gewoon via de link.
-              if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0) return;
-              e.preventDefault();
-              onExample();
-            }}
-          >
-            Bekijk eerst een voorbeeld
-          </Link>
-        </div>
+              ))}
+          </ChoiceCard>
+        ))}
       </div>
-    </motion.div>
+      <div className="mt-1 flex flex-wrap gap-x-6 gap-y-1 border-t border-line-faint pt-3">
+        <button type="button" disabled={disabled} className={secondary} onClick={onEmpty}>
+          Start met een lege vergadering
+        </button>
+        <Link
+          href={exampleHref}
+          className={exampleTag ? cn(secondary, "flex-wrap gap-x-2") : secondary}
+          onClick={(e) => {
+            // Gewone klik: met de overgang; nieuw tabblad of venster gewoon via de link.
+            if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0) return;
+            e.preventDefault();
+            onExample();
+          }}
+        >
+          Bekijk eerst een voorbeeld
+          {exampleTag && (
+            <span className="rounded-full bg-line-faint px-2 py-0.5 text-xs font-semibold text-ink-2 no-underline">
+              {exampleTag}
+            </span>
+          )}
+        </Link>
+      </div>
+    </>
   );
 }

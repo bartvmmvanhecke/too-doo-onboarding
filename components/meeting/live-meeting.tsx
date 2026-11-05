@@ -168,7 +168,7 @@ function LiveMeetingContent({ meeting }: { meeting: Meeting }) {
           <span
             role="status"
             className={cn(
-              "flex min-h-11 items-center gap-3 rounded-full px-3 py-2 text-[11pt]",
+              "flex min-h-11 items-center gap-3 rounded-full border border-white/50 px-3 py-2 text-[11pt]",
               overtime ? "bg-[var(--wrap-amber-bg)] text-[var(--wrap-amber-ink)]" : "bg-white/25",
             )}
           >

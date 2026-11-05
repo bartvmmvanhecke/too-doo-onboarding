@@ -272,8 +272,8 @@ function LiveMeetingContent({ meeting }: { meeting: Meeting }) {
                     {active && (
                       <>
                         {(isHandled(meeting, i.id) || previouslyHandled.has(i.id)) && (
-                          <span className={cn(pill, "w-full border-white")}>
-                            <Check aria-hidden className="size-4" />
+                          <span className="inline-flex items-center gap-1 rounded-full border border-white bg-[#e5f3ff] px-2 py-0.5 text-xs font-bold text-[#2055e5]">
+                            <Check aria-hidden className="size-3" />
                             Behandeld
                           </span>
                         )}

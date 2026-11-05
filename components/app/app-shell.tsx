@@ -3,6 +3,7 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { UnattendedSync } from "@/components/meeting/unattended-sync";
 import { RunningMeetingPill } from "@/components/meeting/running-meeting-pill";
 import { AddMeetingsDialog } from "@/components/app/add-meetings-dialog";
 import { AppUiProvider, useAppUi } from "@/components/app/app-ui";
@@ -118,6 +119,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           </main>
         </div>
         <Hydrated>
+          <UnattendedSync />
           <RunningMeetingPill />
           <AfterSaveAssistant />
         </Hydrated>

@@ -42,7 +42,7 @@ export function LiveMeeting({ meeting }: { meeting: Meeting }) {
   const otherOpen = othersOpen(meeting, run.currentId);
   const handled = items.filter(i => isHandled(meeting, i.id)).length;
   const openNumbers = otherOpen.map(i => items.indexOf(i) + 1).join(" en ");
-  const finish = () => ops.putMeeting(closeManually(useStore.getState().meetings.find(m => m.id === meeting.id)!));
+  const finish = () => { if (note.trim()) saveNote(); ops.putMeeting(closeManually(useStore.getState().meetings.find(m => m.id === meeting.id)!)); };
   const item = items.find((i) => i.id === run.currentId);
   const block = meeting.blocks.find((b) => b.id === run.currentId || b.items.some((i) => i.id === run.currentId));
   const [snoozeUntil, setSnoozeUntil] = useState(0);
@@ -61,6 +61,14 @@ export function LiveMeeting({ meeting }: { meeting: Meeting }) {
     activeCard.current?.querySelector<HTMLButtonElement>("button[aria-current]")?.focus();
     activeCard.current?.scrollIntoView({ block: "nearest", inline: "nearest" });
   }, [run.currentId, block?.id]);
+  const lastTyping = useRef(0);
+  const recordTyping = () => {
+    const now = Date.now();
+    if (now - lastTyping.current < 30000) return;
+    lastTyping.current = now;
+    const latest = useStore.getState().meetings.find(m=>m.id === meeting.id)!;
+    ops.putMeeting({...latest,lastActivityAt:now});
+  };
   const editor = useRef<HTMLTextAreaElement>(null);
   const fileInput = useRef<HTMLInputElement>(null);
   const entries = item?.entries ?? [];
@@ -84,7 +92,7 @@ export function LiveMeeting({ meeting }: { meeting: Meeting }) {
     });
   };
   const selectItem = (id: string) => {
-    if (note.trim() && !window.confirm("Je notitie is nog niet toegevoegd. Wil je van agendapunt wisselen?")) return;
+    if (note.trim()) saveNote();
     setNote("");
     ops.putMeeting(navigateTo(useStore.getState().meetings.find(m => m.id === meeting.id)!, id));
   };
@@ -490,7 +498,7 @@ export function LiveMeeting({ meeting }: { meeting: Meeting }) {
                   placeholder="Schrijf een notitie…"
                   value={note}
                   disabled={!item}
-                  onChange={(e) => setNote(e.target.value)}
+                  onChange={(e) => { setNote(e.target.value); recordTyping(); }}
                   className="min-h-[110px] w-full resize-y bg-transparent text-base outline-none placeholder:text-[#777891]"
                 />
               </div>
@@ -553,7 +561,7 @@ export function LiveMeeting({ meeting }: { meeting: Meeting }) {
                 autoFocus
                 required
                 value={text}
-                onChange={(e) => setText(e.target.value)}
+                onChange={(e) => { setText(e.target.value); recordTyping(); }}
                 className="min-h-11 rounded-lg border border-line px-3"
               />
             </label>

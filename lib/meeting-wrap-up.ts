@@ -48,7 +48,7 @@ export function unattended(m: Meeting, now: number): Meeting {
   const activity = lastActivity(m) ?? m.run.startedAt;
   const idle = now - activity;
   if (now > plannedEnd(m) + AUTO_CLOSE_AFTER_HOURS * 3_600_000 && idle > AUTO_CLOSE_AFTER_HOURS * 3_600_000) {
-    return { ...m, startedAt: m.startedAt ?? m.run.startedAt, endedAt: activity + IDLE_BUFFER_MIN * 60_000, lastActivityAt: activity, endReason: "auto", followUpStatus: "pending", run: null, minimized: false, wrapUpOpen: false, held: true, blocks: m.blocks.map(b => ({ ...b, items: b.items.map(i => isHandled(m, i.id) ? i : { ...i, carry: "next" }) })) };
+    return { ...m, startedAt: m.startedAt ?? m.run.startedAt, endedAt: activity + IDLE_BUFFER_MIN * 60_000, lastActivityAt: activity, endReason: "auto", followUpStatus: "pending", run: null, minimized: false, wrapUpOpen: false, held: true, blocks: m.blocks.map(b => ({ ...b, items: b.items.map(i => isHandled(m, i.id) ? { ...i, runStatus: "handled" } : { ...i, carry: "next" }) })) };
   }
   if (!m.reminderQueuedAt && now > plannedEnd(m) + REMINDER_AFTER_MIN * 60_000 && idle > REMINDER_AFTER_MIN * 60_000) return { ...m, reminderQueuedAt: now };
   return m;

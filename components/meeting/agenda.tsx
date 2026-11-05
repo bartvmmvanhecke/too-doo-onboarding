@@ -521,6 +521,7 @@ export function TopicsBlock({
   onToggle,
   focusInput,
   onOpenDetails,
+  showBudget = false,
 }: {
   block: AgendaBlock;
   index: number;
@@ -530,6 +531,7 @@ export function TopicsBlock({
   /** Lege staat: het invoerveld staat in focus, met uitleg. */
   focusInput?: boolean;
   onOpenDetails: (item: AgendaItem) => void;
+  showBudget?: boolean;
 }) {
   const { meeting, people, trial } = useMeeting();
   const { addAgendaItem, updateBlock } = useMeetingOps();
@@ -584,7 +586,20 @@ export function TopicsBlock({
             ownerId={block.presenterId}
             onPick={(presenterId) => updateBlock(meeting.id, block.id, { presenterId })}
           />
-          {summary && <span className="px-1 text-[13px] whitespace-nowrap text-ink-3 tabular-nums">{summary}</span>}
+          {showBudget && block.duration !== null ? (
+            <span
+              className={cn(
+                "rounded-full border px-2.5 py-1 text-xs font-bold whitespace-nowrap tabular-nums",
+                total > block.duration
+                  ? "border-warning bg-warning-bg text-warning"
+                  : "border-line bg-line-soft text-ink-2",
+              )}
+            >
+              {total}/{block.duration} min
+            </span>
+          ) : (
+            summary && <span className="px-1 text-[13px] whitespace-nowrap text-ink-3 tabular-nums">{summary}</span>
+          )}
           {themeMeta && (
             <>
               <PurposePicker

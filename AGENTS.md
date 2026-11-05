@@ -10,9 +10,8 @@
 - Commit in kleine stappen. Na elke commit bouwt de app en zijn lint en typecheck groen.
 - Op het einde: rebase op origin/main, push je branch en open een PR naar main.
 - Eindig met een korte samenvatting: wat gebouwd is, welke gedeelde bestanden je aanraakte, en afwijkingen van de opdracht.
-- Dev server: Claude Code gebruikt poort 3001, Codex poort 3002. Poort 3000 is voor main.
-  Start de dev server op de achtergrond (`npm run dev -- -p <poort>`) zodra er iets te bekijken is, en geef de volledige URL van het scherm waaraan je werkt.
-  Draait er al een server op je poort, stop die eerst.
+- Dev server: alles blijft draaien op poort 3000, ook tijdens werk op een branch.
+  Gebruik de bestaande server op poort 3000. Start alleen als er nog geen server draait de dev server op de achtergrond (`npm run dev -- -p 3000`), en geef de volledige URL van het scherm waaraan je werkt.
 
 <!-- BEGIN:nextjs-agent-rules -->
 

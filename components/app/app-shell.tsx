@@ -3,6 +3,9 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { ChimeScheduler } from "@/components/meeting/chime-scheduler";
+import { UnattendedSync } from "@/components/meeting/unattended-sync";
+import { RunningMeetingPill } from "@/components/meeting/running-meeting-pill";
 import { AddMeetingsDialog } from "@/components/app/add-meetings-dialog";
 import { AppUiProvider, useAppUi } from "@/components/app/app-ui";
 import { HelpMenu } from "@/components/app/help-menu";
@@ -73,6 +76,9 @@ function Sidebar() {
         )}
         <Link href="/app" aria-current={inMeetings ? "page" : undefined} className={cn(item, inMeetings && active)}>
           Vergaderingen
+          {meetings.some((m) => m.run && !m.endedAt) && (
+            <span aria-label="Vergadering bezig" className="size-2 rounded-full bg-[var(--wrap-handled)]" />
+          )}
         </Link>
         {comingSoon(
           "Acties",
@@ -116,6 +122,9 @@ export function AppShell({ children }: { children: ReactNode }) {
           </main>
         </div>
         <Hydrated>
+          <ChimeScheduler />
+          <UnattendedSync />
+          <RunningMeetingPill />
           <AfterSaveAssistant />
         </Hydrated>
       </div>

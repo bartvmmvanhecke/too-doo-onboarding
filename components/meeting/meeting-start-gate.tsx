@@ -1,5 +1,6 @@
 "use client";
 
+import { unlockChime } from "@/lib/audio/chime-state";
 import { useState, type ReactNode } from "react";
 import { ArrowRight, Plus, UserRound } from "lucide-react";
 import { Avatar } from "@/components/avatar";
@@ -22,6 +23,7 @@ export function MeetingStartGate({ meeting, children }: { meeting: Meeting; chil
   const patch = (personId: string, changes: Partial<Attendee>) =>
     setAttendees((rows) => rows.map((row) => (row.personId === personId ? { ...row, ...changes } : row)));
   const startRun = () => {
+    void unlockChime();
     setAttendees(
       meeting.attendance ??
         meeting.participants.map((personId) => ({
@@ -37,6 +39,7 @@ export function MeetingStartGate({ meeting, children }: { meeting: Meeting; chil
     setOpen(true);
   };
   const proceed = () => {
+    void unlockChime();
     const current = useStore.getState().meetings.find((m) => m.id === meeting.id) ?? meeting;
     ops.putMeeting({ ...current, attendance: attendees });
     ops.startRun(meeting.id);

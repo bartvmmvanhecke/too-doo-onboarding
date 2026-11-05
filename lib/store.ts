@@ -36,6 +36,8 @@ import {
   type Person,
 } from "@/lib/mock-data";
 import { createPerson, initialsFrom, isEmail } from "@/lib/people";
+import { meetingNow } from "@/lib/meeting-clock";
+import { closeManually } from "@/lib/meeting-wrap-up";
 import { uid } from "@/lib/utils";
 
 export type LoginOutcome = "success" | "blocked";
@@ -67,6 +69,7 @@ export interface ActionDraft {
 
 export interface Action {
   id: string;
+  updatedAt?: number;
   what: string;
   ownerId: string | null;
   deadline: string;
@@ -85,6 +88,20 @@ export interface Meeting extends MeetingSchedule {
   /** Voorstellen blijven ook na bewaren open tot expliciet akkoord. */
   reviewSuggestions?: import("@/lib/assistant/types").GuestAction[];
   id: string;
+  startedAt?: number;
+  endedAt?: number;
+  autoClosedAt?: number;
+  overtimeUntil?: number;
+  demoTimeOffsetMs?: number;
+  demoScenarioRevision?: number;
+  lastActivityAt?: number;
+  endReason?: "manual" | "auto";
+  followUpStatus?: "pending" | "sent";
+  endTimeConfirmed?: boolean;
+  reminderQueuedAt?: number;
+  startedBy?: string;
+  minimized?: boolean;
+  wrapUpOpen?: boolean;
   type: string;
   participants: string[];
   privateNotes?: { id: string; itemId: string; text: string }[];
@@ -150,6 +167,7 @@ interface Data {
     calendar: CalendarOutcome;
     /** Prototype: het oude eerste scherm "Zet je eerste vaste overleg klaar" op een lege Vergaderingen. */
     altEmpty?: boolean;
+    wrapUpToolbar?: boolean;
   };
   user: User | null;
   calendar: CalendarState;
@@ -245,7 +263,7 @@ const emptyActionDrafts = (): ActionDraft[] =>
   Array.from({ length: 3 }, () => ({ what: "", ownerId: null, ownerText: "", deadline: "" }));
 
 const initialData = (): Data => ({
-  demo: { login: "success", calendar: "series", altEmpty: false },
+  demo: { login: "success", calendar: "series", altEmpty: false, wrapUpToolbar: true },
   user: null,
   calendar: "idle",
   calendarNotice: null,
@@ -326,7 +344,9 @@ function mapItem(m: Meeting, itemId: string, fn: (i: AgendaItem) => AgendaItem):
   return {
     ...m,
     blocks: m.blocks.map((b) =>
-      b.items.some((i) => i.id === itemId) ? { ...b, items: b.items.map((i) => (i.id === itemId ? fn(i) : i)) } : b,
+      b.items.some((i) => i.id === itemId)
+        ? { ...b, items: b.items.map((i) => (i.id === itemId ? { ...fn(i), updatedAt: meetingNow(m) } : i)) }
+        : b,
     ),
   };
 }
@@ -337,7 +357,13 @@ export const STORAGE_KEY = "too-doo-onboarding";
 
 const storeInitializer: StateCreator<Store> = (set, get) => {
   const updateMeeting = (id: string, fn: (m: Meeting) => Meeting) =>
-    set((s) => ({ meetings: s.meetings.map((m) => (m.id === id ? fn(m) : m)) }));
+    set((s) => ({
+      meetings: s.meetings.map((m) => {
+        if (m.id !== id) return m;
+        const updated = fn(m);
+        return m.run && !m.endedAt ? { ...updated, lastActivityAt: meetingNow(m) } : updated;
+      }),
+    }));
 
   return {
     ...initialData(),
@@ -487,7 +513,7 @@ const storeInitializer: StateCreator<Store> = (set, get) => {
     addEntry: (meetingId, itemId, input) => {
       const id = uid("e-");
       updateMeeting(meetingId, (m) => {
-        const entry = { ...input, authorId: USER_PERSON_ID, createdAt: Date.now() };
+        const entry = { ...input, authorId: USER_PERSON_ID, createdAt: meetingNow(m) };
         if (entry.kind !== "action") {
           return mapItem(m, itemId, (i) => ({ ...i, entries: [...i.entries, { ...entry, id }] }));
         }
@@ -569,10 +595,26 @@ const storeInitializer: StateCreator<Store> = (set, get) => {
 
     startRun: (meetingId) =>
       updateMeeting(meetingId, (m) => {
-        const now = Date.now();
+        const now = meetingNow(m);
         return {
           ...m,
           showWelcome: false,
+          startedAt: now,
+          lastActivityAt: now,
+          startedBy: USER_PERSON_ID,
+          overtimeUntil: undefined,
+          endedAt: undefined,
+          autoClosedAt: undefined,
+          endReason: undefined,
+          endTimeConfirmed: undefined,
+          reminderQueuedAt: undefined,
+          followUpStatus: "pending",
+          wrapUpOpen: false,
+          minimized: false,
+          blocks: m.blocks.map((b) => ({
+            ...b,
+            items: b.items.map((i) => ({ ...i, runStatus: "open", handledAt: undefined })),
+          })),
           run: {
             startedAt: now,
             stepStartedAt: now,
@@ -587,7 +629,7 @@ const storeInitializer: StateCreator<Store> = (set, get) => {
       updateMeeting(meetingId, (m) => {
         const run = m.run;
         if (!run?.currentId) return m;
-        const now = Date.now();
+        const now = meetingNow(m);
         const current = run.currentId;
         const handled = new Set([...run.doneIds, ...run.postponedIds, current]);
         const steps = runSteps(m.blocks);
@@ -605,19 +647,7 @@ const storeInitializer: StateCreator<Store> = (set, get) => {
           },
         };
       }),
-    endRun: (meetingId) =>
-      updateMeeting(meetingId, (m) => ({
-        ...m,
-        held: true,
-        run: null,
-        // Afgevinkte acties zijn af; de rest komt vanzelf terug.
-        actions: m.actions.filter((a) => !a.done),
-        // Afgeronde agendapunten verdwijnen; wat uitgesteld werd, blijft staan.
-        blocks: m.blocks.map((b) => ({
-          ...b,
-          items: b.items.filter((i) => !m.run?.doneIds.includes(i.id)),
-        })),
-      })),
+    endRun: (meetingId) => updateMeeting(meetingId, (m) => closeManually(m, meetingNow(m))),
     dismissWelcome: (meetingId) => updateMeeting(meetingId, (m) => ({ ...m, showWelcome: false })),
     markInvited: (meetingId) => updateMeeting(meetingId, (m) => ({ ...m, invited: true })),
     markHeld: (meetingId) => updateMeeting(meetingId, (m) => ({ ...m, held: true })),
@@ -801,7 +831,13 @@ const storeInitializer: StateCreator<Store> = (set, get) => {
     putMeeting: (meeting) =>
       set((s) => ({
         meetings: s.meetings.some((m) => m.id === meeting.id)
-          ? s.meetings.map((m) => (m.id === meeting.id ? meeting : m))
+          ? s.meetings.map((m) =>
+              m.id === meeting.id
+                ? m.run && !m.endedAt && !meeting.endedAt
+                  ? { ...meeting, lastActivityAt: meetingNow(m) }
+                  : meeting
+                : m,
+            )
           : [...s.meetings, meeting],
       })),
     removeMeeting: (meetingId) => set((s) => ({ meetings: s.meetings.filter((m) => m.id !== meetingId) })),

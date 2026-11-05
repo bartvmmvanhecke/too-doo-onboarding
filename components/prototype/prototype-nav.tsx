@@ -12,6 +12,7 @@ import {
   Shuffle,
   type LucideIcon,
 } from "lucide-react";
+import { isDemoEnvironment } from "@/lib/demo-environment";
 import { openDemoSettings } from "@/components/demo/demo-bar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
@@ -93,7 +94,7 @@ export function PrototypeNav() {
   const setStep3Variant = useStore((s) => s.setStep3Variant);
   const [open, setOpen] = useState(false);
   const itemRefs = useRef<(HTMLButtonElement | null)[]>([]);
-  if (pathname === "/prototype") return null;
+  if (!isDemoEnvironment() || pathname === "/prototype") return null;
 
   const onMenuKey = (e: KeyboardEvent) => {
     const items = itemRefs.current.filter((x): x is HTMLButtonElement => !!x);

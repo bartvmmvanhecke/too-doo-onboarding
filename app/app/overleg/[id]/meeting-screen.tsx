@@ -27,7 +27,7 @@ export function MeetingScreen() {
         <SavedBanner meeting={meeting} />
         {params.get("variant") === "b" && !meeting.run ? (
           <MeetingDetailB meeting={meeting} />
-        ) : meeting.run ? (
+        ) : meeting.run && !meeting.minimized ? (
           <LiveMeeting meeting={meeting} />
         ) : (
           <MeetingOverviewDetail meeting={meeting} />

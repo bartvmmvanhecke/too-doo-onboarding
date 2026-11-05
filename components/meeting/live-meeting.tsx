@@ -21,6 +21,9 @@ import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/compone
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { allItems, type EntryKind } from "@/lib/agenda";
 import { usePeople, useStore, type Meeting } from "@/lib/store";
+import { OVERTIME_EXTEND_MIN } from "@/lib/meetingWrapUp.config";
+import { clockTime } from "@/lib/meeting-wrap-up";
+import { Button } from "@/components/ui/button";
 import { useNow } from "./meeting-context";
 import { closeManually, isHandled, navigateTo, nextOpenItem, othersOpen, plannedEnd } from "@/lib/meeting-wrap-up";
 import { cn } from "@/lib/utils";
@@ -42,6 +45,9 @@ export function LiveMeeting({ meeting }: { meeting: Meeting }) {
   const finish = () => ops.putMeeting(closeManually(useStore.getState().meetings.find(m => m.id === meeting.id)!));
   const item = items.find((i) => i.id === run.currentId);
   const block = meeting.blocks.find((b) => b.id === run.currentId || b.items.some((i) => i.id === run.currentId));
+  const [snoozeUntil, setSnoozeUntil] = useState(0);
+  const [minimizePrompt, setMinimizePrompt] = useState(false);
+  const minimize = () => ops.putMeeting({ ...useStore.getState().meetings.find(m => m.id === meeting.id)!, minimized: true });
   const [editing, setEditing] = useState<EntryKind | "agenda" | null>(null);
   const [text, setText] = useState("");
   const [ownerId, setOwnerId] = useState("");
@@ -109,6 +115,7 @@ export function LiveMeeting({ meeting }: { meeting: Meeting }) {
           </span>
           {!overtime && <progress aria-label="Verstreken vergadertijd" value={Math.max(0, now-run.startedAt)} max={Math.max(1,end-run.startedAt)} className="h-1 w-24" />}
         </div>
+        <Button variant="inverse" size="sm" onClick={() => overtime || handled === items.length ? setMinimizePrompt(true) : minimize()}>Minimaliseren</Button>
         <button
           type="button"
           onClick={finish}
@@ -241,6 +248,11 @@ export function LiveMeeting({ meeting }: { meeting: Meeting }) {
         </aside>
         <main className="flex min-h-0 min-w-0 flex-1 flex-col gap-7 overflow-y-auto rounded-tl-2xl bg-[#f9f9fc] p-5 xl:flex-row xl:p-6">
           <div className="min-w-0 flex-1">
+            {(minimizePrompt || (overtime && now >= snoozeUntil)) && <section role="status" className={cn("mb-5 rounded-[14px] border p-4", minimizePrompt ? "border-[var(--wrap-line)] bg-white" : "border-transparent bg-[var(--wrap-amber-bg)] text-[var(--wrap-amber-ink)]")}>
+              <h2 className="font-bold">{minimizePrompt ? "Eerst afronden?" : "Vergadering nog bezig?"}</h2>
+              <p className="my-2 text-sm">{minimizePrompt ? `${overtime ? "Het geplande einde is voorbij." : "Alle agendapunten zijn behandeld."} Minimaliseer je, dan loopt de vergadering gewoon door.` : `Het geplande einde (${clockTime(end)}) is voorbij.${otherOpen.length ? ` Punt ${openNumbers} staan nog open.` : ""}`}</p>
+              <div className="flex gap-2"><Button size="sm" variant="outline" onClick={() => { if (minimizePrompt) { setMinimizePrompt(false); minimize(); } else setSnoozeUntil(now + OVERTIME_EXTEND_MIN * 60000); }}>{minimizePrompt ? "Minimaliseren" : "+15 min"}</Button><Button size="sm" onClick={finish}>Afronden</Button></div>
+            </section>}
             {item && otherOpen.length === 0 && <p className="mb-5 rounded-xl bg-brand-soft p-4 font-bold text-brand">→ Laatste open punt · daarna versturen we de opvolging</p>}
             {!run.currentId && (
               <p className="mb-5 rounded-lg bg-blue-50 p-3 text-sm">

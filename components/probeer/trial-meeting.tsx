@@ -3,12 +3,15 @@
 import { useSearchParams } from "next/navigation";
 import { MeetingDetailB } from "@/components/meeting-detail-b/meeting-detail-b";
 import { trialDocumentOps, currentTrialMeeting } from "@/lib/trial-document";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { CircleCheck } from "lucide-react";
 import type { MeetingOps, TrialView } from "@/components/meeting/meeting-context";
-import { MeetingDetail } from "@/components/meeting/meeting-detail";
+import { MeetingDetail, tourSteps } from "@/components/meeting/meeting-detail";
 import { FilePicker } from "@/components/probeer/entry-blocks";
 import { ParticipantsEditor, WhenEditor } from "@/components/probeer/trial-editors";
+import { ProductTour } from "@/components/tour/product-tour";
+import { TourBanner } from "@/components/tour/tour-banner";
+import { useRequestedTour } from "@/components/tour/tour-request";
 import { weekdayName, whenText } from "@/lib/assistant/format";
 import { goalLabel, totalMinutes } from "@/lib/assistant/goals";
 import { ME } from "@/lib/assistant/types";
@@ -125,6 +128,11 @@ export function TrialMeeting({
   const others = useGuestStore((s) => s.others);
   const account = useGuestStore((s) => s.account);
   const ready = step === 3 || step === "done";
+  // Lege vergadering (C1h): een banner biedt de rondleiding aan; ze start niet vanzelf.
+  const [tourBanner, setTourBanner] = useState(true);
+  const [touring, setTouring] = useState(false);
+  // "Rondleiding starten" in het Hulp-menu.
+  const [tourRequested, tourHandled] = useRequestedTour();
   const confirming = actions.some((a) => a.reviewStatus === "open");
 
   const bundle = { meeting, actions, decisions };
@@ -221,7 +229,28 @@ export function TrialMeeting({
       {params.get("variant") === "b" ? (
         <MeetingDetailB meeting={shown} trial={{ view, ops, people, getCurrentMeeting: currentTrialMeeting }} />
       ) : (
-        <MeetingDetail meeting={shown} trial={{ view, ops, people }} />
+        <>
+          {emptyPath && !ready && tourBanner && (
+            <TourBanner
+              touring={touring || tourRequested}
+              onStart={() => setTouring(true)}
+              onDismiss={() => {
+                setTourBanner(false);
+                setTouring(false);
+              }}
+            />
+          )}
+          <MeetingDetail meeting={shown} trial={{ view, ops, people }} />
+          {((emptyPath && touring) || tourRequested) && (
+            <ProductTour
+              steps={tourSteps(shown)}
+              onClose={() => {
+                setTouring(false);
+                tourHandled();
+              }}
+            />
+          )}
+        </>
       )}
     </div>
   );

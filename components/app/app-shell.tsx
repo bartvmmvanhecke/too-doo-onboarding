@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { AddMeetingsDialog } from "@/components/app/add-meetings-dialog";
 import { AppUiProvider, useAppUi } from "@/components/app/app-ui";
+import { HelpMenu } from "@/components/app/help-menu";
 import { Logo } from "@/components/brand";
 import { Hydrated } from "@/components/hydrated";
 import { AfterSaveAssistant } from "@/components/probeer/after-save";
@@ -86,11 +87,14 @@ function Sidebar() {
         {comingSoon("Beslissingen")}
         {comingSoon("Notities")}
       </div>
-      <p className="mt-auto hidden border-t border-white/15 p-3 text-[13px] text-nav-muted lg:block">
-        {/* Variant A: na bewaren staat je naam erbij (SPEC-LAZY.md §7). */}
-        {lazyUser && <span className="block text-sm font-extrabold text-white">{lazyUser}</span>}
-        Proefperiode · nog 30 dagen
-      </p>
+      <div className="flex flex-col gap-1 lg:mt-auto">
+        <HelpMenu className={cn(item, "w-full gap-2.5 lg:mt-4")} />
+        <p className="hidden border-t border-white/15 p-3 text-[13px] text-nav-muted lg:block">
+          {/* Variant A: na bewaren staat je naam erbij (SPEC-LAZY.md §7). */}
+          {lazyUser && <span className="block text-sm font-extrabold text-white">{lazyUser}</span>}
+          Proefperiode · nog 30 dagen
+        </p>
+      </div>
     </nav>
   );
 }

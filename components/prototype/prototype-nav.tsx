@@ -2,7 +2,7 @@
 
 import { useRef, useState, type KeyboardEvent } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
-import { FlaskConical, List, RotateCcw, Shuffle, type LucideIcon } from "lucide-react";
+import { Check, FlaskConical, LayoutTemplate, List, RotateCcw, Shuffle, type LucideIcon } from "lucide-react";
 import { openDemoSettings } from "@/components/demo/demo-bar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
@@ -32,12 +32,25 @@ interface MenuItem {
   label: string;
   icon: LucideIcon;
   onSelect: () => void;
+  /** Een optie die aan of uit staat: vinkje en `menuitemcheckbox`. */
+  checked?: (demo: ReturnType<typeof useStore.getState>["demo"]) => boolean;
 }
 
 /** De items van het prototype-menu. Nieuwe items komen gewoon in deze lijst. */
 const MENU_ITEMS: MenuItem[] = [
   { id: "herstart", label: "Herstart demo", icon: RotateCcw, onSelect: restartDemo },
   { id: "demo", label: "Demo-instellingen", icon: FlaskConical, onSelect: openDemoSettings },
+  {
+    id: "alt-leeg",
+    label: "Alternatief eerste scherm lege vergadering",
+    icon: LayoutTemplate,
+    // In de demo-instellingen: standaard uit (de nieuwe lege staat), aan = "Zet je eerste vaste overleg klaar".
+    onSelect: () => {
+      const { demo, setDemo } = useStore.getState();
+      setDemo({ altEmpty: !demo.altEmpty });
+    },
+    checked: (demo) => !!demo.altEmpty,
+  },
 ];
 
 /**
@@ -55,6 +68,7 @@ export function PrototypeNav() {
   const showVariant = (detail && !meeting?.run) || (pathname === "/probeer" && trialVisible);
   const variantB = params.get("variant") === "b";
   const hydrated = useHydrated();
+  const demo = useStore((s) => s.demo);
   const step3Variant = useStore((s) => s.step3Variant);
   const setStep3Variant = useStore((s) => s.setStep3Variant);
   const [open, setOpen] = useState(false);
@@ -111,7 +125,7 @@ export function PrototypeNav() {
           </Tooltip>
           <PopoverContent
             align="end"
-            className="w-56"
+            className="w-72"
             onOpenAutoFocus={(e) => {
               e.preventDefault();
               itemRefs.current[0]?.focus();
@@ -154,6 +168,7 @@ export function PrototypeNav() {
               )}
               {MENU_ITEMS.map((item, i) => {
                 const Icon = item.icon;
+                const checked = item.checked ? hydrated && item.checked(demo) : undefined;
                 return (
                   <button
                     key={item.id}
@@ -161,7 +176,8 @@ export function PrototypeNav() {
                       itemRefs.current[i + (showVariant ? 2 : 0)] = el;
                     }}
                     type="button"
-                    role="menuitem"
+                    role={checked === undefined ? "menuitem" : "menuitemcheckbox"}
+                    aria-checked={checked}
                     tabIndex={-1}
                     onClick={() => {
                       setOpen(false);
@@ -170,7 +186,18 @@ export function PrototypeNav() {
                     className="flex min-h-11 w-full cursor-pointer items-center gap-2.5 rounded-lg px-2.5 text-left text-sm font-bold hover:bg-app focus-visible:bg-app focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-brand"
                   >
                     <Icon className="size-4 shrink-0 text-ink-3" aria-hidden />
-                    {item.label}
+                    <span className="flex-1">{item.label}</span>
+                    {checked !== undefined && (
+                      <span
+                        aria-hidden
+                        className={cn(
+                          "flex size-5 shrink-0 items-center justify-center rounded border",
+                          checked ? "border-brand bg-brand text-white" : "border-line",
+                        )}
+                      >
+                        {checked && <Check className="size-3.5" strokeWidth={3} />}
+                      </span>
+                    )}
                   </button>
                 );
               })}

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { motion } from "framer-motion";
 import { DOCK, SHARED } from "@/components/probeer/dock";
 import { Menu, UserRound, Clock } from "lucide-react";
+import { HelpMenu } from "@/components/app/help-menu";
 import { Logo } from "@/components/brand";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -75,6 +76,7 @@ function SaveBox({ canSave, onSave, account }: { canSave: boolean; onSave: () =>
   const urgent = !account && days <= SAVE_URGENT_DAYS;
   return (
     <div className="flex flex-col gap-2">
+      <HelpMenu className={cn(item, "w-full gap-2.5")} />
       <button type="button" className={item} onClick={notAvailable}>
         Instellingen
       </button>

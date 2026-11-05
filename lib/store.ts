@@ -143,7 +143,12 @@ export interface LazyWelcome {
 }
 
 interface Data {
-  demo: { login: LoginOutcome; calendar: CalendarOutcome };
+  demo: {
+    login: LoginOutcome;
+    calendar: CalendarOutcome;
+    /** Prototype: het oude eerste scherm "Zet je eerste vaste overleg klaar" op een lege Vergaderingen. */
+    altEmpty?: boolean;
+  };
   user: User | null;
   calendar: CalendarState;
   calendarNotice: "cancelled" | null;
@@ -238,7 +243,7 @@ const emptyActionDrafts = (): ActionDraft[] =>
   Array.from({ length: 3 }, () => ({ what: "", ownerId: null, ownerText: "", deadline: "" }));
 
 const initialData = (): Data => ({
-  demo: { login: "success", calendar: "series" },
+  demo: { login: "success", calendar: "series", altEmpty: false },
   user: null,
   calendar: "idle",
   calendarNotice: null,

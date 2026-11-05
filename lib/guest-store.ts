@@ -327,6 +327,9 @@ export const useGuestStore = create<GuestStore>()(
   ),
 );
 
+/** Per tabblad: één keer "Welkom terug" per bezoek (sessionStorage). */
+export const GUEST_SESSION_KEY = "toodoo-guest-session";
+
 /** Wist de proefomgeving op dit toestel. */
 export function clearGuest() {
   useGuestStore.getState().reset();

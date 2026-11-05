@@ -80,13 +80,13 @@ test("aanwezigheid naar vergadermodus, verslag opslaan en vergadering beëindige
   await page.waitForTimeout(300);
   await page.screenshot({ path: "/tmp/live-meeting-mobile.png" });
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
-  await page.getByRole("button", { name: "Voltooien", exact: true }).click();
-  await expect(page.getByRole("button", { name: "Wie gaat testen?", exact: true })).toHaveAttribute(
-    "aria-current",
-    "step",
-  );
-  await page.getByRole("button", { name: "Vergadering beëindigen", exact: true }).click();
-  await page.getByRole("dialog").getByRole("button", { name: "Vergadering beëindigen", exact: true }).click();
+  await page.getByRole("button", { name: /Behandeld · volgend open punt/ }).click();
+  await expect(page.getByRole("button", { name: /Wie gaat testen\?/ })).toHaveAttribute("aria-current", "step");
+  await page.getByRole("button", { name: "Afronden", exact: true }).first().click();
+  await expect(page.getByRole("heading", { name: "Vergadering afronden", exact: true })).toBeFocused();
+  await page.getByRole("button", { name: "Rond af & verstuur opvolging", exact: true }).click();
+  await expect(page.getByRole("heading", { name: "Vergadering afgerond", exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Naar vergadering", exact: true }).click();
   await expect(page.getByRole("complementary", { name: "Vergaderagenda" })).toHaveCount(0);
   const meeting = await page.evaluate(() => JSON.parse(localStorage.getItem("too-doo-onboarding")!).state.meetings[0]);
   expect(meeting.run).toBeNull();

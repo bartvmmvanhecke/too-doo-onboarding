@@ -68,6 +68,7 @@ export interface ActionDraft {
 
 export interface Action {
   id: string;
+  updatedAt?: number;
   what: string;
   ownerId: string | null;
   deadline: string;
@@ -88,6 +89,7 @@ export interface Meeting extends MeetingSchedule {
   id: string;
   startedAt?: number;
   endedAt?: number;
+  autoClosedAt?: number;
   lastActivityAt?: number;
   endReason?: "manual" | "auto";
   followUpStatus?: "pending" | "sent";
@@ -337,7 +339,9 @@ function mapItem(m: Meeting, itemId: string, fn: (i: AgendaItem) => AgendaItem):
   return {
     ...m,
     blocks: m.blocks.map((b) =>
-      b.items.some((i) => i.id === itemId) ? { ...b, items: b.items.map((i) => (i.id === itemId ? {...fn(i),updatedAt:Date.now()} : i)) } : b,
+      b.items.some((i) => i.id === itemId)
+        ? { ...b, items: b.items.map((i) => (i.id === itemId ? { ...fn(i), updatedAt: Date.now() } : i)) }
+        : b,
     ),
   };
 }
@@ -348,11 +352,13 @@ export const STORAGE_KEY = "too-doo-onboarding";
 
 const storeInitializer: StateCreator<Store> = (set, get) => {
   const updateMeeting = (id: string, fn: (m: Meeting) => Meeting) =>
-    set((s) => ({ meetings: s.meetings.map((m) => {
-      if (m.id !== id) return m;
-      const updated = fn(m);
-      return m.run && !m.endedAt ? {...updated,lastActivityAt:Date.now()} : updated;
-    }) }));
+    set((s) => ({
+      meetings: s.meetings.map((m) => {
+        if (m.id !== id) return m;
+        const updated = fn(m);
+        return m.run && !m.endedAt ? { ...updated, lastActivityAt: Date.now() } : updated;
+      }),
+    }));
 
   return {
     ...initialData(),
@@ -592,13 +598,17 @@ const storeInitializer: StateCreator<Store> = (set, get) => {
           lastActivityAt: now,
           startedBy: USER_PERSON_ID,
           endedAt: undefined,
+          autoClosedAt: undefined,
           endReason: undefined,
           endTimeConfirmed: undefined,
           reminderQueuedAt: undefined,
           followUpStatus: "pending",
           wrapUpOpen: false,
           minimized: false,
-          blocks: m.blocks.map(b=>({...b,items:b.items.map(i=>({...i,runStatus:"open",handledAt:undefined}))})),
+          blocks: m.blocks.map((b) => ({
+            ...b,
+            items: b.items.map((i) => ({ ...i, runStatus: "open", handledAt: undefined })),
+          })),
           run: {
             startedAt: now,
             stepStartedAt: now,
@@ -631,7 +641,7 @@ const storeInitializer: StateCreator<Store> = (set, get) => {
           },
         };
       }),
-    endRun: (meetingId) => updateMeeting(meetingId, m => closeManually(m)),
+    endRun: (meetingId) => updateMeeting(meetingId, (m) => closeManually(m)),
     dismissWelcome: (meetingId) => updateMeeting(meetingId, (m) => ({ ...m, showWelcome: false })),
     markInvited: (meetingId) => updateMeeting(meetingId, (m) => ({ ...m, invited: true })),
     markHeld: (meetingId) => updateMeeting(meetingId, (m) => ({ ...m, held: true })),
@@ -815,7 +825,13 @@ const storeInitializer: StateCreator<Store> = (set, get) => {
     putMeeting: (meeting) =>
       set((s) => ({
         meetings: s.meetings.some((m) => m.id === meeting.id)
-          ? s.meetings.map((m) => (m.id === meeting.id ? (m.run && !m.endedAt && !meeting.endedAt ? {...meeting,lastActivityAt:Date.now()} : meeting) : m))
+          ? s.meetings.map((m) =>
+              m.id === meeting.id
+                ? m.run && !m.endedAt && !meeting.endedAt
+                  ? { ...meeting, lastActivityAt: Date.now() }
+                  : meeting
+                : m,
+            )
           : [...s.meetings, meeting],
       })),
     removeMeeting: (meetingId) => set((s) => ({ meetings: s.meetings.filter((m) => m.id !== meetingId) })),

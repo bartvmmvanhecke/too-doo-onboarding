@@ -70,8 +70,8 @@ export function MeetingsList() {
       (type === ALL || m.type === type) &&
       (person === ALL || m.participants.includes(person)),
   );
-  const pending = filtered.filter(m=>m.endedAt && m.followUpStatus === "pending");
-  const remaining = filtered.filter(m=>!pending.includes(m));
+  const pending = filtered.filter((m) => m.endedAt && m.followUpStatus === "pending");
+  const remaining = filtered.filter((m) => !pending.includes(m));
   const past = remaining.filter((m) => isPast(m, todayISO)).sort((a, b) => b.date!.localeCompare(a.date!));
   const upcoming = remaining
     .filter((m) => !isPast(m, todayISO))
@@ -98,7 +98,9 @@ export function MeetingsList() {
       <div data-meetings-overview className="flex flex-wrap items-center justify-between gap-4">
         <h1 className="text-[30px] leading-tight font-bold">Vergaderingen</h1>
         <div className="flex flex-wrap gap-2">
-          <Button variant="outline" asChild><Link href="/app/vergaderingen-kpi">Statistieken vergaderingen</Link></Button>
+          <Button variant="outline" asChild>
+            <Link href="/app/vergaderingen-kpi">Statistieken vergaderingen</Link>
+          </Button>
           <Button
             variant="outline"
             size="sm"
@@ -227,7 +229,11 @@ function MeetingRow({ meeting: m, status }: { meeting: Meeting; status: Status }
         <span className="flex min-w-0 flex-col">
           <span className="flex min-w-0 flex-wrap items-center gap-2">
             <span className="truncate text-[17px] font-bold">{m.name}</span>
-            {m.endedAt && m.followUpStatus === "pending" && <span className="rounded-full bg-[var(--wrap-amber-bg)] px-2 py-1 text-xs font-bold text-[var(--wrap-amber-ink)]">Nog af te ronden</span>}
+            {m.endedAt && m.followUpStatus === "pending" && (
+              <span className="rounded-full bg-[var(--wrap-amber-bg)] px-2 py-1 text-xs font-bold text-[var(--wrap-amber-ink)]">
+                Nog af te ronden
+              </span>
+            )}
             <span className="rounded-full bg-brand-soft px-2 py-0.5 text-xs font-bold text-brand">{m.type}</span>
           </span>
           <span className="text-[13px] text-ink-3">{whenLine(m)}</span>

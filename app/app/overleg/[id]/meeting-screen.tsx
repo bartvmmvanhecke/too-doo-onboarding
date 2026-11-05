@@ -26,19 +26,27 @@ export function MeetingScreen() {
 
   useEffect(() => {
     if (params.get("afronden") !== "1" || !meeting || meeting.wrapUpOpen || meeting.followUpStatus === "sent") return;
-    useStore.getState().putMeeting(meeting.endedAt ? {...meeting,wrapUpOpen:true} : closeManually(meeting));
+    useStore.getState().putMeeting(meeting.endedAt ? { ...meeting, wrapUpOpen: true } : closeManually(meeting));
     router.replace(`/app/overleg/${meeting.id}`);
-  },[meeting,params,router]);
+  }, [meeting, params, router]);
 
   if (!meeting) return null;
   if (params.get("herinnering") === "1") return <MeetingReminderPreview meeting={meeting} />;
-  if (params.get("meldingen") === "1") return <section className="rounded-xl border border-line bg-white p-5"><h1 className="text-2xl font-bold">Meldingen beheren</h1><p className="mt-3">Meldingsvoorkeuren zijn nog niet beschikbaar in dit prototype.</p></section>;
+  if (params.get("meldingen") === "1")
+    return (
+      <section className="rounded-xl border border-line bg-white p-5">
+        <h1 className="text-2xl font-bold">Meldingen beheren</h1>
+        <p className="mt-3">Meldingsvoorkeuren zijn nog niet beschikbaar in dit prototype.</p>
+      </section>
+    );
   return (
     <MeetingStartGate meeting={meeting}>
       <div data-meeting-detail className="contents">
         <SavedBanner meeting={meeting} />
         {!meeting.wrapUpOpen && <PendingFollowUp meeting={meeting} />}
-        {meeting.wrapUpOpen ? (<MeetingWrapUp meeting={meeting} />) : params.get("variant") === "b" && !meeting.run ? (
+        {meeting.wrapUpOpen ? (
+          <MeetingWrapUp meeting={meeting} />
+        ) : params.get("variant") === "b" && !meeting.run ? (
           <MeetingDetailB meeting={meeting} />
         ) : meeting.run && !meeting.minimized ? (
           <LiveMeeting meeting={meeting} />

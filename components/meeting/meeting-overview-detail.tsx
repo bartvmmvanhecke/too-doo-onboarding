@@ -95,7 +95,14 @@ export function MeetingOverviewDetail({ meeting }: { meeting: Meeting }) {
                 <CalendarCheck className="size-4" aria-hidden />
                 {meeting.held ? "Afgerond" : "Ingepland"}
               </span>
-              <h1 className="max-w-full text-[36px] leading-tight font-semibold sm:text-[40px]">{meeting.name}</h1>
+              <div className="flex flex-wrap items-center gap-3">
+                <h1 className="max-w-full text-[36px] leading-tight font-semibold sm:text-[40px]">{meeting.name}</h1>
+                {meeting.endedAt && meeting.followUpStatus === "pending" && (
+                  <span className="rounded-full bg-[var(--wrap-amber-bg)] px-3 py-1 text-sm font-bold text-[var(--wrap-amber-ink)]">
+                    Nog af te ronden
+                  </span>
+                )}
+              </div>
               <p className="text-sm font-semibold text-ink-3">
                 {meeting.date ? formatShortDate(meeting.date) : "Nog niet ingepland"}
                 {meeting.time !== null &&
@@ -119,7 +126,11 @@ export function MeetingOverviewDetail({ meeting }: { meeting: Meeting }) {
                   {Math.abs(remaining)} min {remaining < 0 ? "te veel" : "over"}
                 </span>
               </div>
-              <Button className="rounded-full" disabled={!!meeting.endedAt && meeting.followUpStatus === "pending"} onClick={() => ops.startRun(meeting.id)}>
+              <Button
+                className="rounded-full"
+                disabled={!!meeting.endedAt && meeting.followUpStatus === "pending"}
+                onClick={() => ops.startRun(meeting.id)}
+              >
                 <Play className="size-5" aria-hidden />
                 Start vergadering
               </Button>

@@ -161,7 +161,7 @@ function LiveMeetingContent({ meeting }: { meeting: Meeting }) {
         <p className="order-last w-full min-w-0 truncate text-[14pt] font-bold sm:order-none sm:w-auto sm:flex-1">
           {item?.text ?? block?.title}
         </p>
-        <div className="flex flex-wrap items-center gap-2 text-xs">
+        <div className="flex flex-wrap items-center gap-4 text-xs">
           <span>
             {handled} van de {items.length} behandeld
           </span>
@@ -169,7 +169,7 @@ function LiveMeetingContent({ meeting }: { meeting: Meeting }) {
             role="status"
             className={cn(
               "flex min-h-11 items-center gap-3 rounded-full px-3 py-2 text-[11pt]",
-              overtime ? "bg-[var(--wrap-amber-bg)] text-[var(--wrap-amber-ink)]" : "bg-white/15",
+              overtime ? "bg-[var(--wrap-amber-bg)] text-[var(--wrap-amber-ink)]" : "bg-white/25",
             )}
           >
             <span>
@@ -229,7 +229,7 @@ function LiveMeetingContent({ meeting }: { meeting: Meeting }) {
                     key={i.id}
                     className={cn(
                       "min-w-[260px] rounded-2xl border border-white/20 p-3 lg:min-w-0",
-                      active && "bg-white/90 text-ink ring-2 ring-brand",
+                      active && "bg-white/80 text-ink ring-2 ring-brand",
                     )}
                   >
                     <div className={cn(active && "mb-3 flex items-start justify-between gap-3")}>

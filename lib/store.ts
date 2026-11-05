@@ -91,6 +91,7 @@ export interface Meeting extends MeetingSchedule {
   startedAt?: number;
   endedAt?: number;
   autoClosedAt?: number;
+  overtimeUntil?: number;
   demoTimeOffsetMs?: number;
   demoScenarioRevision?: number;
   lastActivityAt?: number;
@@ -601,6 +602,7 @@ const storeInitializer: StateCreator<Store> = (set, get) => {
           startedAt: now,
           lastActivityAt: now,
           startedBy: USER_PERSON_ID,
+          overtimeUntil: undefined,
           endedAt: undefined,
           autoClosedAt: undefined,
           endReason: undefined,

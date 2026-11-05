@@ -115,17 +115,26 @@ export function useMeeting(): MeetingCtx {
 }
 
 /** Klok voor de timers van een lopende vergadering. */
-export function useNow(active: boolean): number {
+export function useNow(active: boolean, boundaryMs = 0): number {
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => {
     if (!active) return;
-    const tick = () => setNow(Date.now());
-    const first = window.setTimeout(tick, 0);
-    const t = window.setInterval(tick, 1000);
-    return () => {
-      window.clearTimeout(first);
-      window.clearInterval(t);
+    let timer: number;
+    const tick = () => {
+      const current = Date.now();
+      setNow(current);
+      timer = window.setTimeout(tick, 1000 - ((((current - boundaryMs) % 1000) + 1000) % 1000));
     };
-  }, [active]);
+    timer = window.setTimeout(tick, 0);
+    const visible = () => {
+      window.clearTimeout(timer);
+      tick();
+    };
+    document.addEventListener("visibilitychange", visible);
+    return () => {
+      window.clearTimeout(timer);
+      document.removeEventListener("visibilitychange", visible);
+    };
+  }, [active, boundaryMs]);
   return now;
 }

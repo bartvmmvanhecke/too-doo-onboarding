@@ -1,16 +1,16 @@
 "use client";
-import { meetingNow } from "@/lib/meeting-clock";
+import { elapsedClock, remainingLabel, timerEnd, meetingNow } from "@/lib/meeting-clock";
 import Link from "next/link";
 import { useStore } from "@/lib/store";
-import { closeManually, plannedEnd } from "@/lib/meeting-wrap-up";
+import { closeManually } from "@/lib/meeting-wrap-up";
 import { useNow } from "./meeting-context";
 import { Button } from "@/components/ui/button";
 export function RunningMeetingPill() {
   const meeting = useStore((s) => s.meetings.find((m) => m.run && !m.endedAt && m.minimized));
-  const realNow = useNow(!!meeting);
+  const realNow = useNow(!!meeting, (meeting?.run?.startedAt ?? 0) - meetingNow(meeting ?? {}, 0));
   const now = meeting ? meetingNow(meeting, realNow) : realNow;
   if (!meeting) return null;
-  const over = now >= plannedEnd(meeting);
+  const over = now >= timerEnd(meeting);
   return (
     <aside
       role="status"
@@ -18,8 +18,10 @@ export function RunningMeetingPill() {
       className="fixed right-4 bottom-5 z-30 flex max-w-[calc(100%-2rem)] flex-wrap items-center gap-3 rounded-2xl border border-line bg-white p-3 shadow-lg"
     >
       <span className={over ? "text-[var(--wrap-amber-ink)]" : "text-brand"}>
-        ● {meeting.name} ·{" "}
-        {over ? `${Math.floor((now - plannedEnd(meeting)) / 60000)} min over gepland einde` : "Vergadering bezig"}
+        ● {meeting.name} · <span className="tabular-nums">{elapsedClock(now - meeting.run!.startedAt)}</span> ·{" "}
+        {over
+          ? `${Math.floor((now - timerEnd(meeting)) / 60000)} min over gepland einde`
+          : remainingLabel(timerEnd(meeting) - now)}
       </span>
       <Button variant="outline" size="sm" asChild>
         <Link

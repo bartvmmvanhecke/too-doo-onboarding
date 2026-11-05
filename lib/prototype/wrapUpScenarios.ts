@@ -104,6 +104,7 @@ export function loadWrapUpScenario(kind: WrapUpScenario, meetingId: string, real
     lastActivityAt: start + elapsed * 60000,
     demoTimeOffsetMs: start + elapsed * 60000 - realNow,
     demoScenarioRevision: (current.demoScenarioRevision ?? 0) + 1,
+    overtimeUntil: undefined,
     endedAt: undefined,
     autoClosedAt: undefined,
     endReason: undefined,

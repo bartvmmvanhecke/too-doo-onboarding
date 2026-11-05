@@ -1,7 +1,7 @@
 "use client";
 
 import { MeetingPrototypeBar } from "@/components/prototype/meeting-prototype-bar";
-import { meetingNow } from "@/lib/meeting-clock";
+import { elapsedClock, remainingLabel, timerEnd, meetingNow } from "@/lib/meeting-clock";
 import { useEffect, useRef, useState } from "react";
 import {
   ArrowDown,
@@ -29,7 +29,7 @@ import { OVERTIME_EXTEND_MIN } from "@/lib/meetingWrapUp.config";
 import { clockTime } from "@/lib/meeting-wrap-up";
 import { Button } from "@/components/ui/button";
 import { useNow } from "./meeting-context";
-import { closeManually, isHandled, navigateTo, nextOpenItem, othersOpen, plannedEnd } from "@/lib/meeting-wrap-up";
+import { closeManually, isHandled, navigateTo, nextOpenItem, othersOpen } from "@/lib/meeting-wrap-up";
 import { cn } from "@/lib/utils";
 
 const pill =
@@ -50,8 +50,8 @@ function LiveMeetingContent({ meeting }: { meeting: Meeting }) {
   const run = meeting.run!;
   const items = allItems(meeting.blocks);
   const nextMeeting = nextInSeries(meeting, ops.meetings);
-  const now = meetingNow(meeting, useNow(true));
-  const end = plannedEnd(meeting);
+  const now = meetingNow(meeting, useNow(true, run.startedAt - meetingNow(meeting, 0)));
+  const end = timerEnd(meeting);
   const overtime = now >= end;
   const otherOpen = othersOpen(meeting, run.currentId);
   const nextOpen = nextOpenItem(meeting, run.currentId);
@@ -68,7 +68,6 @@ function LiveMeetingContent({ meeting }: { meeting: Meeting }) {
   };
   const item = items.find((i) => i.id === run.currentId);
   const block = meeting.blocks.find((b) => b.id === run.currentId || b.items.some((i) => i.id === run.currentId));
-  const [snoozeUntil, setSnoozeUntil] = useState(0);
   const [minimizePrompt, setMinimizePrompt] = useState(false);
   const minimize = () =>
     ops.putMeeting({ ...useStore.getState().meetings.find((m) => m.id === meeting.id)!, minimized: true });
@@ -169,10 +168,8 @@ function LiveMeetingContent({ meeting }: { meeting: Meeting }) {
               overtime ? "bg-[var(--wrap-amber-bg)] text-[var(--wrap-amber-ink)]" : "bg-white/15",
             )}
           >
-            {Math.max(0, Math.floor((now - run.startedAt) / 60000))} min ·{" "}
-            {overtime
-              ? `${Math.floor((now - end) / 60000)} min over gepland einde`
-              : `${Math.ceil((end - now) / 60000)} min resterend`}
+            <span className="tabular-nums">{elapsedClock(now - run.startedAt)}</span> ·{" "}
+            {overtime ? `${Math.floor((now - end) / 60000)} min over gepland einde` : remainingLabel(end - now)}
           </span>
           {!overtime && (
             <progress
@@ -338,7 +335,7 @@ function LiveMeetingContent({ meeting }: { meeting: Meeting }) {
         </aside>
         <main className="flex min-h-0 min-w-0 flex-1 flex-col gap-7 overflow-y-auto rounded-tl-2xl bg-[#f9f9fc] p-5 xl:flex-row xl:p-6">
           <div className="min-w-0 flex-1">
-            {(minimizePrompt || (overtime && now >= snoozeUntil)) && (
+            {(minimizePrompt || overtime) && (
               <section
                 role="status"
                 className={cn(
@@ -362,7 +359,7 @@ function LiveMeetingContent({ meeting }: { meeting: Meeting }) {
                       if (minimizePrompt) {
                         setMinimizePrompt(false);
                         minimize();
-                      } else setSnoozeUntil(now + OVERTIME_EXTEND_MIN * 60000);
+                      } else ops.putMeeting({ ...meeting, overtimeUntil: now + OVERTIME_EXTEND_MIN * 60000 });
                     }}
                   >
                     {minimizePrompt ? "Minimaliseren" : "+15 min"}

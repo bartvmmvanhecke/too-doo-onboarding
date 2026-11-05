@@ -43,7 +43,7 @@ const bar = (page: Page) => page.getByRole("region", { name: "Prototype-bedienin
 test("scenario's, klok, pill, afronden en reset", async ({ page }) => {
   await openRun(page);
   await bar(page).getByRole("button", { name: "Tijd +5 min", exact: true }).click();
-  await expect(page.getByText("5 min · 55 min resterend", { exact: true })).toBeVisible();
+  await expect(page.getByText("05:00 · 55 min resterend", { exact: true })).toBeVisible();
   await bar(page).getByRole("button", { name: "Scenario: sprongen 1 → 4 → 2 → 5", exact: true }).click();
   await expect(page.getByText("3 van 6 behandeld · nog open: 3 en 6", { exact: true })).toBeVisible();
   await expect(page.getByRole("button", { name: "Behandeld · volgend open punt (6)", exact: true })).toBeVisible();

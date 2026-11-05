@@ -8,7 +8,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { Button } from "@/components/ui/button";
 import { formatShortDate, fromISO, today, toISO } from "@/lib/date";
 import { meetingNow } from "@/lib/meeting-clock";
-import { carryForward, closeManually, nextInSeries } from "@/lib/meeting-wrap-up";
+import { closeManually, nextInSeries } from "@/lib/meeting-wrap-up";
 import { useStore, type Meeting } from "@/lib/store";
 
 export function NextMeetingScreen({ meeting, onBack }: { meeting: Meeting; onBack: () => void }) {
@@ -36,16 +36,10 @@ export function NextMeetingScreen({ meeting, onBack }: { meeting: Meeting; onBac
           { seriesId, participants: latest.participants, invited: false, showWelcome: false, blocks: [] },
         );
     }
-    const closed = {
+    ops.putMeeting({
       ...closeManually(latest, meetingNow(latest)),
       seriesId,
-      held: true,
-      run: null,
-      wrapUpOpen: false,
-      minimized: false,
-    };
-    const meetings = useStore.getState().meetings.map((m) => (m.id === closed.id ? closed : m));
-    useStore.setState({ meetings: carryForward(closed, meetings) });
+    });
   };
 
   return (

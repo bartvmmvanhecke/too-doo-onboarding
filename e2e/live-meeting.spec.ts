@@ -96,6 +96,15 @@ test("aanwezigheid naar vergadermodus, verslag opslaan en vergadering beëindige
   await page.getByRole("button", { name: "Vergadering afronden", exact: true }).click();
   await page.getByLabel("Vergadertitel", { exact: true }).fill("Volgende headsetbespreking");
   await page.getByRole("button", { name: "Opslaan & sluiten", exact: true }).click();
+  await expect(page.getByRole("heading", { name: "Vergadering afronden", exact: true })).toBeFocused();
+  await expect(page.getByRole("heading", { name: "Beslissingen (1)", exact: true })).toBeVisible();
+  const reviewing = await page.evaluate(() => JSON.parse(localStorage.getItem("too-doo-onboarding")!).state.meetings[0]);
+  expect(reviewing.wrapUpOpen).toBe(true);
+  expect(reviewing.followUpStatus).toBe("pending");
+  expect(reviewing.run).not.toBeNull();
+  await page.getByRole("button", { name: "Rond af & verstuur opvolging", exact: true }).click();
+  await expect(page.getByRole("heading", { name: "Vergadering afgerond", exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Naar vergadering", exact: true }).click();
   await expect(page.getByRole("complementary", { name: "Vergaderagenda" })).toHaveCount(0);
   const meeting = await page.evaluate(() => JSON.parse(localStorage.getItem("too-doo-onboarding")!).state.meetings[0]);
   expect(meeting.run).toBeNull();

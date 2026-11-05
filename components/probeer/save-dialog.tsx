@@ -17,7 +17,7 @@ import { companyFromEmail, isEmail, namesFromEmail } from "@/lib/people";
 import { useSsoLogin } from "@/lib/simulate";
 import type { SaveIntent, User } from "@/lib/store";
 import { track } from "@/lib/track";
-import { joinNl } from "@/lib/utils";
+import { cn, joinNl } from "@/lib/utils";
 
 const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
 
@@ -77,23 +77,51 @@ function SaveSummary({ intent }: { intent: SaveIntent }) {
   );
 }
 
+/** "Dit nemen we mee" voor een zin die nog geen overleg is. */
+function DraftSummary({ draft }: { draft: string }) {
+  return (
+    <aside aria-label="Wat we meenemen" className="flex flex-col gap-3 rounded-2xl bg-app p-5">
+      <span className="text-[13px] font-extrabold tracking-[0.4px] text-ink-3 uppercase">Dit nemen we mee</span>
+      <blockquote className="rounded-xl bg-white p-4 text-[15px] leading-normal font-semibold break-words">
+        “{draft}”
+      </blockquote>
+      <span className="text-sm text-ink-2">Na het inloggen wordt dit je agenda. Je hoeft niets opnieuw te typen.</span>
+    </aside>
+  );
+}
+
+/** Wat de proefomgeving al bevat; zonder inhoud is "inloggen" gewoon inloggen. */
+function useHasGuestContent() {
+  return useGuestStore((s) => !!s.meeting.name || s.others.length > 0);
+}
+
 /**
  * Bewaar-modal van Variant A (C5): het account komt als "bewaren". Microsoft (demo-uitkomsten, bij
  * "geblokkeerd" terugval op e-mail), Google, of werk-e-mail met een code van 6 cijfers. Geen wachtwoord.
+ * Wie al een account heeft, schakelt naar "inloggen": daar kan het ook met e-mail en wachtwoord.
+ * Wat in de proefomgeving klaarstaat, gaat in beide gevallen mee.
  */
 export function SaveDialog({
   intent,
+  draft = null,
   onClose,
   onSaved,
+  onKeepDraft,
 }: {
   intent: SaveIntent | null;
+  /** Wat al getypt werd maar nog geen overleg is (de zin in "Vertel het me" op het welkomstscherm). */
+  draft?: string | null;
   onClose: () => void;
   onSaved: (meetingId: string | null, intent: SaveIntent) => void;
+  /** Met een draft en verder niets: inloggen en daarna verder in de proefomgeving, de draft gaat niet verloren. */
+  onKeepDraft?: (user: User) => void;
 }) {
+  const hasContent = useHasGuestContent();
+  const wide = hasContent || !!draft;
   return (
     <Dialog open={intent !== null} onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="max-w-[920px] gap-0 p-0 sm:p-0">
-        {intent && <SaveForm intent={intent} onSaved={onSaved} />}
+      <DialogContent className={cn("gap-0 p-0 sm:p-0", wide ? "max-w-[920px]" : "max-w-[560px]")}>
+        {intent && <SaveForm intent={intent} draft={draft} onSaved={onSaved} onKeepDraft={onKeepDraft} />}
       </DialogContent>
     </Dialog>
   );
@@ -101,25 +129,68 @@ export function SaveDialog({
 
 function SaveForm({
   intent,
+  draft,
   onSaved,
+  onKeepDraft,
 }: {
   intent: SaveIntent;
+  draft: string | null;
   onSaved: (id: string | null, intent: SaveIntent) => void;
+  onKeepDraft?: (user: User) => void;
 }) {
   const meeting = useGuestStore((s) => s.meeting);
+  const hasContent = useHasGuestContent();
+  // Enkel een getypte zin, nog geen overleg: die gaat mee en wordt na het inloggen je agenda.
+  const keepDraft = !hasContent && !!draft && !!onKeepDraft;
   const { start, pending } = useSsoLogin();
+  // "signup": nieuw account via code (geen wachtwoord). "login": bestaand account, ook met wachtwoord.
+  const [mode, setMode] = useState<"signup" | "login">(intent === "login" ? "login" : "signup");
+  const [withPassword, setWithPassword] = useState(true);
   const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [stage, setStage] = useState<"choose" | "code">("choose");
   const [code, setCode] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [passwordError, setPasswordError] = useState<string | null>(null);
   const [blocked, setBlocked] = useState(false);
   const [busy, setBusy] = useState(false);
   const emailRef = useRef<HTMLInputElement>(null);
+  const passwordRef = useRef<HTMLInputElement>(null);
 
-  const finish = (user: User) => onSaved(saveGuestToApp(user, intent), intent);
+  const login = mode === "login";
+  const passwordForm = login && withPassword && !blocked;
+
+  const switchMode = (next: "signup" | "login") => {
+    setMode(next);
+    setWithPassword(true);
+    setStage("choose");
+    setCode("");
+    setError(null);
+    setPasswordError(null);
+    requestAnimationFrame(() => emailRef.current?.focus());
+  };
+
+  const finish = (user: User) => {
+    if (keepDraft) {
+      track("signup_completed", { methode: user.method, intent, draft: true });
+      return onKeepDraft?.(user);
+    }
+    onSaved(saveGuestToApp(user, intent), intent);
+  };
+
+  const userFromEmail = (method: User["method"]): User => {
+    const names = namesFromEmail(email);
+    return {
+      firstName: names.first || email.split("@")[0],
+      lastName: names.last,
+      email: email.trim(),
+      company: companyFromEmail(email),
+      method,
+    };
+  };
 
   const sso = async (provider: "microsoft" | "google") => {
-    track("signup_method_selected", { methode: provider });
+    track("signup_method_selected", { methode: provider, modus: mode });
     setError(null);
     const outcome = await start(provider);
     track("sso_result", { provider, resultaat: outcome });
@@ -129,54 +200,96 @@ function SaveForm({
     requestAnimationFrame(() => emailRef.current?.focus());
   };
 
+  const checkEmail = () => {
+    if (isEmail(email)) return true;
+    setError("Vul je werk-e-mailadres in, bijvoorbeeld naam@bedrijf.be.");
+    emailRef.current?.focus();
+    return false;
+  };
+
   const sendCode = () => {
-    if (!isEmail(email)) {
-      setError("Vul je werk-e-mailadres in, bijvoorbeeld naam@bedrijf.be.");
-      emailRef.current?.focus();
-      return;
-    }
-    track("signup_method_selected", { methode: "email" });
+    if (!checkEmail()) return;
+    track("signup_method_selected", { methode: "email", modus: mode });
     setError(null);
     setStage("code");
+  };
+
+  const loginWithPassword = async () => {
+    if (!checkEmail()) return;
+    setError(null);
+    if (!password) {
+      setPasswordError("Vul je wachtwoord in.");
+      passwordRef.current?.focus();
+      return;
+    }
+    setPasswordError(null);
+    track("signup_method_selected", { methode: "password", modus: mode });
+    setBusy(true);
+    await new Promise((r) => setTimeout(r, 400));
+    finish(userFromEmail("email"));
   };
 
   const confirmCode = async () => {
     if (!/^\d{6}$/.test(code)) return;
     setBusy(true);
     await new Promise((r) => setTimeout(r, 400));
-    const names = namesFromEmail(email);
-    finish({
-      firstName: names.first || email.split("@")[0],
-      lastName: names.last,
-      email: email.trim(),
-      company: companyFromEmail(email),
-      method: blocked ? "email-blocked" : "email",
-    });
+    finish(userFromEmail(blocked ? "email-blocked" : "email"));
   };
 
-  const login = intent === "login";
+  const title = keepDraft
+    ? login
+      ? "Log in. Wat je typte, ben je niet kwijt."
+      : "Maak je account aan. Wat je typte, ben je niet kwijt."
+    : login
+      ? hasContent
+        ? "Log in. Je overleg gaat mee naar je account."
+        : "Welkom terug. Log in op je account."
+      : hasContent
+        ? "Bewaar je overleg. Het blijft precies zoals het is."
+        : "Maak je account aan.";
+  const description = keepDraft
+    ? "Na het inloggen maken we er meteen je agenda van, en die komt in je account te staan."
+    : login
+      ? hasContent
+        ? "Wat je hier al klaarzette, komt bij je bestaande overleggen te staan."
+        : "Met hetzelfde account als altijd: Microsoft, Google of je e-mail en wachtwoord."
+      : hasContent
+        ? introText(intent, weekdayName(meeting))
+        : "30 dagen gratis, geen creditcard. Geen wachtwoord nodig.";
+  const emailError = error && !blocked ? error : null;
 
   return (
-    <div className="grid gap-6 p-6 sm:p-8 md:grid-cols-[minmax(0,1fr)_300px]">
+    <div
+      className={
+        hasContent || keepDraft ? "grid gap-6 p-6 sm:p-8 md:grid-cols-[minmax(0,1fr)_300px]" : "grid gap-6 p-6 sm:p-8"
+      }
+    >
       <div className="flex flex-col gap-4">
         <div className="flex flex-col gap-1.5 pr-12">
-          <DialogTitle className="text-[26px] leading-tight">
-            {login
-              ? "Log in. Je overleg gaat mee naar je account."
-              : "Bewaar je overleg. Het blijft precies zoals het is."}
-          </DialogTitle>
-          <DialogDescription>{introText(intent, weekdayName(meeting))}</DialogDescription>
+          <DialogTitle className="text-[26px] leading-tight">{title}</DialogTitle>
+          <DialogDescription>{description}</DialogDescription>
+          <p className="flex flex-wrap items-center gap-1 text-sm text-ink-2">
+            {login ? "Nog geen account?" : "Al een account?"}
+            <Button
+              variant="link"
+              size="sm"
+              className="h-auto min-h-0 px-0 text-sm font-bold"
+              onClick={() => switchMode(login ? "signup" : "login")}
+            >
+              {login ? "Maak een account aan" : "Log in"}
+            </Button>
+          </p>
         </div>
 
         {stage === "choose" ? (
           <>
-            <Button variant="outline" size="lg" disabled={pending !== null} onClick={() => sso("microsoft")}>
+            <Button variant="outline" size="lg" disabled={pending !== null || busy} onClick={() => sso("microsoft")}>
               {pending === "microsoft" ? <Loader2 className="size-4 animate-spin" aria-hidden /> : <MicrosoftMark />}
-              Doorgaan met Microsoft
+              {login ? "Inloggen met Microsoft" : "Doorgaan met Microsoft"}
             </Button>
-            <Button variant="outline" size="lg" disabled={pending !== null} onClick={() => sso("google")}>
+            <Button variant="outline" size="lg" disabled={pending !== null || busy} onClick={() => sso("google")}>
               {pending === "google" ? <Loader2 className="size-4 animate-spin" aria-hidden /> : <GoogleMark />}
-              Doorgaan met Google
+              {login ? "Inloggen met Google" : "Doorgaan met Google"}
             </Button>
             {error && blocked && (
               <Callout live variant="warning">
@@ -185,38 +298,121 @@ function SaveForm({
             )}
             <div className="flex items-center gap-3 text-sm text-ink-3">
               <span aria-hidden className="h-px flex-1 bg-line-soft" />
-              of met je werk-e-mail
+              {passwordForm ? "of met je e-mail en wachtwoord" : "of met je werk-e-mail"}
               <span aria-hidden className="h-px flex-1 bg-line-soft" />
             </div>
-            <form
-              className="flex flex-col gap-1.5"
-              onSubmit={(e) => {
-                e.preventDefault();
-                sendCode();
-              }}
-            >
-              <Label htmlFor="bewaar-email">Werk-e-mail</Label>
-              <div className="flex flex-wrap gap-2">
-                <Input
-                  ref={emailRef}
-                  id="bewaar-email"
-                  type="email"
-                  autoComplete="email"
-                  placeholder="naam@bedrijf.be"
-                  value={email}
-                  aria-invalid={!!error && !blocked}
-                  aria-describedby="bewaar-email-hint"
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="min-w-0 flex-[1_1_220px]"
-                />
-                <Button type="submit" size="default">
-                  Stuur me een code
+            {passwordForm ? (
+              <form
+                noValidate
+                className="flex flex-col gap-3"
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  void loginWithPassword();
+                }}
+              >
+                <div className="flex flex-col gap-1.5">
+                  <Label htmlFor="bewaar-email">E-mail</Label>
+                  <Input
+                    ref={emailRef}
+                    id="bewaar-email"
+                    type="email"
+                    autoComplete="username"
+                    placeholder="naam@bedrijf.be"
+                    value={email}
+                    aria-invalid={!!emailError}
+                    aria-describedby={emailError ? "bewaar-email-error" : undefined}
+                    onChange={(e) => setEmail(e.target.value)}
+                  />
+                  {emailError && (
+                    <span id="bewaar-email-error" className="text-sm text-danger">
+                      {emailError}
+                    </span>
+                  )}
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  <div className="flex items-center justify-between gap-3">
+                    <Label htmlFor="bewaar-pw">Wachtwoord</Label>
+                    <Button
+                      variant="link"
+                      size="sm"
+                      className="h-auto px-0 text-sm"
+                      onClick={() => {
+                        setWithPassword(false);
+                        setPasswordError(null);
+                        requestAnimationFrame(() => emailRef.current?.focus());
+                      }}
+                    >
+                      Wachtwoord vergeten?
+                    </Button>
+                  </div>
+                  <Input
+                    ref={passwordRef}
+                    id="bewaar-pw"
+                    type="password"
+                    autoComplete="current-password"
+                    value={password}
+                    aria-invalid={!!passwordError}
+                    aria-describedby="bewaar-pw-hint"
+                    onChange={(e) => setPassword(e.target.value)}
+                  />
+                  <span
+                    id="bewaar-pw-hint"
+                    className={passwordError ? "text-sm text-danger" : "text-[13px] text-ink-3"}
+                  >
+                    {passwordError ?? "In het prototype werkt elk wachtwoord."}
+                  </span>
+                </div>
+                <Button type="submit" size="default" className="self-start" disabled={busy}>
+                  {busy && <Loader2 className="size-4 animate-spin" aria-hidden />}
+                  Inloggen
                 </Button>
-              </div>
-              <span id="bewaar-email-hint" className={error && !blocked ? "text-sm text-danger" : "text-sm text-ink-3"}>
-                {error && !blocked ? error : "Je krijgt een code van 6 cijfers. Dit venster blijft open."}
-              </span>
-            </form>
+              </form>
+            ) : (
+              <form
+                noValidate
+                className="flex flex-col gap-1.5"
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  sendCode();
+                }}
+              >
+                <Label htmlFor="bewaar-email">Werk-e-mail</Label>
+                <div className="flex flex-wrap gap-2">
+                  <Input
+                    ref={emailRef}
+                    id="bewaar-email"
+                    type="email"
+                    autoComplete="email"
+                    placeholder="naam@bedrijf.be"
+                    value={email}
+                    aria-invalid={!!emailError}
+                    aria-describedby="bewaar-email-hint"
+                    onChange={(e) => setEmail(e.target.value)}
+                    className="min-w-0 flex-[1_1_220px]"
+                  />
+                  <Button type="submit" size="default">
+                    Stuur me een code
+                  </Button>
+                </div>
+                <span id="bewaar-email-hint" className={emailError ? "text-sm text-danger" : "text-sm text-ink-3"}>
+                  {emailError ?? "Je krijgt een code van 6 cijfers. Dit venster blijft open."}
+                </span>
+                {login && !blocked && (
+                  <Button
+                    variant="link"
+                    size="sm"
+                    className="self-start px-0"
+                    onClick={() => {
+                      setWithPassword(true);
+                      setError(null);
+                      requestAnimationFrame(() => emailRef.current?.focus());
+                    }}
+                  >
+                    Inloggen met wachtwoord
+                  </Button>
+                )}
+              </form>
+            )}
           </>
         ) : (
           <form
@@ -234,7 +430,7 @@ function SaveForm({
             <div className="flex flex-wrap items-center gap-2">
               <Button type="submit" size="default" disabled={code.length !== 6 || busy}>
                 {busy && <Loader2 className="size-4 animate-spin" aria-hidden />}
-                Bewaar mijn vergadering
+                {login ? "Inloggen" : hasContent ? "Bewaar mijn vergadering" : "Maak mijn account"}
               </Button>
               <Button
                 variant="link"
@@ -256,13 +452,14 @@ function SaveForm({
         <div className="flex flex-wrap items-center justify-between gap-3 border-t border-line-faint pt-3">
           <DialogClose asChild>
             <Button variant="ghost" size="sm">
-              Nog niet, ik kijk verder rond
+              {login && !hasContent && !keepDraft ? "Annuleren" : "Nog niet, ik kijk verder rond"}
             </Button>
           </DialogClose>
-          <span className="text-[13px] text-ink-3">Gratis 30 dagen · geen creditcard</span>
+          {!login && <span className="text-[13px] text-ink-3">Gratis 30 dagen · geen creditcard</span>}
         </div>
       </div>
-      <SaveSummary intent={intent} />
+      {hasContent && <SaveSummary intent={intent} />}
+      {keepDraft && <DraftSummary draft={draft} />}
     </div>
   );
 }

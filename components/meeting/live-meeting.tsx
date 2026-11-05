@@ -30,7 +30,7 @@ import { OVERTIME_EXTEND_MIN } from "@/lib/meetingWrapUp.config";
 import { clockTime } from "@/lib/meeting-wrap-up";
 import { Button } from "@/components/ui/button";
 import { useNow } from "./meeting-context";
-import { closeManually, isHandled, navigateTo, nextOpenItem, othersOpen } from "@/lib/meeting-wrap-up";
+import { closeManually, isHandled, navigateTo, othersOpen } from "@/lib/meeting-wrap-up";
 import { cn } from "@/lib/utils";
 
 const pill =
@@ -55,7 +55,6 @@ function LiveMeetingContent({ meeting }: { meeting: Meeting }) {
   const end = timerEnd(meeting);
   const overtime = now >= end;
   const otherOpen = othersOpen(meeting, run.currentId);
-  const nextOpen = nextOpenItem(meeting, run.currentId);
   const handled = items.filter((i) => isHandled(meeting, i.id)).length;
   const openNumbers = otherOpen.map((i) => items.indexOf(i) + 1).join(" en ");
   const finish = () => {
@@ -81,6 +80,9 @@ function LiveMeetingContent({ meeting }: { meeting: Meeting }) {
   const [fileError, setFileError] = useState("");
   const [moving, setMoving] = useState(false);
   const activeCard = useRef<HTMLElement>(null);
+  const [previouslyHandled, setPreviouslyHandled] = useState(
+    () => new Set(items.filter((i) => isHandled(meeting, i.id)).map((i) => i.id)),
+  );
   useEffect(() => {
     activeCard.current?.querySelector<HTMLButtonElement>("button[aria-current]")?.focus();
     activeCard.current?.scrollIntoView({ block: "nearest", inline: "nearest" });
@@ -128,6 +130,7 @@ function LiveMeetingContent({ meeting }: { meeting: Meeting }) {
   };
   const selectItem = (id: string) => {
     if (note.trim()) saveNote();
+    if (isHandled(meeting, id)) setPreviouslyHandled((ids) => new Set([...ids, id]));
     setNote("");
     ops.putMeeting(
       navigateTo(
@@ -230,60 +233,51 @@ function LiveMeetingContent({ meeting }: { meeting: Meeting }) {
                       active && "bg-white text-ink ring-2 ring-brand",
                     )}
                   >
-                    {active && (
-                      <>
-                        <span className="inline-block rounded-full bg-white/20 px-2.5 py-0.5 text-xs font-bold">
-                          {i.theme}
+                    <div className={cn(active && "mb-3 flex items-start justify-between gap-3")}>
+                      <button
+                        type="button"
+                        onClick={() => selectItem(i.id)}
+                        aria-current={active ? "step" : undefined}
+                        className={cn(
+                          "flex min-h-11 w-full items-center gap-2 text-left text-base font-bold",
+                          active && "min-h-0 min-w-0 flex-1 items-start text-[13pt]",
+                        )}
+                      >
+                        <span className={cn("min-w-0 flex-1", !active && isHandled(meeting, i.id) && "line-through")}>
+                          {i.text}
                         </span>
-                        <div className="mt-2 flex items-center justify-end gap-3 text-xs">
+                        {!active && (
+                          <>
+                            <span className="shrink-0 text-right text-xs">
+                              {isHandled(meeting, i.id) ? "behandeld" : `${i.duration ?? 0} min`}
+                            </span>
+                            {isHandled(meeting, i.id) ? (
+                              <Check
+                                aria-label="Behandeld"
+                                className="size-5 shrink-0 rounded-full bg-[var(--wrap-handled)] text-white"
+                              />
+                            ) : (
+                              <span aria-hidden className="size-5 shrink-0 rounded-full border-2 border-current" />
+                            )}
+                          </>
+                        )}
+                      </button>
+                      {active && (
+                        <div className="flex shrink-0 items-center gap-2 text-xs">
                           <Timer aria-hidden className="size-4" />
                           {i.duration !== null ? `${i.duration} min` : "Geen tijd ingesteld"}
                           {owner && <Avatar person={owner} size={28} decorative />}
                         </div>
-                      </>
-                    )}
-                    <button
-                      type="button"
-                      onClick={() => selectItem(i.id)}
-                      aria-current={active ? "step" : undefined}
-                      className={cn(
-                        "flex min-h-11 w-full items-center justify-between gap-2 text-left text-base font-bold",
-                        active && "mt-3 mb-3 text-xl",
                       )}
-                    >
-                      <span className={isHandled(meeting, i.id) ? "line-through" : ""}>{i.text}</span>
-                      <span className="text-xs">
-                        {active ? "nu" : isHandled(meeting, i.id) ? "behandeld" : `${i.duration ?? 0} min`}
-                      </span>
-                      {isHandled(meeting, i.id) ? (
-                        <Check
-                          aria-label="Behandeld"
-                          className="size-5 shrink-0 rounded-full bg-[var(--wrap-handled)] text-white"
-                        />
-                      ) : (
-                        <span aria-hidden className="size-4 shrink-0 rounded-full border-2 border-current" />
-                      )}
-                    </button>
+                    </div>
                     {active && (
                       <>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            const next = nextOpenItem(meeting, run.currentId);
-                            if (next) selectItem(next.id);
-                            else finish();
-                          }}
-                          className={cn(
-                            pill,
-                            "w-full border-[#b3d4f3]",
-                            !otherOpen.length && "border-danger bg-danger text-white hover:bg-danger/90",
-                          )}
-                        >
-                          <Check aria-hidden className="size-4" />
-                          {otherOpen.length
-                            ? `Behandeld · volgend open punt (${items.findIndex((i) => i.id === nextOpen?.id) + 1})`
-                            : "Afronden →"}
-                        </button>
+                        {(isHandled(meeting, i.id) || previouslyHandled.has(i.id)) && (
+                          <span className={cn(pill, "w-full border-[#b3d4f3]")}>
+                            <Check aria-hidden className="size-4" />
+                            Behandeld
+                          </span>
+                        )}
                         <div className="mt-2 flex gap-1">
                           <button
                             type="button"

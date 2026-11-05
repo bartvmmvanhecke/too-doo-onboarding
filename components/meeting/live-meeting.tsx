@@ -30,6 +30,7 @@ import { OVERTIME_EXTEND_MIN } from "@/lib/meetingWrapUp.config";
 import { clockTime } from "@/lib/meeting-wrap-up";
 import { Button } from "@/components/ui/button";
 import { useNow } from "./meeting-context";
+import { NextMeetingScreen } from "./next-meeting-screen";
 import { closeManually, isHandled, navigateTo, othersOpen } from "@/lib/meeting-wrap-up";
 import { cn } from "@/lib/utils";
 
@@ -70,6 +71,7 @@ function LiveMeetingContent({ meeting }: { meeting: Meeting }) {
   const block = meeting.blocks.find((b) => b.id === run.currentId || b.items.some((i) => i.id === run.currentId));
   const [minimizePrompt, setMinimizePrompt] = useState(false);
   const [finishPrompt, setFinishPrompt] = useState(false);
+  const [planningNext, setPlanningNext] = useState(false);
   const undoStart = () => {
     if (note.trim()) saveNote();
     const latest = useStore.getState().meetings.find((m) => m.id === meeting.id)!;
@@ -174,6 +176,8 @@ function LiveMeetingContent({ meeting }: { meeting: Meeting }) {
     else ops.addEntry(meeting.id, item.id, { kind: "note", text: note.trim(), ownerId: null, date: "" });
     setNote("");
   };
+
+  if (planningNext) return <NextMeetingScreen meeting={meeting} onBack={() => setPlanningNext(false)} />;
 
   return (
     <div className="contents">
@@ -690,7 +694,11 @@ function LiveMeetingContent({ meeting }: { meeting: Meeting }) {
           <div className="mt-5 flex flex-col gap-3">
             <button
               type="button"
-              onClick={finish}
+              onClick={() => {
+                if (note.trim()) saveNote();
+                setFinishPrompt(false);
+                setPlanningNext(true);
+              }}
               className="min-h-11 rounded-full bg-[#2055e5] px-4 text-base font-bold text-white hover:bg-[#1948c9]"
             >
               Vergadering afronden

@@ -88,10 +88,14 @@ test("aanwezigheid naar vergadermodus, verslag opslaan en vergadering beëindige
   await expect(page.getByRole("complementary", { name: "Vergaderagenda" })).toBeVisible();
   await page.getByRole("button", { name: "Afronden", exact: true }).first().click();
   await page.getByRole("button", { name: "Vergadering afronden", exact: true }).click();
-  await expect(page.getByRole("heading", { name: "Vergadering afronden", exact: true })).toBeFocused();
-  await page.getByRole("button", { name: "Rond af & verstuur opvolging", exact: true }).click();
-  await expect(page.getByRole("heading", { name: "Vergadering afgerond", exact: true })).toBeVisible();
-  await page.getByRole("button", { name: "Naar vergadering", exact: true }).click();
+  await expect(page.getByRole("heading", { name: "Volgende vergadering", exact: true })).toBeFocused();
+  await expect(page.getByRole("button", { name: "Opslaan & sluiten", exact: true })).toBeDisabled();
+  await page.getByRole("button", { name: "Terug naar de vergadering", exact: true }).click();
+  await expect(page.getByRole("complementary", { name: "Vergaderagenda" })).toBeVisible();
+  await page.getByRole("button", { name: "Afronden", exact: true }).first().click();
+  await page.getByRole("button", { name: "Vergadering afronden", exact: true }).click();
+  await page.getByLabel("Vergadertitel", { exact: true }).fill("Volgende headsetbespreking");
+  await page.getByRole("button", { name: "Opslaan & sluiten", exact: true }).click();
   await expect(page.getByRole("complementary", { name: "Vergaderagenda" })).toHaveCount(0);
   const meeting = await page.evaluate(() => JSON.parse(localStorage.getItem("too-doo-onboarding")!).state.meetings[0]);
   expect(meeting.run).toBeNull();
@@ -100,4 +104,7 @@ test("aanwezigheid naar vergadermodus, verslag opslaan en vergadering beëindige
   const headset = meeting.blocks.find((b: { id: string }) => b.id === "varia").items[0];
   expect(headset.entries.map((e: { kind: string }) => e.kind)).toEqual(["decision", "action", "note", "document"]);
   expect(meeting.privateNotes).toHaveLength(1);
+  const next = await page.evaluate(() => JSON.parse(localStorage.getItem("too-doo-onboarding")!).state.meetings.find((m: { name: string }) => m.name === "Volgende headsetbespreking"));
+  expect(next).toBeTruthy();
+  expect(next.seriesId).toBe(meeting.seriesId);
 });

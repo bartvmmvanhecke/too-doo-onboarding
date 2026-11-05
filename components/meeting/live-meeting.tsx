@@ -229,7 +229,7 @@ function LiveMeetingContent({ meeting }: { meeting: Meeting }) {
                     key={i.id}
                     className={cn(
                       "min-w-[260px] rounded-2xl border border-white/20 p-3 lg:min-w-0",
-                      active && "bg-white/25 text-ink ring-2 ring-brand",
+                      active && "bg-white/90 text-ink ring-2 ring-brand",
                     )}
                   >
                     <div className={cn(active && "mb-3 flex items-start justify-between gap-3")}>

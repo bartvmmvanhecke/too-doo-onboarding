@@ -11,6 +11,7 @@ import {
   allItems,
   defaultBlocks,
   newBlock,
+  sampleBlocks,
   newItem,
   runSteps,
   todayISO,
@@ -293,6 +294,12 @@ function uniqueId(name: string, meetings: Meeting[], keep?: string): string {
   return id;
 }
 
+/** Wie de voorbeeldpunten brengt: de deelnemers (niet jijzelf), anders jij. */
+function demoBlocks(participants: string[]): AgendaBlock[] {
+  const others = participants.filter((p) => p !== USER_PERSON_ID);
+  return sampleBlocks(others.length ? others : [USER_PERSON_ID]);
+}
+
 function newMeeting(schedule: MeetingSchedule, id: string, extra: Partial<Meeting> = {}): Meeting {
   return {
     ...schedule,
@@ -396,6 +403,7 @@ const storeInitializer: StateCreator<Store> = (set, get) => {
       const id = uniqueId(draft.name, s.meetings, previous?.id);
       const meeting = newMeeting(draft, id, {
         participants: draft.participants,
+        blocks: demoBlocks(draft.participants),
         seriesId: draft.seriesId,
         draftId: draft.id,
         actions,
@@ -421,6 +429,7 @@ const storeInitializer: StateCreator<Store> = (set, get) => {
           newMeeting(item.schedule, id, {
             seriesId: item.seriesId,
             participants: item.participants ?? [],
+            blocks: demoBlocks(item.participants ?? []),
             showWelcome: false,
           }),
         ];
@@ -670,7 +679,7 @@ const storeInitializer: StateCreator<Store> = (set, get) => {
           !m.seriesId ||
           ids.includes(m.seriesId) ||
           m.actions.length > 0 ||
-          allItems(m.blocks).length > 0,
+          allItems(m.blocks).some((i) => !i.sample),
       );
       for (const sid of ids) {
         if (meetings.some((m) => m.seriesId === sid)) continue;
@@ -682,6 +691,7 @@ const storeInitializer: StateCreator<Store> = (set, get) => {
           newMeeting(seriesSchedule(series), id, {
             seriesId: sid,
             participants: series.participants,
+            blocks: demoBlocks(series.participants),
             origin: "b",
             showWelcome: false,
           }),
@@ -699,6 +709,7 @@ const storeInitializer: StateCreator<Store> = (set, get) => {
       const id = uniqueId(draft.name, s.meetings);
       const meeting = newMeeting({ ...draft, name: draft.name.trim() }, id, {
         participants: draft.participants,
+        blocks: demoBlocks(draft.participants),
         origin: "b",
         showWelcome: false,
       });

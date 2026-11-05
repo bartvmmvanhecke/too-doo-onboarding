@@ -313,6 +313,16 @@ function LiveMeetingContent({ meeting }: { meeting: Meeting }) {
                             </PopoverContent>
                           </Popover>
                         </div>
+                        {otherOpen.length === 0 && !isHandled(meeting, i.id) && (
+                          <button
+                            type="button"
+                            onClick={finish}
+                            className="mt-2 flex min-h-11 w-full items-center justify-center gap-2 rounded-full bg-danger px-4 text-sm font-semibold text-white hover:bg-danger/90"
+                          >
+                            <Check aria-hidden className="size-4" />
+                            Afronden
+                          </button>
+                        )}
                       </>
                     )}
                   </article>

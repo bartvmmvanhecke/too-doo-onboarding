@@ -2,7 +2,16 @@
 
 import { useRef, useState, type KeyboardEvent } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
-import { Check, FlaskConical, LayoutTemplate, List, RotateCcw, Shuffle, type LucideIcon } from "lucide-react";
+import {
+  CalendarDays,
+  Check,
+  FlaskConical,
+  LayoutTemplate,
+  List,
+  RotateCcw,
+  Shuffle,
+  type LucideIcon,
+} from "lucide-react";
 import { openDemoSettings } from "@/components/demo/demo-bar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
@@ -10,6 +19,7 @@ import { useGuestStore } from "@/lib/guest-store";
 import { GUEST_STORAGE_KEY } from "@/lib/guest-store";
 import { STORAGE_KEY, useStore } from "@/lib/store";
 import { useHydrated } from "@/lib/use-hydrated";
+import { seedMeetingOverview } from "@/lib/overview-demo";
 import { cn } from "@/lib/utils";
 
 const navButton =
@@ -50,6 +60,16 @@ const MENU_ITEMS: MenuItem[] = [
       setDemo({ altEmpty: !demo.altEmpty });
     },
     checked: (demo) => !!demo.altEmpty,
+  },
+  {
+    id: "overzicht",
+    label: "Overzicht met vergaderingen",
+    icon: CalendarDays,
+    // Ingelogd, met afgelopen en aankomende vergaderingen: /app toont meteen het overzicht.
+    onSelect: () => {
+      seedMeetingOverview();
+      window.location.assign(new URL("/app", window.location.origin));
+    },
   },
 ];
 

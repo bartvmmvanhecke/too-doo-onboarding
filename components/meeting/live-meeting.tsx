@@ -229,7 +229,7 @@ function LiveMeetingContent({ meeting }: { meeting: Meeting }) {
                     key={i.id}
                     className={cn(
                       "min-w-[260px] rounded-2xl border border-white/20 p-3 lg:min-w-0",
-                      active && "bg-white/80 text-ink ring-2 ring-brand",
+                      active && "bg-white/5 text-white ring-2 ring-brand",
                     )}
                   >
                     <div className={cn(active && "mb-3 flex items-start justify-between gap-3")}>
@@ -272,7 +272,7 @@ function LiveMeetingContent({ meeting }: { meeting: Meeting }) {
                     {active && (
                       <>
                         {(isHandled(meeting, i.id) || previouslyHandled.has(i.id)) && (
-                          <span className={cn(pill, "w-full border-[#b3d4f3]")}>
+                          <span className={cn(pill, "w-full border-white")}>
                             <Check aria-hidden className="size-4" />
                             Behandeld
                           </span>
@@ -281,7 +281,7 @@ function LiveMeetingContent({ meeting }: { meeting: Meeting }) {
                           <button
                             type="button"
                             onClick={() => setMoving(true)}
-                            className="min-h-11 flex-1 rounded-full border border-blue-200/70 px-3 text-sm font-bold hover:bg-white/10"
+                            className="min-h-11 flex-1 rounded-full border border-white px-3 text-sm font-bold hover:bg-white/10"
                           >
                             Verplaats agendapunt
                           </button>
@@ -290,7 +290,7 @@ function LiveMeetingContent({ meeting }: { meeting: Meeting }) {
                               <button
                                 type="button"
                                 aria-label="Meer opties voor agendapunt"
-                                className="flex size-11 items-center justify-center rounded-full border border-blue-200/70"
+                                className="flex size-11 items-center justify-center rounded-full border border-white"
                               >
                                 <Ellipsis className="size-5" />
                               </button>

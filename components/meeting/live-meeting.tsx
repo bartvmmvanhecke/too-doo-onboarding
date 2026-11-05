@@ -12,6 +12,7 @@ import {
   Link2,
   List,
   ListOrdered,
+  Minimize2,
   Plus,
   Timer,
   Trash2,
@@ -184,14 +185,6 @@ function LiveMeetingContent({ meeting }: { meeting: Meeting }) {
             />
           </span>
         </div>
-        <Button
-          variant="inverse"
-          size="sm"
-          className="rounded-full"
-          onClick={() => (overtime || handled === items.length ? setMinimizePrompt(true) : minimize())}
-        >
-          Minimaliseren
-        </Button>
         <button
           type="button"
           onClick={finish}
@@ -201,6 +194,15 @@ function LiveMeetingContent({ meeting }: { meeting: Meeting }) {
           <Check aria-hidden className="size-4" />
           <span className="hidden sm:inline">Afronden</span>
           <span className="sm:hidden">Afronden</span>
+        </button>
+        <button
+          type="button"
+          aria-label="Minimaliseren"
+          title="Minimaliseren"
+          className="flex size-11 shrink-0 items-center justify-center rounded-full text-white hover:bg-white/10"
+          onClick={() => (overtime || handled === items.length ? setMinimizePrompt(true) : minimize())}
+        >
+          <Minimize2 aria-hidden className="size-5" />
         </button>
       </header>
       <div className="flex min-h-0 flex-1 flex-col lg:flex-row">

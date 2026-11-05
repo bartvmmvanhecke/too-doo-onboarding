@@ -239,7 +239,7 @@ function LiveMeetingContent({ meeting }: { meeting: Meeting }) {
                         aria-current={active ? "step" : undefined}
                         className={cn(
                           "flex min-h-11 w-full items-center gap-2 text-left text-base font-bold",
-                          active && "min-h-0 min-w-0 flex-1 items-start text-[13pt]",
+                          active && "min-h-0 min-w-0 flex-1 items-start text-[13pt] focus-visible:outline-none",
                         )}
                       >
                         <span className={cn("min-w-0 flex-1", !active && isHandled(meeting, i.id) && "line-through")}>

@@ -264,21 +264,26 @@ function LiveMeetingContent({ meeting }: { meeting: Meeting }) {
                         )}
                       </button>
                       {active && (
-                        <div className="flex shrink-0 items-center gap-2 text-xs">
-                          <Timer aria-hidden className="size-4" />
-                          {i.duration !== null ? `${i.duration} min` : "Geen tijd ingesteld"}
-                          {owner && <Avatar person={owner} size={28} decorative />}
+                        <div className="flex shrink-0 flex-col items-end gap-2 text-xs">
+                          {(isHandled(meeting, i.id) || previouslyHandled.has(i.id)) && (
+                            <span className="flex items-center gap-2 font-bold">
+                              behandeld
+                              <Check
+                                aria-label="Behandeld"
+                                className="size-5 shrink-0 rounded-full bg-[var(--wrap-handled)] text-white"
+                              />
+                            </span>
+                          )}
+                          <div className="flex items-center gap-2">
+                            <Timer aria-hidden className="size-4" />
+                            {i.duration !== null ? `${i.duration} min` : "Geen tijd ingesteld"}
+                            {owner && <Avatar person={owner} size={28} decorative />}
+                          </div>
                         </div>
                       )}
                     </div>
                     {active && (
                       <>
-                        {(isHandled(meeting, i.id) || previouslyHandled.has(i.id)) && (
-                          <span className="inline-flex items-center gap-1 rounded-full border border-white bg-[#e5f3ff] px-2 py-0.5 text-xs font-bold text-[#2055e5]">
-                            <Check aria-hidden className="size-3" />
-                            Behandeld
-                          </span>
-                        )}
                         <div className="mt-2 flex gap-1">
                           <button
                             type="button"

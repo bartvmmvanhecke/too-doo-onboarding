@@ -267,7 +267,7 @@ function MeetingRow({ meeting: m, status }: { meeting: Meeting; status: Status }
         <Link
           href={`${href}?afronden=1`}
           aria-label={`Afronden: ${m.name}`}
-          className="inline-flex min-h-11 shrink-0 items-center justify-center rounded-full bg-brand px-4 text-sm font-bold text-white no-underline hover:bg-brand/90 hover:text-white"
+          className="inline-flex min-h-11 shrink-0 items-center justify-center rounded-full bg-danger px-4 text-sm font-bold text-white no-underline hover:bg-danger/90 hover:text-white"
         >
           Afronden →
         </Link>

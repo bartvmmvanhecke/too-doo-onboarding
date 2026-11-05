@@ -16,9 +16,10 @@ import { usePeople, useStore, type Meeting } from "@/lib/store";
 import { formatTime } from "@/lib/time";
 import { cn } from "@/lib/utils";
 
-type Status = "pending" | "done" | "planned";
+type Status = "pending" | "done" | "planned" | "wrapUp";
 
 const STATUS: Record<Status, { label: string; className: string }> = {
+  wrapUp: { label: "Nog af te ronden", className: "bg-[var(--wrap-amber-bg)] text-[var(--wrap-amber-ink)]" },
   pending: { label: "In afwachting", className: "bg-warning-bg text-warning" },
   done: { label: "Afgerond", className: "bg-success-bg text-success-ink" },
   planned: { label: "Ingepland", className: "bg-app text-ink-2" },
@@ -34,6 +35,7 @@ function isPast(m: Meeting, todayISO: string) {
 }
 
 function statusOf(m: Meeting, todayISO: string): Status {
+  if (m.endedAt && m.followUpStatus === "pending") return "wrapUp";
   if (!isPast(m, todayISO)) return "planned";
   return m.held ? "done" : "pending";
 }

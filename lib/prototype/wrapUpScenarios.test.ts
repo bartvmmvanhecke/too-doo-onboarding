@@ -1,7 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { useStore } from "../store";
 import { loadWrapUpScenario } from "./wrapUpScenarios";
-import { meetingNow } from "../meeting-clock";
+import { chimeEnabled, useChimePreferences } from "../audio/chime-state";
+import { timerEnd, meetingNow } from "../meeting-clock";
 import { actualDuration, closeManually, isHandled, nextOpenItem, othersOpen, plannedEnd } from "../meeting-wrap-up";
 const now = new Date("2026-11-05T14:00:00").getTime();
 let id: string;
@@ -63,5 +64,17 @@ describe("prototypebediening", () => {
     expect(loadWrapUpScenario("last", id, now)).toBeNull();
     expect(current()).toBe(before);
     expect(meetingNow({ ...before, demoTimeOffsetMs: 1000000 }, now)).toBe(now);
+  });
+  it("zet de laatste vijf seconden exact en opnieuw zonder voorbeeldgeluid", () => {
+    useChimePreferences.setState({ users: {} });
+    loadWrapUpScenario("last", id, now);
+    const result = loadWrapUpScenario("last-five", id, now);
+    expect(result?.announcement).toBe("Geluid aangezet voor de demo");
+    expect(chimeEnabled()).toBe(true);
+    expect(timerEnd(current()) - meetingNow(current(), now)).toBe(5000);
+    const revision = current().demoScenarioRevision!;
+    loadWrapUpScenario("last-five", id, now + 10000);
+    expect(current().demoScenarioRevision).toBe(revision + 1);
+    expect(timerEnd(current()) - meetingNow(current(), now + 10000)).toBe(5000);
   });
 });

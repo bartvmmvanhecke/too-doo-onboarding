@@ -51,7 +51,7 @@ function LiveMeetingContent({ meeting }: { meeting: Meeting }) {
   const run = meeting.run!;
   const items = allItems(meeting.blocks);
   const nextMeeting = nextInSeries(meeting, ops.meetings);
-  const now = meetingNow(meeting, useNow(true, run.startedAt - meetingNow(meeting, 0)));
+  const now = meetingNow(meeting, useNow(true, timerEnd(meeting) - meetingNow(meeting, 0)));
   const end = timerEnd(meeting);
   const overtime = now >= end;
   const otherOpen = othersOpen(meeting, run.currentId);

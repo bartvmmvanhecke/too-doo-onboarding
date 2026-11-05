@@ -7,7 +7,14 @@ import { playChime } from "./chime";
 
 // TODO(api): store the per-user preference in the user's account settings.
 export const useChimePreferences = create<{ users: Record<string, boolean> }>()(
-  persist(() => ({ users: {} }), { name: "too-doo-chime-preferences", storage: createJSONStorage(() => localStorage) }),
+  persist(() => ({ users: {} }), {
+    name: "too-doo-chime-preferences",
+    storage: createJSONStorage(() =>
+      typeof localStorage === "undefined"
+        ? { getItem: () => null, setItem: () => {}, removeItem: () => {} }
+        : localStorage,
+    ),
+  }),
 );
 export const useAudioRuntime = create<{ running: boolean }>(() => ({ running: false }));
 let context: AudioContext | null = null;

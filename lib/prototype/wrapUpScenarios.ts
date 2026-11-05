@@ -1,17 +1,29 @@
 import { newBlock, newItem, type Entry } from "../agenda";
 import { carryForward, plannedEnd, unattended } from "../meeting-wrap-up";
-import { meetingNow } from "../meeting-clock";
+import { chimeEnabled, setChimeEnabled } from "../audio/chime-state";
+import { timerEnd, meetingNow } from "../meeting-clock";
 import { isDemoEnvironment } from "../demo-environment";
 import { AVATAR_COLORS, USER_PERSON_ID, type Person } from "../mock-data";
 import { useStore, type Meeting, type Action } from "../store";
 
-export type WrapUpScenario = "jumps" | "last" | "advance" | "unattended";
+export type WrapUpScenario = "jumps" | "last" | "advance" | "last-five" | "unattended";
 /** All prototype mutations and fixture data live here. No API or backend calls. */
 export function loadWrapUpScenario(kind: WrapUpScenario, meetingId: string, realNow = Date.now()) {
   if (!isDemoEnvironment()) return null;
   const state = useStore.getState();
   const current = state.meetings.find((m) => m.id === meetingId);
   if (!current?.run || current.endedAt || current.minimized || current.wrapUpOpen) return null;
+  if (kind === "last-five") {
+    const wasEnabled = chimeEnabled();
+    if (!wasEnabled) setChimeEnabled(true);
+    const meeting = {
+      ...current,
+      demoTimeOffsetMs: timerEnd(current) - 5000 - realNow,
+      demoScenarioRevision: (current.demoScenarioRevision ?? 0) + 1,
+    };
+    useStore.setState({ meetings: state.meetings.map((m) => (m.id === meetingId ? meeting : m)) });
+    return { announcement: wasEnabled ? "Laatste 5 seconden gestart" : "Geluid aangezet voor de demo", preview: false };
+  }
   if (kind === "advance") {
     const meeting = { ...current, demoTimeOffsetMs: (current.demoTimeOffsetMs ?? 0) + 5 * 60000 };
     useStore.setState({ meetings: state.meetings.map((m) => (m.id === meetingId ? meeting : m)) });

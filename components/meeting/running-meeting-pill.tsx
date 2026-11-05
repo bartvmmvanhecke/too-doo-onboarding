@@ -7,7 +7,7 @@ import { useNow } from "./meeting-context";
 import { Button } from "@/components/ui/button";
 export function RunningMeetingPill() {
   const meeting = useStore((s) => s.meetings.find((m) => m.run && !m.endedAt && m.minimized));
-  const realNow = useNow(!!meeting, (meeting?.run?.startedAt ?? 0) - meetingNow(meeting ?? {}, 0));
+  const realNow = useNow(!!meeting, (meeting ? timerEnd(meeting) : 0) - meetingNow(meeting ?? {}, 0));
   const now = meeting ? meetingNow(meeting, realNow) : realNow;
   if (!meeting) return null;
   const over = now >= timerEnd(meeting);

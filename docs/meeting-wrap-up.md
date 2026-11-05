@@ -109,3 +109,41 @@ verwijderd. De verouderde menutest verwacht nu ook het al bestaande menu-item
 
 Validatie vervolg: 74 unit tests, build, lint en typecheck slagen. De zes bestaande
 gerichte vergaderbrowsertests en de drie nieuwe prototypebrowsertests slagen.
+
+## Vervolg: secondentimer en optionele chime
+
+De timer toont mm:ss, vanaf meer dan een uur h:mm:ss, en in de laatste minuut
+“nog N s”. Op precies één uur staat 60:00, zoals in de demo. De pill gebruikt
+dezelfde klok. `Meeting.overtimeUntil` bewaart +15 minuten voor timer, pill en audio;
+de gedeelde planning blijft intact. De UI-ticks zijn uitgelijnd op dit eindmoment.
+
+`lib/audio/chime.ts` synthetiseert twee zachte sinustonen met Web Audio (880 en
+1318,5 Hz, 120 ms uit elkaar, gain 0,2). `chime-state.ts` beheert één AudioContext,
+het ontgrendelen via klikken en de opt-in per e-mailadres in localStorage.
+TODO(api): de voorkeur later in de gebruikersinstellingen bewaren.
+
+`components/meeting/chime-scheduler.tsx` leeft in de app-shell en blijft daarom
+actief bij minimaliseren en navigeren binnen de app. Binnen tien minuten vóór het
+einde plant hij de chime met `ctx.currentTime + resterendeSeconden`. Een minuutinterval
+wacht alleen op dat venster; het geluid zelf wordt niet door JS-timers getriggerd.
+Bij aan/uit, uitstel, demo-offset, scenario-revisie en visibilitychange wordt de
+vorige planning geannuleerd en zo nodig vervangen. Voorbije eindmomenten worden
+niet ingehaald. Afronden of afsluiten verwijdert de planner en annuleert de tonen.
+
+“Laatste 5 seconden” gebruikt de bestaande lokale scenariofunctie. De knop zet de
+offset exact vijf seconden vóór het actuele eindmoment, activeert geluid zonder
+voorbeeldchime, kondigt dit aan en reset via een revisie de planningsstatus.
+De gewone geluidsknop speelt bij aanzetten wél één voorbeeld; bij een geblokkeerde
+context activeert de eerste klik uitsluitend de bestaande ingeschakelde voorkeur.
+
+Nieuwe bestanden: `lib/audio/chime.ts`, `lib/audio/chime-state.ts`,
+`lib/audio/chime.test.ts`, `lib/meeting-clock.test.ts`,
+`components/meeting/chime-control.tsx`, `components/meeting/chime-scheduler.tsx`.
+Aangepast: klok/context, store, constanten, vergadermodus, start-gate, pill,
+app-shell, prototypebalk/scenariofunctie en bijbehorende tests. Geen dependencies,
+nieuwe kleurtokens, gewijzigde routes of verwijderde bestanden.
+
+Validatie: 78 unit tests; build, lint en typecheck; elf gerichte browsertests.
+De browsercontrole inspecteert de echte Web Audio-scheduling, voorbeeldgedrag,
+herplanning, annulering, de timer/pill en refresh na het einde. Audio wordt niet
+als enig signaal gebruikt. De bestaande lintwaarschuwing buiten deze opdracht blijft.

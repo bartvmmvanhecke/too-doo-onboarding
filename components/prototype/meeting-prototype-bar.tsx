@@ -1,4 +1,5 @@
 "use client";
+import { unlockChime } from "@/lib/audio/chime-state";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useStore } from "@/lib/store";
@@ -10,6 +11,7 @@ export function MeetingPrototypeBar({ meetingId }: { meetingId: string }) {
   const router = useRouter();
   if (!isDemoEnvironment() || !visible) return null;
   const load = (kind: WrapUpScenario) => {
+    void unlockChime();
     const result = loadWrapUpScenario(kind, meetingId);
     if (!result) return;
     setAnnouncement(result.announcement);

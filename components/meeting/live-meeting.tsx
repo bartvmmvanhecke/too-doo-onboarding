@@ -1,5 +1,6 @@
 "use client";
 
+import { ChimeControl } from "./chime-control";
 import { MeetingPrototypeBar } from "@/components/prototype/meeting-prototype-bar";
 import { elapsedClock, remainingLabel, timerEnd, meetingNow } from "@/lib/meeting-clock";
 import { useEffect, useRef, useState } from "react";
@@ -180,6 +181,7 @@ function LiveMeetingContent({ meeting }: { meeting: Meeting }) {
             />
           )}
         </div>
+        <ChimeControl />
         <Button
           variant="inverse"
           size="sm"

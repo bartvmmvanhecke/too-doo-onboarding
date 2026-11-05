@@ -1,5 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
-import { expectToast, overlapsWithNav, trackErrors } from "./helpers";
+import { expectToast, overlapsWithNav, showOldEmptyScreen, trackErrors } from "./helpers";
 
 /** Schermafdruk per stap in screenshots/<naam>/NN-stap.png (niet in git). */
 function shooter(page: Page, name: string) {
@@ -164,21 +164,24 @@ test.describe("Vier flows vanaf /prototype", () => {
     await shot("overleg");
     await page.getByRole("link", { name: "Ik doe dit later" }).click();
     await expect(page).toHaveURL(/\/app$/);
-    await expect(page.getByRole("heading", { name: "Zet je eerste vaste overleg klaar" })).toBeVisible();
-    await expect(page.getByRole("progressbar", { name: /0 van 4/ })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Laten we je eerste overleg klaarzetten." })).toBeVisible();
     await shot("lege-app");
+    // Prototype-optie: het oude eerste scherm met checklist.
+    await showOldEmptyScreen(page);
+    await expect(page.getByRole("progressbar", { name: /0 van 4/ })).toBeVisible();
     errors.assertNone();
   });
 
   test("Start flow wist de vorige state", async ({ page }) => {
     await page.goto("/app");
+    await showOldEmptyScreen(page);
     await page.getByLabel("Naam", { exact: true }).fill("Teamoverleg");
     await page.getByRole("button", { name: "Maak overleg aan" }).click();
     await expect(page).toHaveURL(/teamoverleg$/);
     await page.goto("/prototype");
     await page.getByRole("button", { name: /Start flow 4:/ }).click();
     await page.goto("/app");
-    await expect(page.getByRole("heading", { name: "Zet je eerste vaste overleg klaar" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Laten we je eerste overleg klaarzetten." })).toBeVisible();
   });
 });
 

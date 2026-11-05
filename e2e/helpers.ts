@@ -13,6 +13,13 @@ export function trackErrors(page: Page) {
   };
 }
 
+/** Prototype-optie: het oude eerste scherm "Zet je eerste vaste overleg klaar" op een lege /app. */
+export async function showOldEmptyScreen(page: Page) {
+  await page.getByRole("button", { name: "Prototype-menu" }).click();
+  await page.getByRole("menuitemcheckbox", { name: "Alternatief eerste scherm lege vergadering" }).click();
+  await expect(page.getByRole("heading", { name: "Zet je eerste vaste overleg klaar" })).toBeVisible();
+}
+
 /** Kiest een uitkomst in de demo-balk via de interface zelf. */
 export async function setDemo(
   page: Page,

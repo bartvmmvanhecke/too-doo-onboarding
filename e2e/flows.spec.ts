@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { expectToast, fillAction, setDemo, trackErrors } from "./helpers";
+import { expectToast, fillAction, setDemo, showOldEmptyScreen, trackErrors } from "./helpers";
 
 test.describe("Hoofdflow: Microsoft slaagt, reeksen gevonden", () => {
   test("hero → account → lijst → acties → overleg, met alle knoppen in het overleg", async ({ page }) => {
@@ -418,7 +418,8 @@ test.describe("Later en lege toestand", () => {
     await page.goto("/overleg");
     await page.getByRole("link", { name: "Ik doe dit later" }).click();
     await expect(page).toHaveURL(/\/app$/);
-    await expect(page.getByRole("heading", { name: "Zet je eerste vaste overleg klaar" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Laten we je eerste overleg klaarzetten." })).toBeVisible();
+    await showOldEmptyScreen(page);
     await expect(page.getByRole("progressbar", { name: /0 van 4/ })).toBeVisible();
     await page.getByRole("button", { name: /Je eerste overleg klaarzetten/ }).click();
     await expect(page.getByLabel("Naam", { exact: true })).toBeFocused();
@@ -456,6 +457,7 @@ test.describe("Later en lege toestand", () => {
   ] as const) {
     test(`Koppel Outlook in /app: ${outcome}`, async ({ page }) => {
       await page.goto("/app");
+      await showOldEmptyScreen(page);
       await setDemo(page, { calendar: outcome });
       await page.getByRole("button", { name: "Koppel Outlook" }).click();
       await expect(page).toHaveURL(expected);
@@ -464,6 +466,7 @@ test.describe("Later en lege toestand", () => {
 
   test("Koppel Outlook in /app: geannuleerd blijft op /app", async ({ page }) => {
     await page.goto("/app");
+    await showOldEmptyScreen(page);
     await setDemo(page, { calendar: "Geannuleerd" });
     await page.getByRole("button", { name: "Koppel Outlook" }).click();
     await expectToast(page, "Geen probleem, vul het zelf in");
@@ -472,6 +475,7 @@ test.describe("Later en lege toestand", () => {
 
   test("Koppel Outlook in de modal, alle uitkomsten", async ({ page }) => {
     await page.goto("/app");
+    await showOldEmptyScreen(page);
     await page.getByLabel("Naam", { exact: true }).fill("Productieoverleg");
     await page.getByRole("button", { name: "Maak overleg aan" }).click();
     const open = async () => {
@@ -568,6 +572,7 @@ test.describe("Robuustheid", () => {
 
   test("Reset demo wist alles", async ({ page }) => {
     await page.goto("/app");
+    await showOldEmptyScreen(page);
     await page.getByLabel("Naam", { exact: true }).fill("Teamoverleg");
     await page.getByRole("button", { name: "Maak overleg aan" }).click();
     await expect(page).toHaveURL(/teamoverleg$/);
@@ -576,7 +581,8 @@ test.describe("Robuustheid", () => {
     await page.getByRole("button", { name: "Reset demo" }).click();
     await expect(page).toHaveURL(/\/$/);
     await page.goto("/app");
-    await expect(page.getByRole("heading", { name: "Zet je eerste vaste overleg klaar" })).toBeVisible();
+    // Alles gewist, ook de prototype-optie: weer de nieuwe lege staat.
+    await expect(page.getByRole("heading", { name: "Laten we je eerste overleg klaarzetten." })).toBeVisible();
   });
 
   test("uurveld: typen, ongeldig, − en +, en lijst", async ({ page }) => {

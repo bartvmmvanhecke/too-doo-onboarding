@@ -273,7 +273,11 @@ function LiveMeetingContent({ meeting }: { meeting: Meeting }) {
                             if (next) selectItem(next.id);
                             else finish();
                           }}
-                          className={cn(pill, "w-full border-[#b3d4f3]")}
+                          className={cn(
+                            pill,
+                            "w-full border-[#b3d4f3]",
+                            !otherOpen.length && "border-danger bg-danger text-white hover:bg-danger/90",
+                          )}
                         >
                           <Check aria-hidden className="size-4" />
                           {otherOpen.length

@@ -93,7 +93,7 @@ export function MeetingsList() {
 
   return (
     <>
-      <div className="flex flex-wrap items-center justify-between gap-4">
+      <div data-meetings-overview className="flex flex-wrap items-center justify-between gap-4">
         <h1 className="text-[30px] leading-tight font-bold">Vergaderingen</h1>
         <div className="flex flex-wrap gap-2">
           <Button

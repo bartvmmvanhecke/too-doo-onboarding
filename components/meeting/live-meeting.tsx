@@ -20,7 +20,6 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { nextInSeries } from "@/lib/meeting-wrap-up";
-import { Logo } from "@/components/brand";
 import { Avatar } from "@/components/avatar";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -157,11 +156,12 @@ function LiveMeetingContent({ meeting }: { meeting: Meeting }) {
   return (
     <div className="contents">
       <header className="flex min-h-16 shrink-0 flex-wrap items-center gap-3 px-3 py-2 text-white sm:px-5">
-        <Logo tone="white" href="/app" className="mr-3 lg:w-[280px]" />
-        <h1 className="order-last w-full min-w-0 truncate text-base font-bold sm:order-none sm:w-auto sm:flex-1">
+        <h1 className="mr-3 min-w-0 text-2xl font-bold lg:w-[280px] lg:shrink-0">
           {meeting.name}
-          {item && ` · ${item.text}`}
         </h1>
+        <p className="order-last w-full min-w-0 truncate text-[14pt] font-bold sm:order-none sm:w-auto sm:flex-1">
+          {item?.text ?? block?.title}
+        </p>
         <div className="flex flex-wrap items-center gap-2 text-xs">
           <span>
             {handled} van {items.length} behandeld{otherOpen.length > 0 && ` · nog open: ${openNumbers}`}

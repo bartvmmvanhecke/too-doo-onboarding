@@ -110,7 +110,9 @@ export function AppShell({ children }: { children: ReactNode }) {
           {/* Lichte band; links sluit ze aan op de bovenkant van de zijbalk. */}
           <div aria-hidden className="absolute inset-x-0 top-0 h-12 bg-app-band" />
           <main className="relative flex-1 rounded-tl-[24px] bg-app px-4 pt-8 pb-16 sm:px-10">
-            <div className="mx-auto flex w-full max-w-[920px] flex-col gap-3.5">{children}</div>
+            <div className="mx-auto flex w-full max-w-[920px] flex-col gap-3.5 has-[[data-meetings-overview]]:max-w-none">
+              {children}
+            </div>
           </main>
         </div>
         <Hydrated>

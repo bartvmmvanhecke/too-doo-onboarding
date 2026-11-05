@@ -1,4 +1,5 @@
 # Werkafspraken
+- Zet bij elke nieuwe sessie alleen het gekoppelde PR-nummer vooraan in de sessietitel (bijvoorbeeld `#44`), zonder branchnaam. Is er nog geen PR-nummer, voeg het toe zodra het bekend is.
 - Elke opdracht begint op een nieuwe branch vanaf de laatste main:
   `git fetch && git switch -c <prefix>/<naam> origin/main`
   (prefix: claude voor Claude Code, codex voor Codex)

@@ -1174,3 +1174,13 @@ html[data-onboarding-fade="in"] body {
 .onboarding-notepad .document-row:focus-within .onboarding-item-grip {
   display: block;
 }
+
+/* Vergadering afronden */
+.app-theme {
+  --wrap-handled: #2f9e73;
+  --wrap-amber-bg: #fff3df;
+  --wrap-amber-ink: #8a4b00;
+  --wrap-line: #e3e7ef;
+  --wrap-success-bg: #e9f5f0;
+  --wrap-success-ink: #1c6650;
+}

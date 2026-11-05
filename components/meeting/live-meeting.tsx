@@ -11,7 +11,6 @@ import {
   List,
   ListOrdered,
   Plus,
-  Square,
   Timer,
   Trash2,
   Underline,
@@ -22,6 +21,8 @@ import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/compone
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { allItems, type EntryKind } from "@/lib/agenda";
 import { usePeople, useStore, type Meeting } from "@/lib/store";
+import { useNow } from "./meeting-context";
+import { closeManually, isHandled, navigateTo, nextOpenItem, othersOpen, plannedEnd } from "@/lib/meeting-wrap-up";
 import { cn } from "@/lib/utils";
 
 const pill =
@@ -32,6 +33,13 @@ export function LiveMeeting({ meeting }: { meeting: Meeting }) {
   const people = usePeople();
   const run = meeting.run!;
   const items = allItems(meeting.blocks);
+  const now = useNow(true);
+  const end = plannedEnd(meeting);
+  const overtime = now >= end;
+  const otherOpen = othersOpen(meeting, run.currentId);
+  const handled = items.filter(i => isHandled(meeting, i.id)).length;
+  const openNumbers = otherOpen.map(i => items.indexOf(i) + 1).join(" en ");
+  const finish = () => ops.putMeeting(closeManually(useStore.getState().meetings.find(m => m.id === meeting.id)!));
   const item = items.find((i) => i.id === run.currentId);
   const block = meeting.blocks.find((b) => b.id === run.currentId || b.items.some((i) => i.id === run.currentId));
   const [editing, setEditing] = useState<EntryKind | "agenda" | null>(null);
@@ -42,7 +50,6 @@ export function LiveMeeting({ meeting }: { meeting: Meeting }) {
   const [privateNote, setPrivateNote] = useState(false);
   const [fileError, setFileError] = useState("");
   const [moving, setMoving] = useState(false);
-  const [confirmEnd, setConfirmEnd] = useState(false);
   const activeCard = useRef<HTMLElement>(null);
   useEffect(() => {
     activeCard.current?.scrollIntoView({ block: "nearest", inline: "nearest" });
@@ -72,7 +79,7 @@ export function LiveMeeting({ meeting }: { meeting: Meeting }) {
   const selectItem = (id: string) => {
     if (note.trim() && !window.confirm("Je notitie is nog niet toegevoegd. Wil je van agendapunt wisselen?")) return;
     setNote("");
-    ops.putMeeting({ ...meeting, run: { ...run, currentId: id, stepStartedAt: new Date().getTime() } });
+    ops.putMeeting(navigateTo(useStore.getState().meetings.find(m => m.id === meeting.id)!, id));
   };
   const saveNote = () => {
     if (!item || !note.trim()) return;
@@ -95,15 +102,21 @@ export function LiveMeeting({ meeting }: { meeting: Meeting }) {
         <h1 className="order-last w-full min-w-0 truncate text-base font-bold sm:order-none sm:w-auto sm:flex-1">
           {meeting.name}
         </h1>
+        <div className="flex flex-wrap items-center gap-2 text-xs">
+          <span>{handled} van {items.length} behandeld{otherOpen.length > 0 && ` · nog open: ${openNumbers}`}</span>
+          <span role="status" className={cn("rounded-full px-3 py-2", overtime ? "bg-[var(--wrap-amber-bg)] text-[var(--wrap-amber-ink)]" : "bg-white/15")}>
+            {Math.max(0, Math.floor((now - run.startedAt) / 60000))} min · {overtime ? `${Math.floor((now-end)/60000)} min over gepland einde` : `${Math.ceil((end-now)/60000)} min resterend`}
+          </span>
+          {!overtime && <progress aria-label="Verstreken vergadertijd" value={Math.max(0, now-run.startedAt)} max={Math.max(1,end-run.startedAt)} className="h-1 w-24" />}
+        </div>
         <button
           type="button"
-          onClick={() => setConfirmEnd(true)}
-          aria-label="Vergadering beëindigen"
-          className="ml-auto mr-10 flex min-h-10 items-center gap-2 rounded-full bg-[#ed3034] px-4 text-sm font-semibold text-white hover:bg-red-600"
+          onClick={finish}
+          aria-label="Afronden"
+          className="ml-auto mr-10 flex min-h-10 items-center gap-2 rounded-full bg-white text-ink px-4 text-sm font-semibold hover:bg-brand-soft"
         >
-          <Square aria-hidden className="size-4" />
-          <span className="hidden sm:inline">Vergadering beëindigen</span>
-          <span className="sm:hidden">Beëindigen</span>
+          <span className="hidden sm:inline">Afronden</span>
+          <span className="sm:hidden">Afronden</span>
         </button>
       </header>
       <div className="flex min-h-0 flex-1 flex-col lg:flex-row">
@@ -132,7 +145,7 @@ export function LiveMeeting({ meeting }: { meeting: Meeting }) {
                     key={i.id}
                     className={cn(
                       "min-w-[260px] rounded-2xl border border-white/20 p-3 lg:min-w-0",
-                      active && "bg-white/15",
+                      active && "bg-white text-ink ring-2 ring-brand",
                     )}
                   >
                     {active && (
@@ -156,12 +169,11 @@ export function LiveMeeting({ meeting }: { meeting: Meeting }) {
                         active && "mt-3 mb-3 text-xl",
                       )}
                     >
-                      <span>{i.text}</span>
-                      {run.doneIds.includes(i.id) ? (
-                        <Check aria-label="Voltooid" className="size-4 shrink-0" />
-                      ) : !active && owner ? (
-                        <Avatar person={owner} size={24} decorative />
-                      ) : null}
+                      <span className={isHandled(meeting, i.id) ? "line-through" : ""}>{i.text}</span>
+                      <span className="text-xs">{active ? "nu" : isHandled(meeting, i.id) ? "behandeld" : `${i.duration ?? 0} min`}</span>
+                      {isHandled(meeting, i.id) ? (
+                        <Check aria-label="Behandeld" className="size-5 shrink-0 rounded-full bg-[var(--wrap-handled)] text-white" />
+                      ) : <span aria-hidden className="size-4 shrink-0 rounded-full border-2 border-current" />}
                     </button>
                     {active && (
                       <>
@@ -169,12 +181,13 @@ export function LiveMeeting({ meeting }: { meeting: Meeting }) {
                           type="button"
                           onClick={() => {
                             if (note.trim()) saveNote();
-                            ops.nextStep(meeting.id, "done");
+                            const next = nextOpenItem(meeting, run.currentId);
+                            if (next) selectItem(next.id); else finish();
                           }}
                           className={cn(pill, "w-full border-[#b3d4f3]")}
                         >
                           <Check aria-hidden className="size-4" />
-                          Voltooien
+                          {otherOpen.length ? `Behandeld · volgend open punt (${otherOpen.length})` : "Afronden →"}
                         </button>
                         <div className="mt-2 flex gap-1">
                           <button
@@ -214,6 +227,7 @@ export function LiveMeeting({ meeting }: { meeting: Meeting }) {
               <p className="p-3 text-sm text-white/80">Voeg je eerste agendapunt toe.</p>
             )}
           </div>
+          <p className="px-3 py-2 text-xs text-white/80">Een punt telt als behandeld zodra je naar een ander punt gaat. Klik erop om het te heropenen.</p>
           <div className="border-t border-white/15 p-2 lg:pt-4">
             <button
               type="button"
@@ -227,9 +241,10 @@ export function LiveMeeting({ meeting }: { meeting: Meeting }) {
         </aside>
         <main className="flex min-h-0 min-w-0 flex-1 flex-col gap-7 overflow-y-auto rounded-tl-2xl bg-[#f9f9fc] p-5 xl:flex-row xl:p-6">
           <div className="min-w-0 flex-1">
+            {item && otherOpen.length === 0 && <p className="mb-5 rounded-xl bg-brand-soft p-4 font-bold text-brand">→ Laatste open punt · daarna versturen we de opvolging</p>}
             {!run.currentId && (
               <p className="mb-5 rounded-lg bg-blue-50 p-3 text-sm">
-                Alle agendapunten zijn behandeld. Voeg een punt toe of beëindig de vergadering.
+                Alle agendapunten zijn behandeld. Voeg een punt toe of rond de vergadering af.
               </p>
             )}
             {block && !item && (
@@ -588,27 +603,7 @@ export function LiveMeeting({ meeting }: { meeting: Meeting }) {
             ))}
         </DialogContent>
       </Dialog>
-      <Dialog open={confirmEnd} onOpenChange={setConfirmEnd}>
-        <DialogContent className="app-theme">
-          <DialogTitle>Vergadering beëindigen?</DialogTitle>
-          <DialogDescription>
-            Je beslissingen, acties en notities blijven bewaard. Je keert terug naar het vergaderoverzicht.
-          </DialogDescription>
-          <button
-            type="button"
-            onClick={() => {
-              if (note.trim()) saveNote();
-              /* Bewaar behandelde punten en hun verslag. */ const latest = useStore
-                .getState()
-                .meetings.find((m) => m.id === meeting.id)!;
-              ops.putMeeting({ ...latest, held: true, run: null });
-            }}
-            className="min-h-11 self-end rounded-full bg-red-500 px-5 font-bold text-white"
-          >
-            Vergadering beëindigen
-          </button>
-        </DialogContent>
-      </Dialog>
+
     </div>
   );
 }

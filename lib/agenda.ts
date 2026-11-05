@@ -48,6 +48,7 @@ export interface Entry {
   /** Wie het vastlegde en wanneer (ms). */
   authorId?: string | null;
   createdAt?: number;
+  updatedAt?: number;
   /** Document: grootte in bytes. */
   size?: number;
   /** Lokale bijlage in het prototype (max. 1 MB). */
@@ -67,6 +68,12 @@ export interface AgendaItem {
   entries: Entry[];
   /** Voorbeeldpunt uit de demo. */
   sample?: boolean;
+  runStatus?: "open" | "handled";
+  handledAt?: number;
+  updatedAt?: number;
+  carry?: "next" | "drop";
+  carriedFrom?: string;
+  carriedSourceId?: string;
 }
 
 export type BlockKind = "actions" | "topics" | "break";

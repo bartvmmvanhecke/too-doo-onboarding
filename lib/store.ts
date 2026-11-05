@@ -85,6 +85,16 @@ export interface Meeting extends MeetingSchedule {
   /** Voorstellen blijven ook na bewaren open tot expliciet akkoord. */
   reviewSuggestions?: import("@/lib/assistant/types").GuestAction[];
   id: string;
+  startedAt?: number;
+  endedAt?: number;
+  lastActivityAt?: number;
+  endReason?: "manual" | "auto";
+  followUpStatus?: "pending" | "sent";
+  endTimeConfirmed?: boolean;
+  reminderQueuedAt?: number;
+  startedBy?: string;
+  minimized?: boolean;
+  wrapUpOpen?: boolean;
   type: string;
   participants: string[];
   privateNotes?: { id: string; itemId: string; text: string }[];

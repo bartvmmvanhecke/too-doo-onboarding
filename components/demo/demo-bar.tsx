@@ -7,6 +7,7 @@ import { create } from "zustand";
 import { GUEST_STORAGE_KEY } from "@/lib/guest-store";
 import { useStore, STORAGE_KEY, type CalendarOutcome, type LoginOutcome } from "@/lib/store";
 import { useHydrated } from "@/lib/use-hydrated";
+import { isDemoEnvironment } from "@/lib/demo-environment";
 import { cn } from "@/lib/utils";
 
 const LOGIN_OPTIONS: { value: LoginOutcome; label: string }[] = [
@@ -51,7 +52,7 @@ export function DemoBar() {
     return () => window.removeEventListener("keydown", onKey);
   }, [open]);
 
-  if (!hydrated || !open) return null;
+  if (!isDemoEnvironment() || !hydrated || !open) return null;
 
   // Volledig herladen naar de hero: zo kan geen scherm nog met oude state doorverwijzen.
   const resetDemo = () => {
@@ -101,6 +102,15 @@ export function DemoBar() {
           value={demo.calendar}
           onChange={(calendar) => setDemo({ calendar })}
         />
+        <label className="mb-3 flex min-h-11 cursor-pointer items-center gap-3 text-[13px] font-bold">
+          <input
+            type="checkbox"
+            checked={demo.wrapUpToolbar !== false}
+            onChange={(e) => setDemo({ wrapUpToolbar: e.target.checked })}
+            className="size-4"
+          />
+          Prototypebalk in vergadermodus
+        </label>
         <button
           type="button"
           onClick={resetDemo}

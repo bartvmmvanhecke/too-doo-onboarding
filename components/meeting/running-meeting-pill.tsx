@@ -1,4 +1,5 @@
 "use client";
+import { meetingNow } from "@/lib/meeting-clock";
 import Link from "next/link";
 import { useStore } from "@/lib/store";
 import { closeManually, plannedEnd } from "@/lib/meeting-wrap-up";
@@ -6,7 +7,8 @@ import { useNow } from "./meeting-context";
 import { Button } from "@/components/ui/button";
 export function RunningMeetingPill() {
   const meeting = useStore((s) => s.meetings.find((m) => m.run && !m.endedAt && m.minimized));
-  const now = useNow(!!meeting);
+  const realNow = useNow(!!meeting);
+  const now = meeting ? meetingNow(meeting, realNow) : realNow;
   if (!meeting) return null;
   const over = now >= plannedEnd(meeting);
   return (
@@ -22,7 +24,7 @@ export function RunningMeetingPill() {
       <Button variant="outline" size="sm" asChild>
         <Link
           href={`/app/overleg/${meeting.id}?afronden=1`}
-          onClick={() => useStore.getState().putMeeting(closeManually(meeting))}
+          onClick={() => useStore.getState().putMeeting(closeManually(meeting, now))}
         >
           Afronden
         </Link>

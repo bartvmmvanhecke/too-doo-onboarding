@@ -76,3 +76,36 @@ Geen bestanden verwijderd. De oude beëindigingsdialoog is uit de UI gehaald.
   op het detail. Die tests zijn buiten scope niet aangepast. De volledige
   browsersuite is dus niet groen.
 - Desktop- en mobiele schermafbeeldingen zijn visueel gecontroleerd.
+
+## Vervolg: prototypebediening
+
+De donkere prototypebalk staat boven de bovenbalk in de gestarte vergadermodus.
+Hij verdwijnt bij minimaliseren, afronden en op detail/lijst/mail. De instelling
+`demo.wrapUpToolbar` gebruikt de bestaande localStorage-store en staat standaard aan.
+
+- `lib/prototype/wrapUpScenarios.ts` bevat alle lokale fixtures en mutations voor
+  sprongen, laatste open punt, +5 minuten en spoor B. De fixture maakt ook een
+  lokale volgende vergadering, zodat doorschuiven direct zichtbaar is.
+- `Meeting.demoTimeOffsetMs` bewaart de tijdsverschuiving per vergadering;
+  `lib/meeting-clock.ts` past hem via `meetingNow()` toe. Timer, schrijfacties,
+  synchronisatie, pill en handmatig afsluiten gebruiken dezelfde klok.
+- Een scenariorevisie herstart alleen de inhoud van de vergadermodus, waardoor
+  lokale prompts, snooze, invoer en minimaliseermelding worden gereset en het
+  huidige agendapunt focus krijgt. De balk bewaart de aria-live-aankondiging.
+- Spoor B beëindigt in deze demonstratie de bespreking van het huidige punt en
+  draagt de onbehandelde punten 3 en 6 over. Er worden geen mails of API-aanroepen gedaan.
+- De mailpreview heeft een demo-link naar het detail na automatisch afsluiten.
+- Er was geen bestaande omgevingscheck voor het prototypemenu. De gedeelde check
+  `lib/demo-environment.ts` beschermt nu menu, instellingen, balk, fixtures en klok.
+  Development/test is demo; een afzonderlijke demodeployment kan expliciet
+  `NEXT_PUBLIC_APP_ENV=demo` gebruiken. Een gewone productiebuild toont geen
+  prototypebediening en negeert opgeslagen demo-offsets.
+
+Gedeeld aangepast: uitsluitend vijf toegevoegde kleurtokens in `app/globals.css`,
+plus de omgevingscheck in het bestaande prototypemenu. Geen dependencies of bestanden
+verwijderd. De verouderde menutest verwacht nu ook het al bestaande menu-item
+“Overzicht met vergaderingen”. Verder is gewerkt op de bestaande branch
+`codex/close-meeting-unattended`, zonder branchwissel, PR of merge.
+
+Validatie vervolg: 74 unit tests, build, lint en typecheck slagen. De zes bestaande
+gerichte vergaderbrowsertests en de drie nieuwe prototypebrowsertests slagen.

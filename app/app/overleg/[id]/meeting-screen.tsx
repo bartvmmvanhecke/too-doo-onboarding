@@ -1,5 +1,6 @@
 "use client";
 
+import { meetingNow } from "@/lib/meeting-clock";
 import { PendingFollowUp } from "@/components/meeting/pending-follow-up";
 import { MeetingReminderPreview } from "@/components/b/meeting-reminder-preview";
 import { closeManually } from "@/lib/meeting-wrap-up";
@@ -26,7 +27,9 @@ export function MeetingScreen() {
 
   useEffect(() => {
     if (params.get("afronden") !== "1" || !meeting || meeting.wrapUpOpen || meeting.followUpStatus === "sent") return;
-    useStore.getState().putMeeting(meeting.endedAt ? { ...meeting, wrapUpOpen: true } : closeManually(meeting));
+    useStore
+      .getState()
+      .putMeeting(meeting.endedAt ? { ...meeting, wrapUpOpen: true } : closeManually(meeting, meetingNow(meeting)));
     router.replace(`/app/overleg/${meeting.id}`);
   }, [meeting, params, router]);
 

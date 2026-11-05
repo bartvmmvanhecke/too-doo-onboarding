@@ -1184,3 +1184,11 @@ html[data-onboarding-fade="in"] body {
   --wrap-success-bg: #e9f5f0;
   --wrap-success-ink: #1c6650;
 }
+
+.app-theme {
+  --prototype-bar-bg: #0a1238;
+  --prototype-bar-muted: #c9d3f5;
+  --prototype-bar-border: #3b4a85;
+  --prototype-bar-button: #16205a;
+  --prototype-bar-focus: #8db8ec;
+}

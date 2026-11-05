@@ -1,4 +1,5 @@
 "use client";
+import { isDemoEnvironment } from "@/lib/demo-environment";
 import Link from "next/link";
 import type { Meeting } from "@/lib/store";
 import { usePeople } from "@/lib/store";
@@ -49,6 +50,14 @@ export function MeetingReminderPreview({ meeting }: { meeting: Meeting }) {
         </p>
         {/* TODO(api): connect the notification-preferences link and deliver only to the chair/start user. */}
       </article>
+      {isDemoEnvironment() && (
+        <Link
+          className="inline-flex min-h-11 items-center text-sm text-brand underline"
+          href={`/app/overleg/${meeting.id}`}
+        >
+          Verder: de vergadering na automatisch afsluiten →
+        </Link>
+      )}
     </div>
   );
 }

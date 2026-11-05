@@ -1,5 +1,7 @@
 "use client";
 
+import { MeetingPrototypeBar } from "@/components/prototype/meeting-prototype-bar";
+import { meetingNow } from "@/lib/meeting-clock";
 import { useEffect, useRef, useState } from "react";
 import {
   ArrowDown,
@@ -34,20 +36,35 @@ const pill =
   "inline-flex min-h-11 items-center justify-center gap-2 rounded-full border border-[#2255ff] bg-[#e5f3ff] px-4 text-sm font-bold text-[#2055e5] hover:bg-[#d4eaff] disabled:cursor-not-allowed disabled:opacity-50";
 
 export function LiveMeeting({ meeting }: { meeting: Meeting }) {
+  return (
+    <div className="app-theme fixed inset-0 z-40 flex flex-col overflow-hidden bg-[linear-gradient(180deg,transparent,#08042e),linear-gradient(110deg,#2e6090,#73c8fb_75%)] text-[#1f2b3b]">
+      <MeetingPrototypeBar meetingId={meeting.id} />
+      <LiveMeetingContent key={meeting.demoScenarioRevision ?? 0} meeting={meeting} />
+    </div>
+  );
+}
+
+function LiveMeetingContent({ meeting }: { meeting: Meeting }) {
   const ops = useStore();
   const people = usePeople();
   const run = meeting.run!;
   const items = allItems(meeting.blocks);
   const nextMeeting = nextInSeries(meeting, ops.meetings);
-  const now = useNow(true);
+  const now = meetingNow(meeting, useNow(true));
   const end = plannedEnd(meeting);
   const overtime = now >= end;
   const otherOpen = othersOpen(meeting, run.currentId);
+  const nextOpen = nextOpenItem(meeting, run.currentId);
   const handled = items.filter((i) => isHandled(meeting, i.id)).length;
   const openNumbers = otherOpen.map((i) => items.indexOf(i) + 1).join(" en ");
   const finish = () => {
     if (note.trim()) saveNote();
-    ops.putMeeting(closeManually(useStore.getState().meetings.find((m) => m.id === meeting.id)!));
+    ops.putMeeting(
+      closeManually(
+        useStore.getState().meetings.find((m) => m.id === meeting.id)!,
+        now,
+      ),
+    );
   };
   const item = items.find((i) => i.id === run.currentId);
   const block = meeting.blocks.find((b) => b.id === run.currentId || b.items.some((i) => i.id === run.currentId));
@@ -67,10 +84,10 @@ export function LiveMeeting({ meeting }: { meeting: Meeting }) {
   useEffect(() => {
     activeCard.current?.querySelector<HTMLButtonElement>("button[aria-current]")?.focus();
     activeCard.current?.scrollIntoView({ block: "nearest", inline: "nearest" });
-  }, [run.currentId, block?.id]);
+  }, [run.currentId, block?.id, meeting.demoScenarioRevision]);
   const lastTyping = useRef(0);
   const recordTyping = () => {
-    const now = Date.now();
+    const now = meetingNow(meeting);
     if (now - lastTyping.current < 30000) return;
     lastTyping.current = now;
     const latest = useStore.getState().meetings.find((m) => m.id === meeting.id)!;
@@ -78,6 +95,17 @@ export function LiveMeeting({ meeting }: { meeting: Meeting }) {
   };
   const editor = useRef<HTMLTextAreaElement>(null);
   const fileInput = useRef<HTMLInputElement>(null);
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => {
+      const target = event.target;
+      if (event.key.toLowerCase() !== "n" || event.ctrlKey || event.metaKey || event.altKey || !item) return;
+      if (target instanceof HTMLElement && target.closest("input,textarea,select,[contenteditable=true]")) return;
+      event.preventDefault();
+      editor.current?.focus();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [item]);
   const entries = item?.entries ?? [];
   const notes = entries.filter((e) => e.kind === "note");
   const privateNotes = (meeting.privateNotes ?? []).filter((n) => n.itemId === item?.id);
@@ -105,6 +133,7 @@ export function LiveMeeting({ meeting }: { meeting: Meeting }) {
       navigateTo(
         useStore.getState().meetings.find((m) => m.id === meeting.id)!,
         id,
+        now,
       ),
     );
   };
@@ -123,7 +152,7 @@ export function LiveMeeting({ meeting }: { meeting: Meeting }) {
   };
 
   return (
-    <div className="app-theme fixed inset-0 z-40 flex flex-col overflow-hidden bg-[linear-gradient(180deg,transparent,#08042e),linear-gradient(110deg,#2e6090,#73c8fb_75%)] text-[#1f2b3b]">
+    <div className="contents">
       <header className="flex min-h-16 shrink-0 flex-wrap items-center gap-3 px-3 py-2 text-white sm:px-5">
         <Logo tone="white" href="/app" className="mr-3 lg:w-[280px]" />
         <h1 className="order-last w-full min-w-0 truncate text-base font-bold sm:order-none sm:w-auto sm:flex-1">
@@ -246,7 +275,9 @@ export function LiveMeeting({ meeting }: { meeting: Meeting }) {
                           className={cn(pill, "w-full border-[#b3d4f3]")}
                         >
                           <Check aria-hidden className="size-4" />
-                          {otherOpen.length ? `Behandeld · volgend open punt (${otherOpen.length})` : "Afronden →"}
+                          {otherOpen.length
+                            ? `Behandeld · volgend open punt (${items.findIndex((i) => i.id === nextOpen?.id) + 1})`
+                            : "Afronden →"}
                         </button>
                         <div className="mt-2 flex gap-1">
                           <button
@@ -634,7 +665,7 @@ export function LiveMeeting({ meeting }: { meeting: Meeting }) {
                   const latest = useStore.getState().meetings.find((m) => m.id === meeting.id)!;
                   ops.putMeeting({
                     ...latest,
-                    run: { ...latest.run!, currentId: id, stepStartedAt: new Date().getTime() },
+                    run: { ...latest.run!, currentId: id, stepStartedAt: meetingNow(latest) },
                   });
                 }
               } else if (item && editing)

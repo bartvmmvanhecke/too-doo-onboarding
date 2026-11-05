@@ -1,4 +1,5 @@
 "use client";
+import { meetingNow } from "@/lib/meeting-clock";
 import { useEffect } from "react";
 import { useStore } from "@/lib/store";
 import { carryForward, unattended } from "@/lib/meeting-wrap-up";
@@ -12,7 +13,7 @@ export function UnattendedSync() {
       const previous = useStore.getState().meetings;
       let changed = false;
       let meetings = previous.map((m) => {
-        const updated = unattended(m, Date.now());
+        const updated = unattended(m, meetingNow(m));
         changed ||= updated !== m;
         return updated;
       });

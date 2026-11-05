@@ -119,7 +119,7 @@ export function MeetingOverviewDetail({ meeting }: { meeting: Meeting }) {
                   {Math.abs(remaining)} min {remaining < 0 ? "te veel" : "over"}
                 </span>
               </div>
-              <Button className="rounded-full" onClick={() => ops.startRun(meeting.id)}>
+              <Button className="rounded-full" disabled={!!meeting.endedAt && meeting.followUpStatus === "pending"} onClick={() => ops.startRun(meeting.id)}>
                 <Play className="size-5" aria-hidden />
                 Start vergadering
               </Button>

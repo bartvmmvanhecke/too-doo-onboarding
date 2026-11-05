@@ -196,7 +196,6 @@ export function LiveMeeting({ meeting }: { meeting: Meeting }) {
                         <button
                           type="button"
                           onClick={() => {
-                            if (note.trim()) saveNote();
                             const next = nextOpenItem(meeting, run.currentId);
                             if (next) selectItem(next.id); else finish();
                           }}

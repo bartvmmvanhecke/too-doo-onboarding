@@ -70,8 +70,10 @@ export function MeetingsList() {
       (type === ALL || m.type === type) &&
       (person === ALL || m.participants.includes(person)),
   );
-  const past = filtered.filter((m) => isPast(m, todayISO)).sort((a, b) => b.date!.localeCompare(a.date!));
-  const upcoming = filtered
+  const pending = filtered.filter(m=>m.endedAt && m.followUpStatus === "pending");
+  const remaining = filtered.filter(m=>!pending.includes(m));
+  const past = remaining.filter((m) => isPast(m, todayISO)).sort((a, b) => b.date!.localeCompare(a.date!));
+  const upcoming = remaining
     .filter((m) => !isPast(m, todayISO))
     .sort((a, b) => (a.date ?? "9999").localeCompare(b.date ?? "9999") || (a.time ?? 0) - (b.time ?? 0));
 
@@ -163,7 +165,8 @@ export function MeetingsList() {
         </div>
       ) : (
         <>
-          <MeetingGroup id="afgelopen" title="Afgelopen meetings" meetings={past} todayISO={todayISO} />
+          <MeetingGroup id="afronden" title="Nog af te ronden" meetings={pending} todayISO={todayISO} />
+          <MeetingGroup id="afgelopen" title="Afgelopen vergaderingen" meetings={past} todayISO={todayISO} />
           <MeetingGroup id="aankomend" title="Aankomende" meetings={upcoming} todayISO={todayISO} />
         </>
       )}
@@ -223,6 +226,7 @@ function MeetingRow({ meeting: m, status }: { meeting: Meeting; status: Status }
         <span className="flex min-w-0 flex-col">
           <span className="flex min-w-0 flex-wrap items-center gap-2">
             <span className="truncate text-[17px] font-bold">{m.name}</span>
+            {m.endedAt && m.followUpStatus === "pending" && <span className="rounded-full bg-[var(--wrap-amber-bg)] px-2 py-1 text-xs font-bold text-[var(--wrap-amber-ink)]">Nog af te ronden</span>}
             <span className="rounded-full bg-brand-soft px-2 py-0.5 text-xs font-bold text-brand">{m.type}</span>
           </span>
           <span className="text-[13px] text-ink-3">{whenLine(m)}</span>

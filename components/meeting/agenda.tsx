@@ -1,5 +1,7 @@
 "use client";
 
+import { formatShortDate } from "@/lib/date";
+
 import { useState, type DragEvent, type ReactNode } from "react";
 import { ArrowRight, ChevronDown, CircleCheck, MoreHorizontal, Pencil, Plus, Trash2 } from "lucide-react";
 import {
@@ -156,6 +158,7 @@ export function AgendaItemRow({
           status === "postponed" && "text-ink-3",
         )}
       />
+      {item.carriedFrom && <span className="text-xs text-ink-3">uit {formatShortDate(item.carriedFrom)}</span>}
       {trial ? (
         // Variant A: doel, eigenaars en duur zoals in het detailscherm; rechts één icoon met teller.
         <>

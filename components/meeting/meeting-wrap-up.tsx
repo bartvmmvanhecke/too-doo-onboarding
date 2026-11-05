@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import { CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useStore, usePeople, type Meeting } from "@/lib/store";
-import { actualDuration, agendaItems, clockTime, nextInSeries, othersOpen } from "@/lib/meeting-wrap-up";
+import { actualDuration, carryForward, agendaItems, clockTime, nextInSeries, othersOpen } from "@/lib/meeting-wrap-up";
 import { formatShortDate } from "@/lib/date";
 import type { EntryKind } from "@/lib/agenda";
 
@@ -30,7 +30,10 @@ export function MeetingWrapUp({ meeting }: { meeting: Meeting }) {
   };
   const send = () => {
     // TODO(api): send participant-specific follow-up through the mail API; local prototype records intent only.
-    ops.putMeeting({...meeting,followUpStatus:"sent",held:true,run:null,minimized:false});
+    const latest = useStore.getState().meetings.find(m=>m.id === meeting.id)!;
+    const forwarded = carryForward(latest, useStore.getState().meetings);
+    // One persisted transaction: transferring points and recording follow-up cannot diverge.
+    useStore.setState({meetings: forwarded.map(m=>m.id === latest.id ? {...latest,followUpStatus:"sent",held:true,run:null,minimized:false} : m)});
   };
   const addEntry = () => {
     if (!text.trim()) return;

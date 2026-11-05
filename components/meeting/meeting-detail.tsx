@@ -22,6 +22,7 @@ import { OpenActionsBlock } from "@/components/meeting/open-actions";
 import { ExampleBanner } from "@/components/tour/example-banner";
 import { GettingStarted, type GettingStartedItem } from "@/components/tour/getting-started";
 import { ProductTour, type TourStep } from "@/components/tour/product-tour";
+import { useRequestedTour } from "@/components/tour/tour-request";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -200,12 +201,30 @@ function AddThemeRow({ onAdd }: { onAdd: (text: string) => void }) {
   );
 }
 
-/** De vier stappen van de rondleiding over de voorbeeldagenda. */
-function tourSteps(meeting: Meeting): TourStep[] {
-  const block = meeting.blocks.find((b) => b.kind === "topics" && b.items.length > 0);
+/** Het eerste element waarvan de tekst met deze tekst begint (schermlezertekst mag erachter), of null. */
+function byText(selector: string, text: string): HTMLElement | null {
+  return (
+    Array.from(document.querySelectorAll<HTMLElement>(selector)).find((el) =>
+      el.textContent?.trim().startsWith(text),
+    ) ?? null
+  );
+}
+
+/**
+ * De vier stappen van de rondleiding. Ze passen zich aan wat er op het scherm staat: op een lege vergadering
+ * wijzen ze naar het eerste thema, "Agendapunt toevoegen", Openstaande acties en "Start vergadering".
+ */
+export function tourSteps(meeting: Meeting): TourStep[] {
+  const block =
+    meeting.blocks.find((b) => b.kind === "topics" && b.items.length > 0) ??
+    meeting.blocks.find((b) => b.kind === "topics");
   const item = block?.items[0];
   const grip = (id: string | undefined) => () =>
     id ? document.querySelector<HTMLElement>(`[data-grip="${id}"]`) : null;
+  const or =
+    (...targets: (() => HTMLElement | null)[]) =>
+    () =>
+      targets.reduce<HTMLElement | null>((found, t) => found ?? t(), null);
   return [
     {
       id: "blok",
@@ -215,13 +234,16 @@ function tourSteps(meeting: Meeting): TourStep[] {
     },
     {
       id: "punt",
-      target: grip(item?.id),
+      target: or(grip(item?.id), () => byText("button", "Agendapunt toevoegen")),
       title: "Agendapunten staan in een blok",
       text: "Sleep aan de greep om de volgorde te wijzigen, of zet een punt in een ander blok. Met het potlood open je alle details.",
     },
     {
       id: "kolommen",
-      target: () => document.querySelector<HTMLElement>('[data-tour="kolommen"]'),
+      target: or(
+        () => document.querySelector<HTMLElement>('[data-tour="kolommen"]'),
+        () => byText("h2, h3", "Openstaande acties"),
+      ),
       title: "Beslissingen en acties komen tijdens de vergadering",
       text: "Bij elk agendapunt noteer je wat er beslist is en wie wat doet tegen wanneer. too-doo volgt die acties op tot ze klaar zijn.",
       align: "end",
@@ -229,7 +251,10 @@ function tourSteps(meeting: Meeting): TourStep[] {
     },
     {
       id: "start",
-      target: () => document.querySelector<HTMLElement>('[data-tour="start"]'),
+      target: or(
+        () => document.querySelector<HTMLElement>('[data-tour="start"]'),
+        () => byText("button", "Start vergadering"),
+      ),
       title: "Klaar? Start je vergadering",
       text: "De agenda hoeft niet perfect te zijn. Je kan verder aanpassen terwijl de vergadering loopt.",
       align: "end",
@@ -274,6 +299,8 @@ export function MeetingDetail({
   const [touring, setTouring] = useState(!!example);
   const [bannerOpen, setBannerOpen] = useState(!!example);
   const [checklistOpen, setChecklistOpen] = useState(!!example);
+  // "Rondleiding starten" in het Hulp-menu: dezelfde rondleiding, ook op een eigen vergadering.
+  const [tourRequested, tourHandled] = useRequestedTour();
 
   // Variant A: elke verplaatsing wordt gemeld voor schermlezers (aria-live).
   const [announcement, setAnnouncement] = useState("");
@@ -477,7 +504,15 @@ export function MeetingDetail({
             <Checklist collapsible items={checklist} className="mt-4 w-full max-w-[340px] flex-none self-end" />
           )}
 
-          {example && touring && !run && <ProductTour steps={tourSteps(meeting)} onClose={() => setTouring(false)} />}
+          {((example && touring) || (!trial && tourRequested)) && !run && (
+            <ProductTour
+              steps={tourSteps(meeting)}
+              onClose={() => {
+                setTouring(false);
+                tourHandled();
+              }}
+            />
+          )}
           {example && checklistOpen && (
             <>
               {/* Ruimte onderaan zodat de zwevende checklist niets blijvend bedekt. */}

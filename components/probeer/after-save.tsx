@@ -1,10 +1,11 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
 import { CircleCheck, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { useAppUi } from "@/components/app/app-ui";
+import { setAssistantOpener } from "@/components/app/help-menu";
 import { AssistantPanel } from "@/components/probeer/assistant-panel";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -120,6 +121,8 @@ function AfterSavePanel({ meeting }: { meeting: Meeting }) {
   const blocked = useOutlookBlocked();
   const { setAddMeetingsOpen } = useAppUi();
   const [open, setOpen] = useState(true);
+  // "Vraag het de assistent" in het Hulp-menu opent dit paneel.
+  useEffect(() => setAssistantOpener(() => setOpen(true)), []);
   const [added, setAdded] = useState<{ text: string; from: Message["from"] }[]>([]);
   /** Na "Notities plakken": de volgende tekst zijn notities. */
   const [notesMode, setNotesMode] = useState(false);

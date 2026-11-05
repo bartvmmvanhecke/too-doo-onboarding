@@ -41,7 +41,7 @@ import { appointmentOptions, seriesOptions } from "@/lib/assistant/calendar";
 import { GOAL_DURATIONS, type MeetingGoal } from "@/lib/assistant/goals";
 import { formatShortDate } from "@/lib/date";
 import { LISTEN_DELAY, SAMPLE_TRANSCRIPT } from "@/lib/extract";
-import { WELCOME_MESSAGES, hasGuestWork, useGuestStore } from "@/lib/guest-store";
+import { GUEST_SESSION_KEY, WELCOME_MESSAGES, hasGuestWork, useGuestStore } from "@/lib/guest-store";
 import { notesFileKind, readNotesFile } from "@/lib/notes-file";
 import { useCalendarConsent, useSsoLogin } from "@/lib/simulate";
 import { useStore, type SaveIntent } from "@/lib/store";
@@ -54,7 +54,7 @@ const FLASH_MS = 2000;
 const RECORDING = "Opname wordt uitgeschreven…";
 const PREPARING = "Ik zet je overleg klaar…";
 /** Per tabblad: één keer "Welkom terug" per bezoek. */
-const SESSION_KEY = "toodoo-guest-session";
+const SESSION_KEY = GUEST_SESSION_KEY;
 
 /** Vaste transcriptie bij "Inspreken" in stap 1, zoals de vaste transcriptie in /b/acties. */
 export const SAMPLE_MEETING_SENTENCE =

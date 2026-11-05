@@ -1,5 +1,6 @@
 "use client";
 
+import { MeetingStartGate } from "@/components/meeting/meeting-start-gate";
 import { useEffect } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { MeetingDetail } from "@/components/meeting/meeting-detail";
@@ -21,15 +22,17 @@ export function MeetingScreen() {
 
   if (!meeting) return null;
   return (
-    <div data-meeting-detail className="contents">
-      <SavedBanner meeting={meeting} />
-      {params.get("variant") === "b" && !meeting.run ? (
-        <MeetingDetailB meeting={meeting} />
-      ) : meeting.run ? (
-        <MeetingDetail meeting={meeting} />
-      ) : (
-        <MeetingOverviewDetail meeting={meeting} />
-      )}
-    </div>
+    <MeetingStartGate meeting={meeting}>
+      <div data-meeting-detail className="contents">
+        <SavedBanner meeting={meeting} />
+        {params.get("variant") === "b" && !meeting.run ? (
+          <MeetingDetailB meeting={meeting} />
+        ) : meeting.run ? (
+          <MeetingDetail meeting={meeting} />
+        ) : (
+          <MeetingOverviewDetail meeting={meeting} />
+        )}
+      </div>
+    </MeetingStartGate>
   );
 }

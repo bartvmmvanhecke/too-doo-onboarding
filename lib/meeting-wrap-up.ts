@@ -13,6 +13,8 @@ export function nextOpenItem(m: Meeting, currentId: string | null) {
   return [...items.slice(index + 1), ...items.slice(0, Math.max(0, index))].find((i) => !isHandled(m, i.id)) ?? null;
 }
 export function plannedEnd(m: Meeting) {
+  const start = m.run?.startedAt ?? m.startedAt;
+  if (start !== undefined) return start + m.duration * 60_000;
   if (m.date && m.time !== null) return new Date(`${m.date}T00:00:00`).getTime() + (m.time + m.duration) * 60_000;
   return (m.startedAt ?? m.run?.startedAt ?? 0) + m.duration * 60_000;
 }

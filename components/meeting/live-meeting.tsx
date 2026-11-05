@@ -186,6 +186,7 @@ function LiveMeetingContent({ meeting }: { meeting: Meeting }) {
         <Button
           variant="inverse"
           size="sm"
+          className="rounded-full"
           onClick={() => (overtime || handled === items.length ? setMinimizePrompt(true) : minimize())}
         >
           Minimaliseren
@@ -194,7 +195,7 @@ function LiveMeetingContent({ meeting }: { meeting: Meeting }) {
           type="button"
           onClick={finish}
           aria-label="Afronden"
-          className="ml-auto mr-10 flex min-h-11 items-center gap-2 rounded-full bg-white text-ink px-4 text-sm font-semibold hover:bg-brand-soft"
+          className="ml-auto mr-10 flex min-h-11 items-center gap-2 rounded-full bg-danger px-4 text-sm font-semibold text-white hover:bg-danger/90"
         >
           <span className="hidden sm:inline">Afronden</span>
           <span className="sm:hidden">Afronden</span>

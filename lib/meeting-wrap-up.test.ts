@@ -115,4 +115,17 @@ describe("vergadering afronden", () => {
     };
     expect(effectiveEnd(m)).toBe(120 * min);
   });
+  it("rekent de resterende tijd vanaf de echte start met de geplande duur", () => {
+    const m = fixture();
+    const start = new Date("2026-11-05T14:00:00").getTime();
+    m.date = "2026-11-12";
+    m.time = 540;
+    m.duration = 60;
+    m.startedAt = start;
+    m.run!.startedAt = start;
+    expect(plannedEnd(m) - start).toBe(60 * min);
+    m.date = "2026-10-29";
+    expect(plannedEnd(m) - start).toBe(60 * min);
+    expect(plannedEnd({ ...m, run: null, startedAt: undefined })).toBe(new Date("2026-10-29T10:00:00").getTime());
+  });
 });

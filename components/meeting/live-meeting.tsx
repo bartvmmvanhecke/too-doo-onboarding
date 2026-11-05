@@ -206,7 +206,7 @@ function LiveMeetingContent({ meeting }: { meeting: Meeting }) {
       </header>
       <div className="flex min-h-0 flex-1 flex-col lg:flex-row">
         <aside aria-label="Vergaderagenda" className="flex shrink-0 flex-col text-white lg:w-[315px]">
-          <div className="flex gap-2 overflow-x-auto p-2 lg:flex-1 lg:flex-col lg:overflow-y-auto">
+          <div className="flex gap-2 overflow-x-auto p-2 lg:flex-1 lg:flex-col lg:overflow-y-auto lg:pt-0.5">
             {meeting.blocks
               .flatMap((b) =>
                 b.kind === "topics"

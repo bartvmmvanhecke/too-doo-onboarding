@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { ArrowLeft, CalendarCheck, ChevronUp, Clock, Coffee, Play, Plus } from "lucide-react";
+import { ArrowLeft, CalendarCheck, Check, ChevronUp, Clock, Coffee, Play, Plus } from "lucide-react";
 import { Avatar } from "@/components/avatar";
 import { BreakBlock, TopicsBlock } from "@/components/meeting/agenda";
 import { InlineText } from "@/components/meeting/bits";
@@ -126,14 +126,21 @@ export function MeetingOverviewDetail({ meeting }: { meeting: Meeting }) {
                   {Math.abs(remaining)} min {remaining < 0 ? "te veel" : "over"}
                 </span>
               </div>
-              <Button
-                className="rounded-full"
-                disabled={!!meeting.endedAt && meeting.followUpStatus === "pending"}
-                onClick={() => ops.startRun(meeting.id)}
-              >
-                <Play className="size-5" aria-hidden />
-                Start vergadering
-              </Button>
+              {meeting.endedAt && meeting.followUpStatus === "pending" ? (
+                <button
+                  type="button"
+                  onClick={() => ops.putMeeting({ ...meeting, wrapUpOpen: true })}
+                  className="flex min-h-11 items-center gap-2 rounded-full bg-danger px-4 text-sm font-bold text-white hover:bg-danger/90"
+                >
+                  <Check className="size-4" aria-hidden />
+                  Afronden
+                </button>
+              ) : (
+                <Button className="rounded-full" onClick={() => ops.startRun(meeting.id)}>
+                  <Play className="size-5" aria-hidden />
+                  Start vergadering
+                </Button>
+              )}
             </div>
           </header>
 

@@ -221,6 +221,11 @@ function MeetingRow({ meeting: m, status }: { meeting: Meeting; status: Status }
   const href = `/app/overleg/${m.id}`;
   const needsWrapUp = status === "wrapUp";
   const unowned = m.actions.filter((a) => !a.ownerId).length;
+  const openDetail = () => {
+    if (!needsWrapUp) return;
+    const latest = useStore.getState().meetings.find((meeting) => meeting.id === m.id)!;
+    useStore.getState().putMeeting({ ...latest, wrapUpOpen: false, minimized: true });
+  };
 
   const menuItem =
     "flex min-h-11 w-full cursor-pointer items-center gap-2.5 rounded-lg px-2.5 text-left text-sm font-bold text-ink no-underline hover:bg-app hover:text-ink";
@@ -229,6 +234,7 @@ function MeetingRow({ meeting: m, status }: { meeting: Meeting; status: Status }
     <li className="flex items-center gap-2 rounded-[14px] border border-line-soft bg-white pr-2 hover:bg-row-hover">
       <Link
         href={href}
+        onClick={openDetail}
         className="flex min-h-14 min-w-0 flex-1 flex-wrap items-center gap-x-6 gap-y-2 py-2.5 pl-4 text-ink no-underline hover:text-ink"
       >
         <span className="flex min-w-0 flex-col">
@@ -265,7 +271,8 @@ function MeetingRow({ meeting: m, status }: { meeting: Meeting; status: Status }
       </Link>
       {needsWrapUp && (
         <Link
-          href={`${href}?afronden=1`}
+          href={href}
+          onClick={openDetail}
           aria-label={`Afronden: ${m.name}`}
           className="inline-flex min-h-11 shrink-0 items-center justify-center rounded-full bg-danger px-4 text-sm font-bold text-white no-underline hover:bg-danger/90 hover:text-white"
         >

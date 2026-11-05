@@ -196,7 +196,7 @@ function LiveMeetingContent({ meeting }: { meeting: Meeting }) {
           type="button"
           onClick={finish}
           aria-label="Afronden"
-          className="ml-auto mr-10 flex min-h-11 items-center gap-2 rounded-full bg-danger px-4 text-sm font-semibold text-white hover:bg-danger/90"
+          className="ml-auto flex min-h-11 items-center gap-2 rounded-full bg-danger px-4 text-sm font-semibold text-white hover:bg-danger/90"
         >
           <Check aria-hidden className="size-4" />
           <span className="hidden sm:inline">Afronden</span>

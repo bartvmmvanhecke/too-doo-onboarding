@@ -7,6 +7,7 @@ import {
   ArrowDown,
   Bold,
   Check,
+  CircleStop,
   Ellipsis,
   Italic,
   Link2,
@@ -68,6 +69,27 @@ function LiveMeetingContent({ meeting }: { meeting: Meeting }) {
   const item = items.find((i) => i.id === run.currentId);
   const block = meeting.blocks.find((b) => b.id === run.currentId || b.items.some((i) => i.id === run.currentId));
   const [minimizePrompt, setMinimizePrompt] = useState(false);
+  const [finishPrompt, setFinishPrompt] = useState(false);
+  const undoStart = () => {
+    if (note.trim()) saveNote();
+    const latest = useStore.getState().meetings.find((m) => m.id === meeting.id)!;
+    ops.putMeeting({
+      ...latest,
+      run: null,
+      startedAt: undefined,
+      startedBy: undefined,
+      lastActivityAt: undefined,
+      overtimeUntil: undefined,
+      demoTimeOffsetMs: undefined,
+      followUpStatus: undefined,
+      wrapUpOpen: false,
+      minimized: false,
+      blocks: latest.blocks.map((b) => ({
+        ...b,
+        items: b.items.map((i) => ({ ...i, runStatus: "open", handledAt: undefined })),
+      })),
+    });
+  };
   const minimize = () =>
     ops.putMeeting({ ...useStore.getState().meetings.find((m) => m.id === meeting.id)!, minimized: true });
   const [editing, setEditing] = useState<EntryKind | "agenda" | null>(null);
@@ -187,7 +209,7 @@ function LiveMeetingContent({ meeting }: { meeting: Meeting }) {
         </div>
         <button
           type="button"
-          onClick={finish}
+          onClick={() => setFinishPrompt(true)}
           aria-label="Afronden"
           className="ml-auto flex min-h-11 items-center gap-2 rounded-full bg-danger px-4 text-sm font-semibold text-white hover:bg-danger/90"
         >
@@ -316,7 +338,7 @@ function LiveMeetingContent({ meeting }: { meeting: Meeting }) {
                         {otherOpen.length === 0 && !isHandled(meeting, i.id) && (
                           <button
                             type="button"
-                            onClick={finish}
+                            onClick={() => setFinishPrompt(true)}
                             className="mt-2 flex min-h-11 w-full items-center justify-center gap-2 rounded-full bg-danger px-4 text-sm font-semibold text-white hover:bg-danger/90"
                           >
                             <Check aria-hidden className="size-4" />
@@ -653,6 +675,39 @@ function LiveMeetingContent({ meeting }: { meeting: Meeting }) {
           </section>
         </main>
       </div>
+      <Dialog open={finishPrompt} onOpenChange={setFinishPrompt}>
+        <DialogContent className="app-theme max-w-[450px] gap-5 rounded-2xl p-6 sm:p-7">
+          <div className="mb-1 flex size-16 items-center justify-center rounded-full bg-[#f4faff]">
+            <div className="flex size-11 items-center justify-center rounded-full bg-[#e5f3ff] text-[#2055e5]">
+              <CircleStop aria-hidden className="size-6" />
+            </div>
+          </div>
+          <DialogTitle className="text-xl font-bold">Vergadering beëindigen</DialogTitle>
+          <DialogDescription className="text-base leading-relaxed">
+            Klaar om af te ronden? Je gaat naar de samenvatting waar je openstaande agendapunten,
+            beslissingen en nieuwe acties kunt nakijken voordat je afsluit.
+          </DialogDescription>
+          <div className="mt-5 flex flex-col gap-3">
+            <button
+              type="button"
+              onClick={finish}
+              className="min-h-11 rounded-full bg-[#2055e5] px-4 text-base font-bold text-white hover:bg-[#1948c9]"
+            >
+              Vergadering afronden
+            </button>
+            <button
+              type="button"
+              onClick={() => setFinishPrompt(false)}
+              className="min-h-11 rounded-full border border-[#b3d4f3] bg-[#e5f3ff] px-4 text-base font-bold text-[#2055e5] hover:bg-[#d4eaff]"
+            >
+              Vergadering voortzetten
+            </button>
+            <button type="button" onClick={undoStart} className="mt-3 min-h-11 font-bold text-ink-2 underline underline-offset-4">
+              Start ongedaan maken
+            </button>
+          </div>
+        </DialogContent>
+      </Dialog>
       <Dialog open={!!editing} onOpenChange={(open) => !open && setEditing(null)}>
         <DialogContent className="app-theme">
           <DialogTitle>

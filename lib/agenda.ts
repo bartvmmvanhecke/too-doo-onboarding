@@ -50,10 +50,12 @@ export interface Entry {
   createdAt?: number;
   /** Document: grootte in bytes. */
   size?: number;
+  /** Lokale bijlage in het prototype (max. 1 MB). */
+  fileData?: string;
 }
 
 /** Wat je invult bij een nieuw item; id, actie, auteur en tijd vult de store aan. */
-export type EntryInput = Pick<Entry, "kind" | "text" | "ownerId" | "date" | "size">;
+export type EntryInput = Pick<Entry, "kind" | "text" | "ownerId" | "date" | "size" | "fileData">;
 
 export interface AgendaItem {
   id: string;

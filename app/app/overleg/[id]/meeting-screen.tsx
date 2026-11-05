@@ -3,7 +3,7 @@
 import { MeetingStartGate } from "@/components/meeting/meeting-start-gate";
 import { useEffect } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
-import { MeetingDetail } from "@/components/meeting/meeting-detail";
+import { LiveMeeting } from "@/components/meeting/live-meeting";
 import { MeetingDetailB } from "@/components/meeting-detail-b/meeting-detail-b";
 import { MeetingOverviewDetail } from "@/components/meeting/meeting-overview-detail";
 import { SavedBanner } from "@/components/probeer/after-save";
@@ -28,7 +28,7 @@ export function MeetingScreen() {
         {params.get("variant") === "b" && !meeting.run ? (
           <MeetingDetailB meeting={meeting} />
         ) : meeting.run ? (
-          <MeetingDetail meeting={meeting} />
+          <LiveMeeting meeting={meeting} />
         ) : (
           <MeetingOverviewDetail meeting={meeting} />
         )}

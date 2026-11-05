@@ -157,6 +157,7 @@ function LiveMeetingContent({ meeting }: { meeting: Meeting }) {
         <Logo tone="white" href="/app" className="mr-3 lg:w-[280px]" />
         <h1 className="order-last w-full min-w-0 truncate text-base font-bold sm:order-none sm:w-auto sm:flex-1">
           {meeting.name}
+          {item && ` · ${item.text}`}
         </h1>
         <div className="flex flex-wrap items-center gap-2 text-xs">
           <span>

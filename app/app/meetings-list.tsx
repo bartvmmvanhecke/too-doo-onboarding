@@ -172,8 +172,8 @@ export function MeetingsList() {
       ) : (
         <>
           <MeetingGroup id="afronden" title="Nog af te ronden" meetings={pending} todayISO={todayISO} />
-          <MeetingGroup id="afgelopen" title="Afgelopen vergaderingen" meetings={past} todayISO={todayISO} />
           <MeetingGroup id="aankomend" title="Aankomende" meetings={upcoming} todayISO={todayISO} />
+          <MeetingGroup id="afgelopen" title="Afgelopen vergaderingen" meetings={past} todayISO={todayISO} />
         </>
       )}
     </>

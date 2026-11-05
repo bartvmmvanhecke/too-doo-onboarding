@@ -15,6 +15,7 @@ import { USER_PERSON_ID } from "@/lib/mock-data";
 import { usePeople, useStore, type Meeting } from "@/lib/store";
 import { formatTime } from "@/lib/time";
 import { cn } from "@/lib/utils";
+import { clockTime } from "@/lib/meeting-wrap-up";
 
 type Status = "pending" | "done" | "planned" | "wrapUp";
 
@@ -218,6 +219,8 @@ function MeetingRow({ meeting: m, status }: { meeting: Meeting; status: Status }
   const shown = attendees.slice(0, 4);
   const rest = attendees.length - shown.length;
   const href = `/app/overleg/${m.id}`;
+  const needsWrapUp = status === "wrapUp";
+  const unowned = m.actions.filter((a) => !a.ownerId).length;
 
   const menuItem =
     "flex min-h-11 w-full cursor-pointer items-center gap-2.5 rounded-lg px-2.5 text-left text-sm font-bold text-ink no-underline hover:bg-app hover:text-ink";
@@ -231,14 +234,13 @@ function MeetingRow({ meeting: m, status }: { meeting: Meeting; status: Status }
         <span className="flex min-w-0 flex-col">
           <span className="flex min-w-0 flex-wrap items-center gap-2">
             <span className="truncate text-[17px] font-bold">{m.name}</span>
-            {m.endedAt && m.followUpStatus === "pending" && (
-              <span className="rounded-full bg-[var(--wrap-amber-bg)] px-2 py-1 text-xs font-bold text-[var(--wrap-amber-ink)]">
-                Nog af te ronden
-              </span>
-            )}
             <span className="rounded-full bg-brand-soft px-2 py-0.5 text-xs font-bold text-brand">{m.type}</span>
           </span>
-          <span className="text-[13px] text-ink-3">{whenLine(m)}</span>
+          <span className="text-[13px] text-ink-3">
+            {needsWrapUp
+              ? `${m.endReason === "auto" ? "automatisch afgesloten" : "afgesloten"} ${clockTime(m.endedAt!)} · ${m.actions.length} ${m.actions.length === 1 ? "actie" : "acties"} · ${unowned} zonder eigenaar`
+              : whenLine(m)}
+          </span>
         </span>
         {shown.length > 0 && (
           <span className="flex items-center">
@@ -255,10 +257,21 @@ function MeetingRow({ meeting: m, status }: { meeting: Meeting; status: Status }
             )}
           </span>
         )}
-        <span className={cn("ml-auto rounded-full px-2.5 py-0.5 text-xs font-bold", STATUS[status].className)}>
-          {STATUS[status].label}
-        </span>
+        {!needsWrapUp && (
+          <span className={cn("ml-auto rounded-full px-2.5 py-0.5 text-xs font-bold", STATUS[status].className)}>
+            {STATUS[status].label}
+          </span>
+        )}
       </Link>
+      {needsWrapUp && (
+        <Link
+          href={`${href}?afronden=1`}
+          aria-label={`Afronden: ${m.name}`}
+          className="inline-flex min-h-11 shrink-0 items-center justify-center rounded-full bg-brand px-4 text-sm font-bold text-white no-underline hover:bg-brand/90 hover:text-white"
+        >
+          Afronden →
+        </Link>
+      )}
       <Popover open={open} onOpenChange={setOpen}>
         <PopoverTrigger asChild>
           <Button variant="ghost" size="icon" aria-label={`Meer acties voor ${m.name}`}>

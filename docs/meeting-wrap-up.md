@@ -36,6 +36,9 @@ van de gebruiker. Geen branchwissel, nieuwe worktree, nieuwe PR of merge.
   selectief overnemen. De KPI telt onbekende duur/niet gestart apart en sluit
   historische uitschieters en niet doorgegane vergaderingen uit.
 - Nieuwe scenario's: sprongen met 1 en 4 voltooid en 2 open, en punt 3 als laatste.
+- Het Default-overzicht gebruikt Directieoverleg met dezelfde zes punten als het
+  startscenario. Titelklik vanuit een lopende vergadering herstelt in de demo
+  het Default-overzicht. Localhost:3000 is op verzoek opnieuw gestart.
 
 ## Prototype-opties (standaard uit)
 
@@ -81,6 +84,7 @@ De footer behoudt ook Terug naar vergadering naast Voorbeeld en de primaire knop
 
 - 91 unit-tests slagen; build en typecheck slagen.
 - Lint: geen fouten; bestaande waarschuwing in microsoft-authorization.tsx.
+- Alle 15 gerichte browsercontroles slagen (14 samen en de laatste invoerflow apart).
 - Gerichte browsercontroles dekken expliciete voltooiing, punt 3 als laatste,
   undo, terugkeren, default/compact detail, achteraf invullen, inline planning,
   opslag, mailmodal, audio, mobiel en axe WCAG A/AA.
@@ -92,10 +96,10 @@ De footer behoudt ook Terug naar vergadering naast Voorbeeld en de primaire knop
 
 ## Opschoning
 
-`components/meeting/next-meeting-screen.tsx` is uit de UI gehaald en wordt in de
-aparte laatste opschoningscommit verwijderd. Het is vervangen door inline
-planning op de afrondpagina. De oude bevestigingsmodal wordt ook uit live-meeting
-verwijderd; alle afrondingangen gebruiken nu de afrondpagina.
+`components/meeting/next-meeting-screen.tsx` is eerst uit de UI gehaald en daarna
+in de aparte laatste opschoningscommit verwijderd. Het is vervangen door inline
+planning op de afrondpagina. De ongebruikte bevestigingsmodal is uit live-meeting
+verwijderd; alle afrondingangen gebruiken nu de afrondpagina. Geen andere bestanden verwijderd.
 
 ## Bekijken
 

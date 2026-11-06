@@ -12,7 +12,6 @@ import {
   ArrowDown,
   Bold,
   Check,
-  CircleStop,
   Ellipsis,
   Italic,
   Link2,
@@ -87,27 +86,6 @@ function LiveMeetingContent({ meeting }: { meeting: Meeting }) {
   const item = items.find((i) => i.id === run.currentId);
   const block = meeting.blocks.find((b) => b.id === run.currentId || b.items.some((i) => i.id === run.currentId));
   const [minimizePrompt, setMinimizePrompt] = useState(false);
-  const [finishPrompt, setFinishPrompt] = useState(false);
-  const undoStart = () => {
-    if (note.trim()) saveNote();
-    const latest = useStore.getState().meetings.find((m) => m.id === meeting.id)!;
-    ops.putMeeting({
-      ...latest,
-      run: null,
-      startedAt: undefined,
-      startedBy: undefined,
-      lastActivityAt: undefined,
-      overtimeUntil: undefined,
-      demoTimeOffsetMs: undefined,
-      followUpStatus: undefined,
-      wrapUpOpen: false,
-      minimized: false,
-      blocks: latest.blocks.map((b) => ({
-        ...b,
-        items: b.items.map((i) => ({ ...i, runStatus: "open", doneAt: undefined })),
-      })),
-    });
-  };
   const minimize = () =>
     ops.putMeeting({ ...useStore.getState().meetings.find((m) => m.id === meeting.id)!, minimized: true });
   const [editing, setEditing] = useState<EntryKind | "agenda" | "edit-agenda" | null>(null);
@@ -203,7 +181,22 @@ function LiveMeetingContent({ meeting }: { meeting: Meeting }) {
   return (
     <div className="contents">
       <header className="flex min-h-16 shrink-0 flex-wrap items-center gap-3 px-3 py-2 text-white sm:px-5">
-        <h1 className="mr-3 min-w-0 text-2xl font-bold lg:w-[280px] lg:shrink-0">{isDemoEnvironment() ? <button type="button" className="min-h-11 text-left" onClick={() => { loadMeetingsOverviewScenario("default"); router.push("/app"); }}>{meeting.name}</button> : meeting.name}</h1>
+        <h1 className="mr-3 min-w-0 text-2xl font-bold lg:w-[280px] lg:shrink-0">
+          {isDemoEnvironment() ? (
+            <button
+              type="button"
+              className="min-h-11 text-left"
+              onClick={() => {
+                loadMeetingsOverviewScenario("default");
+                router.push("/app");
+              }}
+            >
+              {meeting.name}
+            </button>
+          ) : (
+            meeting.name
+          )}
+        </h1>
         <p className="order-last w-full min-w-0 truncate text-[14pt] font-bold sm:order-none sm:w-auto sm:flex-1">
           {item?.text ?? block?.title}
         </p>
@@ -773,46 +766,6 @@ function LiveMeetingContent({ meeting }: { meeting: Meeting }) {
           </section>
         </main>
       </div>
-      <Dialog open={finishPrompt} onOpenChange={setFinishPrompt}>
-        <DialogContent className="app-theme max-w-[450px] gap-5 rounded-2xl p-6 sm:p-7">
-          <div className="mb-1 flex size-16 items-center justify-center rounded-full bg-[var(--wrap-color-f4faff)]">
-            <div className="flex size-11 items-center justify-center rounded-full bg-[var(--wrap-color-e5f3ff)] text-[var(--wrap-color-2055e5)]">
-              <CircleStop aria-hidden className="size-6" />
-            </div>
-          </div>
-          <DialogTitle className="text-xl font-bold">Vergadering beëindigen</DialogTitle>
-          <DialogDescription className="text-base leading-relaxed">
-            Klaar om af te ronden? Je gaat naar de samenvatting waar je openstaande agendapunten, beslissingen en nieuwe
-            acties kunt nakijken voordat je afsluit.
-          </DialogDescription>
-          <div className="mt-5 flex flex-col gap-3">
-            <button
-              type="button"
-              onClick={() => {
-                setFinishPrompt(false);
-                finish();
-              }}
-              className="min-h-11 rounded-full bg-[var(--wrap-color-2055e5)] px-4 text-base font-bold text-white hover:bg-[var(--wrap-color-1948c9)]"
-            >
-              Vergadering afronden
-            </button>
-            <button
-              type="button"
-              onClick={() => setFinishPrompt(false)}
-              className="min-h-11 rounded-full border border-[var(--wrap-color-b3d4f3)] bg-[var(--wrap-color-e5f3ff)] px-4 text-base font-bold text-[var(--wrap-color-2055e5)] hover:bg-[var(--wrap-color-d4eaff)]"
-            >
-              Vergadering voortzetten
-            </button>
-            <button
-              type="button"
-              onClick={undoStart}
-              className="mt-3 min-h-11 font-bold text-ink-2 underline underline-offset-4"
-            >
-              Start ongedaan maken
-            </button>
-          </div>
-        </DialogContent>
-      </Dialog>
       <Dialog open={!!editing} onOpenChange={(open) => !open && setEditing(null)}>
         <DialogContent className="app-theme">
           <DialogTitle>

@@ -1,9 +1,19 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
+import Link from "next/link";
+import { formatTime } from "@/lib/time";
 import { CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useStore, usePeople, type Meeting } from "@/lib/store";
-import { actualDuration, carryForward, agendaItems, clockTime, nextInSeries, othersOpen } from "@/lib/meeting-wrap-up";
+import {
+  actualDuration,
+  isHandled,
+  carryForward,
+  agendaItems,
+  clockTime,
+  nextInSeries,
+  othersOpen,
+} from "@/lib/meeting-wrap-up";
 import { formatShortDate } from "@/lib/date";
 import type { EntryKind } from "@/lib/agenda";
 
@@ -31,23 +41,7 @@ export function MeetingWrapUp({ meeting }: { meeting: Meeting }) {
   const [kind, setKind] = useState<EntryKind>("action");
   const minutes = Math.round((actualDuration(meeting) ?? 0) / 60000);
   const carry = open.filter((i) => i.carry !== "drop");
-  const back = () => {
-    if (meeting.endReason === "auto") ops.putMeeting({ ...meeting, wrapUpOpen: false });
-    else
-      ops.putMeeting({
-        ...meeting,
-        endedAt: undefined,
-        endReason: undefined,
-        wrapUpOpen: false,
-        minimized: false,
-        blocks: meeting.blocks.map((b) => ({
-          ...b,
-          items: b.items.map((i) =>
-            i.id === meeting.run?.currentId ? { ...i, runStatus: "open", handledAt: undefined } : i,
-          ),
-        })),
-      });
-  };
+  const back = () => ops.putMeeting({ ...meeting, wrapUpOpen: false });
   const send = () => {
     // TODO(api): send participant-specific follow-up through the mail API; local prototype records intent only.
     const latest = useStore.getState().meetings.find((m) => m.id === meeting.id)!;
@@ -55,7 +49,20 @@ export function MeetingWrapUp({ meeting }: { meeting: Meeting }) {
     // One persisted transaction: transferring points and recording follow-up cannot diverge.
     useStore.setState({
       meetings: forwarded.map((m) =>
-        m.id === latest.id ? { ...latest, followUpStatus: "sent", held: true, run: null, minimized: false } : m,
+        m.id === latest.id
+          ? {
+              ...latest,
+              blocks: latest.blocks.map((b) => ({
+                ...b,
+                items: b.items.map((i) => (isHandled(latest, i.id) ? { ...i, runStatus: "handled" as const } : i)),
+              })),
+              followUpStatus: "sent",
+              held: true,
+              run: null,
+              minimized: false,
+              wrapUpOpen: false,
+            }
+          : m,
       ),
     });
   };
@@ -72,8 +79,8 @@ export function MeetingWrapUp({ meeting }: { meeting: Meeting }) {
     setText("");
   };
   return (
-    <div className="app-theme fixed inset-0 z-40 overflow-y-auto bg-app-shell p-4 sm:p-10">
-      <main className="mx-auto max-w-[760px] rounded-[24px] bg-app p-5 shadow-xl sm:p-8">
+    <div className="app-theme w-full">
+      <main className="mx-auto w-full max-w-[1100px] py-4">
         {sent ? (
           <>
             <CheckCircle2 aria-hidden className="mb-4 size-12 text-[var(--wrap-handled)]" />
@@ -225,6 +232,25 @@ export function MeetingWrapUp({ meeting }: { meeting: Meeting }) {
                   ))}
                 </section>
               </>
+            )}
+            {next && (
+              <section className="mb-4 rounded-2xl border border-line bg-white p-4">
+                <h2 className="mb-3 font-bold">Volgende vergadering</h2>
+                <div className="flex flex-wrap items-center justify-between gap-3 border-t border-line pt-3">
+                  <div>
+                    <p className="font-semibold">
+                      {next.date ? formatShortDate(next.date) : "Nog niet ingepland"}
+                      {next.time !== null ? ` · ${formatTime(next.time)}–${formatTime(next.time + next.duration)}` : ""}
+                    </p>
+                    <p className="mt-1 text-sm text-ink-3">
+                      {carry.length ? `${carry.length} doorgeschoven punten` : "Geen doorgeschoven punten"}
+                    </p>
+                  </div>
+                  <Link href={`/app/overleg/${next.id}`} className="text-sm font-bold text-brand">
+                    Bekijk vergadering
+                  </Link>
+                </div>
+              </section>
             )}
             <footer className="mt-6 flex flex-wrap items-center justify-between gap-3">
               <p className="text-sm text-ink-3">Opvolging gaat naar {participants.length} deelnemers</p>

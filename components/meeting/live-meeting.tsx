@@ -56,6 +56,7 @@ function LiveMeetingContent({ meeting }: { meeting: Meeting }) {
   const end = timerEnd(meeting);
   const overtime = now >= end;
   const otherOpen = othersOpen(meeting, run.currentId);
+  const completingLast = otherOpen.length === 0 && !!run.currentId && !isHandled(meeting, run.currentId);
   const handled = items.filter((i) => isHandled(meeting, i.id)).length;
   const openNumbers = otherOpen.map((i) => items.indexOf(i) + 1).join(" en ");
   const finish = () => {
@@ -107,10 +108,12 @@ function LiveMeetingContent({ meeting }: { meeting: Meeting }) {
   useEffect(() => {
     const card = activeCard.current;
     if (!card) return;
-    const observer = new ResizeObserver(([entry]) => setCompactActions(entry.contentRect.width < 240));
+    const observer = new ResizeObserver(([entry]) =>
+      setCompactActions(entry.contentRect.width < (completingLast ? 360 : 240)),
+    );
     observer.observe(card);
     return () => observer.disconnect();
-  }, [run.currentId]);
+  }, [run.currentId, completingLast]);
   const [previouslyHandled, setPreviouslyHandled] = useState(
     () => new Set(items.filter((i) => isHandled(meeting, i.id)).map((i) => i.id)),
   );
@@ -323,16 +326,20 @@ function LiveMeetingContent({ meeting }: { meeting: Meeting }) {
                               if (note.trim()) saveNote();
                               setNote("");
                               ops.nextStep(meeting.id, "done");
+                              if (completingLast) setFinishPrompt(true);
                             }}
                             className="inline-flex min-h-11 flex-1 items-center justify-center gap-2 whitespace-nowrap rounded-full border border-[#b3d4f3] bg-[#e5f3ff] px-3 text-sm font-bold text-[#2055e5] hover:bg-[#d4eaff]"
                           >
                             <Check aria-hidden className="size-4 shrink-0" />
-                            Voltooi
+                            {completingLast ? "Voltooi & rond af →" : "Voltooi"}
                           </button>
                           <button
                             type="button"
                             onClick={() => setMoving(true)}
-                            className="hidden min-h-11 flex-1 whitespace-nowrap rounded-full border border-white px-3 text-sm font-bold hover:bg-white/10 @min-[240px]:block"
+                            className={cn(
+                              "hidden min-h-11 flex-1 whitespace-nowrap rounded-full border border-white px-3 text-sm font-bold hover:bg-white/10",
+                              completingLast ? "@min-[360px]:block" : "@min-[240px]:block",
+                            )}
                           >
                             Verplaats
                           </button>
@@ -376,7 +383,6 @@ function LiveMeetingContent({ meeting }: { meeting: Meeting }) {
                             </PopoverContent>
                           </Popover>
                         </div>
-
                       </>
                     )}
                   </article>

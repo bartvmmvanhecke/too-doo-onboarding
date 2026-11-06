@@ -2,7 +2,10 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { ArrowLeft, CalendarCheck, Check, ChevronUp, Clock, Coffee, Play, Plus } from "lucide-react";
+import { ArrowLeft, CalendarCheck, Check, ChevronUp, Ellipsis, Clock, Coffee, Play, Plus } from "lucide-react";
+import { PendingFollowUp } from "./pending-follow-up";
+import { isHandled } from "@/lib/meeting-wrap-up";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Avatar } from "@/components/avatar";
 import { BreakBlock, TopicsBlock } from "@/components/meeting/agenda";
 import { InlineText } from "@/components/meeting/bits";
@@ -32,7 +35,8 @@ export function MeetingOverviewDetail({ meeting }: { meeting: Meeting }) {
   const user = useStore((s) => s.user);
   const ops = useMeetingOps();
   const [tab, setTab] = useState<Tab>("agenda");
-  const [infoOpen, setInfoOpen] = useState(true);
+  const pending = !!meeting.endedAt && meeting.followUpStatus === "pending";
+  const [infoOpen, setInfoOpen] = useState(!pending);
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
   const [detailsId, setDetailsId] = useState<string | null>(null);
   const [adding, setAdding] = useState<"theme" | "item" | null>(null);
@@ -91,57 +95,102 @@ export function MeetingOverviewDetail({ meeting }: { meeting: Meeting }) {
           </Link>
           <header className="flex flex-wrap items-center justify-between gap-5 py-2">
             <div className="flex min-w-0 flex-col items-start gap-2">
-              <span className={pill}>
-                <CalendarCheck className="size-4" aria-hidden />
-                {meeting.held ? "Afgerond" : "Ingepland"}
-              </span>
+              {pending ? (
+                <span className="rounded-full bg-[var(--wrap-amber-bg)] px-3 py-1 text-sm font-bold text-[var(--wrap-amber-ink)]">
+                  Nog af te ronden
+                </span>
+              ) : (
+                <span className={pill}>
+                  <CalendarCheck className="size-4" aria-hidden />
+                  {meeting.held ? "Afgerond" : "Ingepland"}
+                </span>
+              )}
               <div className="flex flex-wrap items-center gap-3">
                 <h1 className="max-w-full text-[36px] leading-tight font-semibold sm:text-[40px]">{meeting.name}</h1>
-                {meeting.endedAt && meeting.followUpStatus === "pending" && (
-                  <span className="rounded-full bg-[var(--wrap-amber-bg)] px-3 py-1 text-sm font-bold text-[var(--wrap-amber-ink)]">
-                    Nog af te ronden
+              </div>
+              <div className="flex flex-wrap items-center gap-3">
+                <p className="text-sm font-semibold text-ink-3">
+                  {meeting.date ? formatShortDate(meeting.date) : "Nog niet ingepland"}
+                  {meeting.time !== null &&
+                    ` · ${formatTime(meeting.time)} – ${formatTime(meeting.time + meeting.duration)}`}
+                  {pending &&
+                    ` · gehouden · ${Math.round((meeting.endedAt! - (meeting.startedAt ?? meeting.endedAt!)) / 60000)} min`}
+                </p>
+                {pending && (
+                  <>
+                    <div className="flex -space-x-1">
+                      {attendees.slice(0, 2).map((p) => (
+                        <Avatar key={p.id} person={p} size={32} />
+                      ))}
+                      {attendees.length > 2 && (
+                        <span className="flex size-8 items-center justify-center rounded-full bg-line-soft text-xs font-bold">
+                          +{attendees.length - 2}
+                        </span>
+                      )}
+                    </div>
+                    <button
+                      type="button"
+                      aria-expanded={infoOpen}
+                      onClick={() => setInfoOpen(!infoOpen)}
+                      className="min-h-11 text-sm font-bold text-brand"
+                    >
+                      Details {infoOpen ? "▴" : "▾"}
+                    </button>
+                  </>
+                )}
+              </div>
+            </div>
+            {pending ? (
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" size="icon" aria-label="Meer opties voor vergadering">
+                    <Ellipsis className="size-5" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="app-theme">
+                  <Button variant="ghost" onClick={() => ops.startRun(meeting.id)}>
+                    Vergadering hervatten
+                  </Button>
+                </PopoverContent>
+              </Popover>
+            ) : (
+              <div className="flex flex-wrap items-center gap-4">
+                <div
+                  className={cn(
+                    "flex flex-wrap items-center gap-3 font-bold",
+                    remaining < 0 ? "text-warning" : "text-success",
+                  )}
+                >
+                  <span className="flex items-center gap-2 text-lg">
+                    <Clock className="size-5" aria-hidden />
+                    {planned}min / {meeting.duration}min gepland
                   </span>
+                  <span
+                    className={cn(
+                      pill,
+                      remaining < 0 ? "bg-warning-bg text-warning" : "bg-success-bg text-success-ink",
+                    )}
+                  >
+                    {Math.abs(remaining)} min {remaining < 0 ? "te veel" : "over"}
+                  </span>
+                </div>
+                {meeting.endedAt && meeting.followUpStatus === "pending" ? (
+                  <button
+                    type="button"
+                    onClick={() => ops.putMeeting({ ...meeting, wrapUpOpen: true })}
+                    className="flex min-h-11 items-center gap-2 rounded-full bg-danger px-4 text-sm font-bold text-white hover:bg-danger/90"
+                  >
+                    <Check className="size-4" aria-hidden />
+                    Afronden
+                  </button>
+                ) : (
+                  <Button className="rounded-full" onClick={() => ops.startRun(meeting.id)}>
+                    <Play className="size-5" aria-hidden />
+                    Start vergadering
+                  </Button>
                 )}
               </div>
-              <p className="text-sm font-semibold text-ink-3">
-                {meeting.date ? formatShortDate(meeting.date) : "Nog niet ingepland"}
-                {meeting.time !== null &&
-                  ` · ${formatTime(meeting.time)} – ${formatTime(meeting.time + meeting.duration)}`}
-              </p>
-            </div>
-            <div className="flex flex-wrap items-center gap-4">
-              <div
-                className={cn(
-                  "flex flex-wrap items-center gap-3 font-bold",
-                  remaining < 0 ? "text-warning" : "text-success",
-                )}
-              >
-                <span className="flex items-center gap-2 text-lg">
-                  <Clock className="size-5" aria-hidden />
-                  {planned}min / {meeting.duration}min gepland
-                </span>
-                <span
-                  className={cn(pill, remaining < 0 ? "bg-warning-bg text-warning" : "bg-success-bg text-success-ink")}
-                >
-                  {Math.abs(remaining)} min {remaining < 0 ? "te veel" : "over"}
-                </span>
-              </div>
-              {meeting.endedAt && meeting.followUpStatus === "pending" ? (
-                <button
-                  type="button"
-                  onClick={() => ops.putMeeting({ ...meeting, wrapUpOpen: true })}
-                  className="flex min-h-11 items-center gap-2 rounded-full bg-danger px-4 text-sm font-bold text-white hover:bg-danger/90"
-                >
-                  <Check className="size-4" aria-hidden />
-                  Afronden
-                </button>
-              ) : (
-                <Button className="rounded-full" onClick={() => ops.startRun(meeting.id)}>
-                  <Play className="size-5" aria-hidden />
-                  Start vergadering
-                </Button>
-              )}
-            </div>
+            )}
           </header>
 
           {infoOpen && (
@@ -203,68 +252,80 @@ export function MeetingOverviewDetail({ meeting }: { meeting: Meeting }) {
             </section>
           )}
 
-          <div className="flex min-w-0 items-center gap-2 border-b border-line pb-2">
-            <div role="tablist" aria-label="Vergadering" className="flex min-w-0 flex-1 overflow-x-auto">
-              {tabs.map((t) => (
-                <button
-                  key={t.id}
-                  id={`meeting-tab-${t.id}`}
-                  type="button"
-                  role="tab"
-                  aria-selected={tab === t.id}
-                  aria-controls="meeting-tab-panel"
-                  tabIndex={tab === t.id ? 0 : -1}
-                  onClick={() => setTab(t.id)}
-                  onKeyDown={(e) => {
-                    const index = tabs.findIndex((x) => x.id === tab);
-                    const next =
-                      e.key === "ArrowRight"
-                        ? (index + 1) % tabs.length
-                        : e.key === "ArrowLeft"
-                          ? (index + tabs.length - 1) % tabs.length
-                          : e.key === "Home"
-                            ? 0
-                            : e.key === "End"
-                              ? tabs.length - 1
-                              : null;
-                    if (next !== null) {
-                      e.preventDefault();
-                      setTab(tabs[next].id);
-                      document.getElementById(`meeting-tab-${tabs[next].id}`)?.focus();
-                    }
-                  }}
-                  className={cn(
-                    "flex min-h-11 shrink-0 cursor-pointer items-center gap-2 rounded-lg px-4 text-sm font-bold",
-                    tab === t.id ? "bg-brand-soft text-brand" : "text-ink hover:bg-line-soft",
-                  )}
-                >
-                  {t.label}
-                  {!!t.count && (
-                    <span className={cn(pill, "px-2 py-0", tab === t.id && "bg-brand-tint text-brand")}>{t.count}</span>
-                  )}
-                </button>
-              ))}
+          {pending && <PendingFollowUp meeting={meeting} />}
+          {!pending && (
+            <div className="flex min-w-0 items-center gap-2 border-b border-line pb-2">
+              <div role="tablist" aria-label="Vergadering" className="flex min-w-0 flex-1 overflow-x-auto">
+                {tabs.map((t) => (
+                  <button
+                    key={t.id}
+                    id={`meeting-tab-${t.id}`}
+                    type="button"
+                    role="tab"
+                    aria-selected={tab === t.id}
+                    aria-controls="meeting-tab-panel"
+                    tabIndex={tab === t.id ? 0 : -1}
+                    onClick={() => setTab(t.id)}
+                    onKeyDown={(e) => {
+                      const index = tabs.findIndex((x) => x.id === tab);
+                      const next =
+                        e.key === "ArrowRight"
+                          ? (index + 1) % tabs.length
+                          : e.key === "ArrowLeft"
+                            ? (index + tabs.length - 1) % tabs.length
+                            : e.key === "Home"
+                              ? 0
+                              : e.key === "End"
+                                ? tabs.length - 1
+                                : null;
+                      if (next !== null) {
+                        e.preventDefault();
+                        setTab(tabs[next].id);
+                        document.getElementById(`meeting-tab-${tabs[next].id}`)?.focus();
+                      }
+                    }}
+                    className={cn(
+                      "flex min-h-11 shrink-0 cursor-pointer items-center gap-2 rounded-lg px-4 text-sm font-bold",
+                      tab === t.id ? "bg-brand-soft text-brand" : "text-ink hover:bg-line-soft",
+                    )}
+                  >
+                    {t.label}
+                    {!!t.count && (
+                      <span className={cn(pill, "px-2 py-0", tab === t.id && "bg-brand-tint text-brand")}>
+                        {t.count}
+                      </span>
+                    )}
+                  </button>
+                ))}
+              </div>
+              <Button
+                variant="ghost"
+                size="icon"
+                aria-label={infoOpen ? "Vergaderinformatie inklappen" : "Vergaderinformatie uitklappen"}
+                aria-expanded={infoOpen}
+                onClick={() => setInfoOpen(!infoOpen)}
+              >
+                <ChevronUp className={cn("size-4", !infoOpen && "rotate-180")} />
+              </Button>
             </div>
-            <Button
-              variant="ghost"
-              size="icon"
-              aria-label={infoOpen ? "Vergaderinformatie inklappen" : "Vergaderinformatie uitklappen"}
-              aria-expanded={infoOpen}
-              onClick={() => setInfoOpen(!infoOpen)}
-            >
-              <ChevronUp className={cn("size-4", !infoOpen && "rotate-180")} />
-            </Button>
-          </div>
+          )}
 
           <section
             id="meeting-tab-panel"
             role="tabpanel"
-            aria-labelledby={`meeting-tab-${tab}`}
+            aria-labelledby={pending ? "pending-agenda-title" : `meeting-tab-${tab}`}
             className="flex min-w-0 flex-col gap-4"
           >
             <div className="flex flex-wrap items-center justify-between gap-3">
-              <h2 className="text-[30px] font-semibold">{tabs.find((t) => t.id === tab)?.label}</h2>
-              {tab === "agenda" && (
+              <h2 id={pending ? "pending-agenda-title" : undefined} className="text-[30px] font-semibold">
+                {tabs.find((t) => t.id === tab)?.label}
+              </h2>
+              {pending && (
+                <p className="text-sm text-ink-3">
+                  {items.filter((i) => isHandled(meeting, i.id)).length} van {items.length} voltooid
+                </p>
+              )}
+              {!pending && tab === "agenda" && (
                 <div className="flex flex-wrap gap-2">
                   <Button variant="outline" className={addButton} onClick={() => openAdd("theme")}>
                     <Plus className="size-5" />

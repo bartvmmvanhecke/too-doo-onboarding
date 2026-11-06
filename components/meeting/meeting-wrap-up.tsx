@@ -1,9 +1,19 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
-import { CheckCircle2 } from "lucide-react";
+import { NextMeetingScreen } from "./next-meeting-screen";
+import { formatTime } from "@/lib/time";
+import { CalendarDays, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useStore, usePeople, type Meeting } from "@/lib/store";
-import { actualDuration, carryForward, agendaItems, clockTime, nextInSeries, othersOpen } from "@/lib/meeting-wrap-up";
+import {
+  actualDuration,
+  isHandled,
+  carryForward,
+  agendaItems,
+  clockTime,
+  nextInSeries,
+  othersOpen,
+} from "@/lib/meeting-wrap-up";
 import { formatShortDate } from "@/lib/date";
 import type { EntryKind } from "@/lib/agenda";
 
@@ -27,27 +37,12 @@ export function MeetingWrapUp({ meeting }: { meeting: Meeting }) {
       personId,
       name: people.find((p) => p.id === personId)?.name ?? personId,
     }));
+  const [planningNext, setPlanningNext] = useState(false);
   const [text, setText] = useState("");
   const [kind, setKind] = useState<EntryKind>("action");
   const minutes = Math.round((actualDuration(meeting) ?? 0) / 60000);
   const carry = open.filter((i) => i.carry !== "drop");
-  const back = () => {
-    if (meeting.endReason === "auto") ops.putMeeting({ ...meeting, wrapUpOpen: false });
-    else
-      ops.putMeeting({
-        ...meeting,
-        endedAt: undefined,
-        endReason: undefined,
-        wrapUpOpen: false,
-        minimized: false,
-        blocks: meeting.blocks.map((b) => ({
-          ...b,
-          items: b.items.map((i) =>
-            i.id === meeting.run?.currentId ? { ...i, runStatus: "open", handledAt: undefined } : i,
-          ),
-        })),
-      });
-  };
+  const back = () => ops.putMeeting({ ...meeting, wrapUpOpen: false });
   const send = () => {
     // TODO(api): send participant-specific follow-up through the mail API; local prototype records intent only.
     const latest = useStore.getState().meetings.find((m) => m.id === meeting.id)!;
@@ -55,7 +50,20 @@ export function MeetingWrapUp({ meeting }: { meeting: Meeting }) {
     // One persisted transaction: transferring points and recording follow-up cannot diverge.
     useStore.setState({
       meetings: forwarded.map((m) =>
-        m.id === latest.id ? { ...latest, followUpStatus: "sent", held: true, run: null, minimized: false } : m,
+        m.id === latest.id
+          ? {
+              ...latest,
+              blocks: latest.blocks.map((b) => ({
+                ...b,
+                items: b.items.map((i) => (isHandled(latest, i.id) ? { ...i, runStatus: "handled" as const } : i)),
+              })),
+              followUpStatus: "sent",
+              held: true,
+              run: null,
+              minimized: false,
+              wrapUpOpen: false,
+            }
+          : m,
       ),
     });
   };
@@ -71,9 +79,10 @@ export function MeetingWrapUp({ meeting }: { meeting: Meeting }) {
     }
     setText("");
   };
+  if (planningNext) return <NextMeetingScreen meeting={meeting} onBack={() => setPlanningNext(false)} />;
   return (
-    <div className="app-theme fixed inset-0 z-40 overflow-y-auto bg-app-shell p-4 sm:p-10">
-      <main className="mx-auto max-w-[760px] rounded-[24px] bg-app p-5 shadow-xl sm:p-8">
+    <div className="app-theme w-full">
+      <main className="mx-auto w-full max-w-[960px] py-4">
         {sent ? (
           <>
             <CheckCircle2 aria-hidden className="mb-4 size-12 text-[var(--wrap-handled)]" />
@@ -93,55 +102,47 @@ export function MeetingWrapUp({ meeting }: { meeting: Meeting }) {
         ) : (
           <>
             <p className="text-sm text-ink-3">
-              {meeting.name} · {clockTime(meeting.endedAt ?? 0)} afgesloten · {minutes} min (gepland {meeting.duration})
+              Afgesloten om {clockTime(meeting.endedAt ?? 0)} · {minutes} min (gepland {meeting.duration})
             </p>
             <h1 ref={h1} tabIndex={-1} className="mt-3 text-3xl font-bold outline-none">
               Vergadering afronden
             </h1>
             <p className="mt-2 mb-6 text-ink-2">
-              Check de opvolging. Na verzenden krijgt elke deelnemer zijn acties en beslissingen.
+              Kijk na wat er openstaat, bevestig de volgende vergadering en verstuur de opvolging.
             </p>
             {open.length > 0 && (
-              <section className="mb-4 rounded-2xl border border-line bg-white p-4">
-                <h2 className="font-bold">Niet behandeld ({open.length})</h2>
+              <section className="mb-5 rounded-2xl border border-line bg-white p-5">
+                <h2 className="font-bold">Nog open ({open.length})</h2>
                 <p className="mt-1 mb-4 text-sm text-ink-3">
-                  Standaard schuiven ze door naar de volgende vergadering, zodat niets stilletjes verdwijnt.
+                  We stellen al een keuze voor. Controleer welke punten je wilt doorschuiven of laten vallen.
                 </p>
                 {open.map((i) => (
                   <div
                     key={i.id}
                     className="flex flex-wrap items-center justify-between gap-2 border-t border-line py-3"
                   >
-                    <span>
+                    <span className="font-semibold">
                       {agendaItems(meeting).indexOf(i) + 1}. {i.text}
                     </span>
-                    <div
-                      role="group"
+                    <select
                       aria-label={`Opvolging voor ${i.text}`}
-                      className="flex min-h-11 items-center gap-1 rounded-lg border border-line p-1"
+                      value={i.carry ?? "next"}
+                      onChange={(event) =>
+                        ops.updateItem(meeting.id, i.id, { carry: event.target.value as "next" | "drop" })
+                      }
+                      className="min-h-11 min-w-[230px] rounded-lg border border-line bg-white px-3 text-sm font-semibold"
                     >
-                      {(["next", "drop"] as const).map((value) => (
-                        <button
-                          key={value}
-                          type="button"
-                          aria-pressed={(i.carry ?? "next") === value}
-                          onClick={() => ops.updateItem(meeting.id, i.id, { carry: value })}
-                          className="min-h-9 rounded-md px-3 text-sm aria-pressed:bg-brand-soft aria-pressed:font-bold aria-pressed:text-brand"
-                        >
-                          {value === "drop"
-                            ? "Laten vallen"
-                            : next?.date
-                              ? `Naar ${formatShortDate(next.date)}`
-                              : "Bewaren voor later"}
-                        </button>
-                      ))}
-                    </div>
+                      <option value="next">
+                        {next?.date ? `Naar ${formatShortDate(next.date)}` : "Bewaren voor later"}
+                      </option>
+                      <option value="drop">Laten vallen</option>
+                    </select>
                   </div>
                 ))}
               </section>
             )}
             {decisions.length === 0 && actions.length === 0 ? (
-              <section className="mb-4 rounded-2xl border border-line bg-white p-4">
+              <section className="mb-5 rounded-2xl border border-line bg-white p-5">
                 <h2 className="font-bold">Geen acties vastgelegd</h2>
                 <p className="my-2 text-sm">Iets vergeten? Voeg het nu nog toe.</p>
                 <form
@@ -175,7 +176,7 @@ export function MeetingWrapUp({ meeting }: { meeting: Meeting }) {
               </section>
             ) : (
               <>
-                <section className="mb-4 rounded-2xl border border-line bg-white p-4">
+                <section className="mb-5 rounded-2xl border border-line bg-white p-5">
                   <h2 className="mb-3 font-bold">Beslissingen ({decisions.length})</h2>
                   {decisions.map((e) => (
                     <div key={e.id} className="flex flex-wrap justify-between gap-3 border-t border-line py-3 text-sm">
@@ -187,12 +188,12 @@ export function MeetingWrapUp({ meeting }: { meeting: Meeting }) {
                     </div>
                   ))}
                 </section>
-                <section className="mb-4 rounded-2xl border border-line bg-white p-4">
-                  <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+                <section className="mb-5 rounded-2xl border border-line bg-white p-5">
+                  <div className="mb-3 flex flex-wrap items-center gap-2">
                     <h2 className="font-bold">Acties ({actions.length})</h2>
                     {unowned > 0 && (
-                      <span className="rounded-full bg-[var(--wrap-amber-bg)] px-3 py-1 text-sm text-[var(--wrap-amber-ink)]">
-                        {unowned} actie(s) zonder eigenaar
+                      <span className="rounded-md bg-[var(--wrap-amber-bg)] px-2 py-1 text-xs font-bold text-[var(--wrap-amber-ink)]">
+                        {unowned} {unowned === 1 ? "actie" : "acties"} zonder eigenaar
                       </span>
                     )}
                   </div>
@@ -213,7 +214,7 @@ export function MeetingWrapUp({ meeting }: { meeting: Meeting }) {
                         }}
                         className={`min-h-11 rounded-lg border px-3 ${a.ownerId ? "border-line" : "border-[var(--wrap-amber-ink)]"}`}
                       >
-                        <option value="">Eigenaar</option>
+                        <option value="">Kiezen…</option>
                         {participants.map((p) => (
                           <option key={p.personId} value={p.personId}>
                             {p.name}
@@ -226,14 +227,54 @@ export function MeetingWrapUp({ meeting }: { meeting: Meeting }) {
                 </section>
               </>
             )}
+            {next && (
+              <section className="mb-5 rounded-2xl border border-line bg-white p-5">
+                <h2 className="mb-3 font-bold">Volgende vergadering</h2>
+                <div className="flex flex-wrap items-center justify-between gap-3 border-t border-line pt-3">
+                  <div className="flex items-center gap-3">
+                    <CalendarDays aria-hidden className="size-5 shrink-0 text-ink-3" />
+                    <div>
+                      <p className="font-semibold">
+                        {next.date ? formatShortDate(next.date) : "Nog niet ingepland"}
+                        {next.time !== null
+                          ? ` · ${formatTime(next.time)}–${formatTime(next.time + next.duration)}`
+                          : ""}
+                      </p>
+                      <p className="mt-1 text-sm text-ink-3">
+                        Vaste reeks ·{" "}
+                        {carry.length
+                          ? `${carry.length} doorgeschoven ${carry.length === 1 ? "punt komt" : "punten komen"} op deze agenda`
+                          : "geen doorgeschoven punten"}
+                      </p>
+                    </div>
+                  </div>
+                  <Button variant="ghost" onClick={() => setPlanningNext(true)}>
+                    Wijzigen
+                  </Button>
+                </div>
+              </section>
+            )}
+            {!next && (
+              <section className="mb-5 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-line bg-white p-5">
+                <div>
+                  <h2 className="font-bold">Volgende vergadering</h2>
+                  <p className="mt-2 text-sm text-ink-3">Nog geen volgende vergadering gepland.</p>
+                </div>
+                <Button variant="outline" onClick={() => setPlanningNext(true)}>
+                  Volgende vergadering plannen
+                </Button>
+              </section>
+            )}
             <footer className="mt-6 flex flex-wrap items-center justify-between gap-3">
               <p className="text-sm text-ink-3">Opvolging gaat naar {participants.length} deelnemers</p>
-              <Button variant="outline" size="sm" onClick={back}>
-                Terug naar vergadering
-              </Button>
-              <Button size="sm" onClick={send}>
-                Rond af &amp; verstuur opvolging
-              </Button>
+              <div className="ml-auto flex flex-wrap items-center justify-end gap-3">
+                <Button variant="outline" size="sm" onClick={back}>
+                  Terug naar vergadering
+                </Button>
+                <Button size="sm" onClick={send}>
+                  Rond af &amp; verstuur opvolging
+                </Button>
+              </div>
             </footer>
           </>
         )}

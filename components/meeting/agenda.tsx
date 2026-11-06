@@ -100,13 +100,18 @@ export function AgendaItemRow({
   const [armed, setArmed] = useState(false);
   const [dropAt, setDropAt] = useState<"before" | "after" | null>(null);
   const run = meeting.run;
-  const status = run
-    ? run.doneIds.includes(item.id)
+  const pendingFollowUp = !!meeting.endedAt && meeting.followUpStatus === "pending";
+  const status = pendingFollowUp
+    ? item.runStatus === "handled" || run?.doneIds.includes(item.id)
       ? "done"
-      : run.postponedIds.includes(item.id)
-        ? "postponed"
-        : "todo"
-    : null;
+      : "todo"
+    : run
+      ? run.doneIds.includes(item.id)
+        ? "done"
+        : run.postponedIds.includes(item.id)
+          ? "postponed"
+          : "todo"
+      : null;
   const actual = run?.actuals[item.id];
   const update = (patch: Partial<AgendaItem>) => updateItem(meeting.id, item.id, patch);
 
@@ -154,10 +159,20 @@ export function AgendaItemRow({
         onSave={(text) => update({ text })}
         className={cn(
           "text-[15px] font-semibold",
-          status === "done" && "text-ink-3 line-through",
+          status === "done" && !pendingFollowUp && "text-ink-3 line-through",
           status === "postponed" && "text-ink-3",
         )}
       />
+      {pendingFollowUp && (
+        <span
+          className={cn(
+            "ml-auto rounded-md px-2.5 py-1 text-xs font-bold",
+            status === "done" ? "bg-success-bg text-success-ink" : "bg-warning-bg text-warning",
+          )}
+        >
+          {status === "done" ? "voltooid" : "niet voltooid"}
+        </span>
+      )}
       {item.carriedFrom && <span className="text-xs text-ink-3">uit {formatShortDate(item.carriedFrom)}</span>}
       {trial ? (
         // Variant A: doel, eigenaars en duur zoals in het detailscherm; rechts één icoon met teller.

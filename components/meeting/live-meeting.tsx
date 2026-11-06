@@ -30,7 +30,6 @@ import { OVERTIME_EXTEND_MIN } from "@/lib/meetingWrapUp.config";
 import { clockTime } from "@/lib/meeting-wrap-up";
 import { Button } from "@/components/ui/button";
 import { useNow } from "./meeting-context";
-import { NextMeetingScreen } from "./next-meeting-screen";
 import { closeManually, isHandled, navigateTo, othersOpen } from "@/lib/meeting-wrap-up";
 import { cn } from "@/lib/utils";
 
@@ -56,6 +55,7 @@ function LiveMeetingContent({ meeting }: { meeting: Meeting }) {
   const end = timerEnd(meeting);
   const overtime = now >= end;
   const otherOpen = othersOpen(meeting, run.currentId);
+  const completingLast = otherOpen.length === 0 && !!run.currentId && !isHandled(meeting, run.currentId);
   const handled = items.filter((i) => isHandled(meeting, i.id)).length;
   const openNumbers = otherOpen.map((i) => items.indexOf(i) + 1).join(" en ");
   const finish = () => {
@@ -71,7 +71,6 @@ function LiveMeetingContent({ meeting }: { meeting: Meeting }) {
   const block = meeting.blocks.find((b) => b.id === run.currentId || b.items.some((i) => i.id === run.currentId));
   const [minimizePrompt, setMinimizePrompt] = useState(false);
   const [finishPrompt, setFinishPrompt] = useState(false);
-  const [planningNext, setPlanningNext] = useState(false);
   const undoStart = () => {
     if (note.trim()) saveNote();
     const latest = useStore.getState().meetings.find((m) => m.id === meeting.id)!;
@@ -94,7 +93,7 @@ function LiveMeetingContent({ meeting }: { meeting: Meeting }) {
   };
   const minimize = () =>
     ops.putMeeting({ ...useStore.getState().meetings.find((m) => m.id === meeting.id)!, minimized: true });
-  const [editing, setEditing] = useState<EntryKind | "agenda" | null>(null);
+  const [editing, setEditing] = useState<EntryKind | "agenda" | "edit-agenda" | null>(null);
   const [text, setText] = useState("");
   const [ownerId, setOwnerId] = useState("");
   const [date, setDate] = useState("");
@@ -103,6 +102,16 @@ function LiveMeetingContent({ meeting }: { meeting: Meeting }) {
   const [fileError, setFileError] = useState("");
   const [moving, setMoving] = useState(false);
   const activeCard = useRef<HTMLElement>(null);
+  const [compactActions, setCompactActions] = useState(false);
+  useEffect(() => {
+    const card = activeCard.current;
+    if (!card) return;
+    const observer = new ResizeObserver(([entry]) =>
+      setCompactActions(entry.contentRect.width < (completingLast ? 360 : 240)),
+    );
+    observer.observe(card);
+    return () => observer.disconnect();
+  }, [run.currentId, completingLast]);
   const [previouslyHandled, setPreviouslyHandled] = useState(
     () => new Set(items.filter((i) => isHandled(meeting, i.id)).map((i) => i.id)),
   );
@@ -177,20 +186,16 @@ function LiveMeetingContent({ meeting }: { meeting: Meeting }) {
     setNote("");
   };
 
-  if (planningNext) return <NextMeetingScreen meeting={meeting} onBack={() => setPlanningNext(false)} />;
-
   return (
     <div className="contents">
       <header className="flex min-h-16 shrink-0 flex-wrap items-center gap-3 px-3 py-2 text-white sm:px-5">
-        <h1 className="mr-3 min-w-0 text-2xl font-bold lg:w-[280px] lg:shrink-0">
-          {meeting.name}
-        </h1>
+        <h1 className="mr-3 min-w-0 text-2xl font-bold lg:w-[280px] lg:shrink-0">{meeting.name}</h1>
         <p className="order-last w-full min-w-0 truncate text-[14pt] font-bold sm:order-none sm:w-auto sm:flex-1">
           {item?.text ?? block?.title}
         </p>
         <div className="flex flex-wrap items-center gap-4 text-xs">
           <span>
-            {handled} van de {items.length} behandeld
+            {handled} van de {items.length} voltooid
           </span>
           <span
             role="status"
@@ -214,12 +219,11 @@ function LiveMeetingContent({ meeting }: { meeting: Meeting }) {
         <button
           type="button"
           onClick={() => setFinishPrompt(true)}
-          aria-label="Afronden"
+          aria-label="Rond vergadering af"
           className="ml-auto flex min-h-11 items-center gap-2 rounded-full bg-danger px-4 text-sm font-semibold text-white hover:bg-danger/90"
         >
           <Check aria-hidden className="size-4" />
-          <span className="hidden sm:inline">Afronden</span>
-          <span className="sm:hidden">Afronden</span>
+          <span>Rond vergadering af</span>
         </button>
         <button
           type="button"
@@ -256,7 +260,7 @@ function LiveMeetingContent({ meeting }: { meeting: Meeting }) {
                     ref={active ? activeCard : undefined}
                     key={i.id}
                     className={cn(
-                      "min-w-[260px] rounded-2xl border border-white/20 p-3 lg:min-w-0",
+                      "@container min-w-[260px] rounded-2xl border border-white/20 p-3 lg:min-w-0",
                       active && "border-white/50 bg-white/15 text-white",
                     )}
                   >
@@ -276,11 +280,11 @@ function LiveMeetingContent({ meeting }: { meeting: Meeting }) {
                         {!active && (
                           <>
                             <span className="shrink-0 text-right text-xs">
-                              {isHandled(meeting, i.id) ? "behandeld" : `${i.duration ?? 0} min`}
+                              {isHandled(meeting, i.id) ? "voltooid" : `${i.duration ?? 0} min`}
                             </span>
                             {isHandled(meeting, i.id) ? (
                               <Check
-                                aria-label="Behandeld"
+                                aria-label="Voltooid"
                                 className="size-5 shrink-0 rounded-full bg-[var(--wrap-handled)] text-white"
                               />
                             ) : (
@@ -293,9 +297,9 @@ function LiveMeetingContent({ meeting }: { meeting: Meeting }) {
                         <div className="flex shrink-0 flex-col items-end gap-2 text-xs">
                           {(isHandled(meeting, i.id) || previouslyHandled.has(i.id)) && (
                             <span className="flex items-center gap-2 font-bold">
-                              behandeld
+                              voltooid
                               <Check
-                                aria-label="Behandeld"
+                                aria-label="Voltooid"
                                 className="size-5 shrink-0 rounded-full bg-[var(--wrap-handled)] text-white"
                               />
                             </span>
@@ -310,25 +314,65 @@ function LiveMeetingContent({ meeting }: { meeting: Meeting }) {
                     </div>
                     {active && (
                       <>
-                        <div className="mt-2 flex gap-1">
+                        <div className="mt-2 flex flex-nowrap gap-1">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (note.trim()) saveNote();
+                              setNote("");
+                              ops.nextStep(meeting.id, "done");
+                              if (completingLast) setFinishPrompt(true);
+                            }}
+                            className={cn(
+                              "inline-flex min-h-11 flex-1 items-center justify-center gap-2 whitespace-nowrap rounded-full border px-3 text-sm font-bold",
+                              completingLast
+                                ? "border-danger bg-danger text-white hover:bg-danger/90"
+                                : "border-[#b3d4f3] bg-[#e5f3ff] text-[#2055e5] hover:bg-[#d4eaff]",
+                            )}
+                          >
+                            <Check aria-hidden className="size-4 shrink-0" />
+                            {completingLast ? "Voltooi & rond af →" : "Voltooi"}
+                          </button>
                           <button
                             type="button"
                             onClick={() => setMoving(true)}
-                            className="min-h-11 flex-1 rounded-full border border-white px-3 text-sm font-bold hover:bg-white/10"
+                            className={cn(
+                              "hidden min-h-11 flex-1 whitespace-nowrap rounded-full border border-white px-3 text-sm font-bold hover:bg-white/10",
+                              completingLast ? "@min-[360px]:block" : "@min-[240px]:block",
+                            )}
                           >
-                            Verplaats agendapunt
+                            Verplaats
                           </button>
                           <Popover>
                             <PopoverTrigger asChild>
                               <button
                                 type="button"
                                 aria-label="Meer opties voor agendapunt"
-                                className="flex size-11 items-center justify-center rounded-full border border-white"
+                                className="flex size-11 shrink-0 items-center justify-center rounded-full border border-white"
                               >
                                 <Ellipsis className="size-5" />
                               </button>
                             </PopoverTrigger>
                             <PopoverContent className="app-theme w-56">
+                              {compactActions && (
+                                <button
+                                  type="button"
+                                  onClick={() => setMoving(true)}
+                                  className="min-h-11 w-full text-left text-sm"
+                                >
+                                  Verplaats
+                                </button>
+                              )}
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setText(i.text);
+                                  setEditing("edit-agenda");
+                                }}
+                                className="min-h-11 w-full text-left text-sm"
+                              >
+                                Bewerk agendapunt
+                              </button>
                               <button
                                 type="button"
                                 onClick={() => ops.nextStep(meeting.id, "postpone")}
@@ -339,16 +383,6 @@ function LiveMeetingContent({ meeting }: { meeting: Meeting }) {
                             </PopoverContent>
                           </Popover>
                         </div>
-                        {otherOpen.length === 0 && !isHandled(meeting, i.id) && (
-                          <button
-                            type="button"
-                            onClick={() => setFinishPrompt(true)}
-                            className="mt-2 flex min-h-11 w-full items-center justify-center gap-2 rounded-full bg-danger px-4 text-sm font-semibold text-white hover:bg-danger/90"
-                          >
-                            <Check aria-hidden className="size-4" />
-                            Afronden
-                          </button>
-                        )}
                       </>
                     )}
                   </article>
@@ -359,7 +393,7 @@ function LiveMeetingContent({ meeting }: { meeting: Meeting }) {
             )}
           </div>
           <p className="px-3 py-2 text-xs text-white/80">
-            Een punt telt als behandeld zodra je naar een ander punt gaat. Klik erop om het te heropenen.
+            Een punt telt als voltooid zodra je naar een ander punt gaat. Klik erop om het te heropenen.
           </p>
           <div className="border-t border-white/15 p-2 lg:pt-4">
             <button
@@ -387,7 +421,7 @@ function LiveMeetingContent({ meeting }: { meeting: Meeting }) {
                 <h2 className="font-bold">{minimizePrompt ? "Eerst afronden?" : "Vergadering nog bezig?"}</h2>
                 <p className="my-2 text-sm">
                   {minimizePrompt
-                    ? `${overtime ? "Het geplande einde is voorbij." : "Alle agendapunten zijn behandeld."} Minimaliseer je, dan loopt de vergadering gewoon door.`
+                    ? `${overtime ? "Het geplande einde is voorbij." : "Alle agendapunten zijn voltooid."} Minimaliseer je, dan loopt de vergadering gewoon door.`
                     : `Het geplande einde (${clockTime(end)}) is voorbij.${otherOpen.length ? ` Punt ${openNumbers} staan nog open.` : ""}`}
                 </p>
                 <div className="flex gap-2">
@@ -416,7 +450,7 @@ function LiveMeetingContent({ meeting }: { meeting: Meeting }) {
             )}
             {!run.currentId && (
               <p className="mb-5 rounded-lg bg-blue-50 p-3 text-sm">
-                Alle agendapunten zijn behandeld. Voeg een punt toe of rond de vergadering af.
+                Alle agendapunten zijn voltooid. Voeg een punt toe of rond de vergadering af.
               </p>
             )}
             {block && !item && (
@@ -688,16 +722,15 @@ function LiveMeetingContent({ meeting }: { meeting: Meeting }) {
           </div>
           <DialogTitle className="text-xl font-bold">Vergadering beëindigen</DialogTitle>
           <DialogDescription className="text-base leading-relaxed">
-            Klaar om af te ronden? Je gaat naar de samenvatting waar je openstaande agendapunten,
-            beslissingen en nieuwe acties kunt nakijken voordat je afsluit.
+            Klaar om af te ronden? Je gaat naar de samenvatting waar je openstaande agendapunten, beslissingen en nieuwe
+            acties kunt nakijken voordat je afsluit.
           </DialogDescription>
           <div className="mt-5 flex flex-col gap-3">
             <button
               type="button"
               onClick={() => {
-                if (note.trim()) saveNote();
                 setFinishPrompt(false);
-                setPlanningNext(true);
+                finish();
               }}
               className="min-h-11 rounded-full bg-[#2055e5] px-4 text-base font-bold text-white hover:bg-[#1948c9]"
             >
@@ -710,7 +743,11 @@ function LiveMeetingContent({ meeting }: { meeting: Meeting }) {
             >
               Vergadering voortzetten
             </button>
-            <button type="button" onClick={undoStart} className="mt-3 min-h-11 font-bold text-ink-2 underline underline-offset-4">
+            <button
+              type="button"
+              onClick={undoStart}
+              className="mt-3 min-h-11 font-bold text-ink-2 underline underline-offset-4"
+            >
               Start ongedaan maken
             </button>
           </div>
@@ -719,23 +756,42 @@ function LiveMeetingContent({ meeting }: { meeting: Meeting }) {
       <Dialog open={!!editing} onOpenChange={(open) => !open && setEditing(null)}>
         <DialogContent className="app-theme">
           <DialogTitle>
-            {editing === "agenda"
-              ? "Agendapunt toevoegen"
-              : editing === "decision"
-                ? "Beslissing toevoegen"
-                : "Actie toevoegen"}
+            {editing === "edit-agenda"
+              ? "Bewerk agendapunt"
+              : editing === "agenda"
+                ? "Agendapunt toevoegen"
+                : editing === "decision"
+                  ? "Beslissing toevoegen"
+                  : "Actie toevoegen"}
           </DialogTitle>
           <DialogDescription>
-            {editing === "agenda"
-              ? "Voeg een nieuw punt toe aan de vergaderagenda."
-              : "Leg vast wat jullie voor dit agendapunt afspreken."}
+            {editing === "edit-agenda"
+              ? "Pas de omschrijving van dit agendapunt aan."
+              : editing === "agenda"
+                ? "Voeg een nieuw punt toe aan de vergaderagenda."
+                : "Leg vast wat jullie voor dit agendapunt afspreken."}
           </DialogDescription>
           <form
             className="flex flex-col gap-3"
             onSubmit={(e) => {
               e.preventDefault();
               if (!text.trim()) return;
-              if (editing === "agenda") {
+              if (editing === "edit-agenda") {
+                const latest = useStore.getState().meetings.find((m) => m.id === meeting.id)!;
+                ops.putMeeting({
+                  ...latest,
+                  blocks: latest.blocks.map((b) =>
+                    b.id === run.currentId
+                      ? { ...b, title: text.trim() }
+                      : {
+                          ...b,
+                          items: b.items.map((entry) =>
+                            entry.id === run.currentId ? { ...entry, text: text.trim() } : entry,
+                          ),
+                        },
+                  ),
+                });
+              } else if (editing === "agenda") {
                 const target =
                   meeting.blocks.find((b) => b.kind === "topics")?.id ?? ops.addBlock(meeting.id, "topics");
                 const id = ops.addAgendaItem(meeting.id, target, text.trim());
@@ -795,7 +851,7 @@ function LiveMeetingContent({ meeting }: { meeting: Meeting }) {
               </>
             )}
             <button type="submit" className={cn(pill, "self-end")}>
-              Toevoegen
+              {editing === "edit-agenda" ? "Opslaan" : "Toevoegen"}
             </button>
           </form>
         </DialogContent>

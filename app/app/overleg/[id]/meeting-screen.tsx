@@ -1,9 +1,9 @@
 "use client";
 
 import { meetingNow } from "@/lib/meeting-clock";
-import { PendingFollowUp } from "@/components/meeting/pending-follow-up";
 import { MeetingReminderPreview } from "@/components/b/meeting-reminder-preview";
 import { closeManually } from "@/lib/meeting-wrap-up";
+import { CompletedMeetingDetail } from "@/components/meeting/completed-meeting-detail";
 import { MeetingWrapUp } from "@/components/meeting/meeting-wrap-up";
 import { MeetingStartGate } from "@/components/meeting/meeting-start-gate";
 import { useEffect } from "react";
@@ -46,9 +46,10 @@ export function MeetingScreen() {
     <MeetingStartGate meeting={meeting}>
       <div data-meeting-detail className="contents">
         <SavedBanner meeting={meeting} />
-        {!meeting.wrapUpOpen && <PendingFollowUp meeting={meeting} />}
         {meeting.wrapUpOpen ? (
           <MeetingWrapUp meeting={meeting} />
+        ) : meeting.followUpStatus === "sent" ? (
+          <CompletedMeetingDetail meeting={meeting} />
         ) : params.get("variant") === "b" && !meeting.run ? (
           <MeetingDetailB meeting={meeting} />
         ) : meeting.run && !meeting.minimized ? (

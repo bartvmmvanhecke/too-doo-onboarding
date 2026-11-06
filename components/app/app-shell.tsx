@@ -1,6 +1,7 @@
 "use client";
 
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
+import { MeetingsOverviewPrototypeBar } from "@/components/prototype/meetings-overview-prototype-bar";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { ChimeScheduler } from "@/components/meeting/chime-scheduler";
@@ -15,6 +16,8 @@ import { AfterSaveAssistant } from "@/components/probeer/after-save";
 import { notAvailable } from "@/lib/not-available";
 import { useStore } from "@/lib/store";
 import { cn } from "@/lib/utils";
+import { isDemoEnvironment } from "@/lib/demo-environment";
+import { loadMeetingsOverviewScenario } from "@/lib/prototype/meetingsOverviewScenarios";
 
 const active = "bg-white/15 font-semibold text-white";
 
@@ -26,7 +29,7 @@ function Badge({ children }: { children: ReactNode }) {
 }
 
 /** Zijbalk van de product-app, transparant op het verloop; op smalle schermen een balk bovenaan. */
-function Sidebar() {
+function Sidebar({ onMeetingsClick }: { onMeetingsClick: () => void }) {
   const pathname = usePathname();
   const meetings = useStore((s) => s.meetings);
   // Variant B (flow 3): "Dashboard" opent het overzicht.
@@ -74,7 +77,12 @@ function Sidebar() {
         ) : (
           comingSoon("Dashboard")
         )}
-        <Link href="/app" aria-current={inMeetings ? "page" : undefined} className={cn(item, inMeetings && active)}>
+        <Link
+          onClick={onMeetingsClick}
+          href="/app"
+          aria-current={inMeetings ? "page" : undefined}
+          className={cn(item, inMeetings && active)}
+        >
           Vergaderingen
           {meetings.some((m) => m.run && !m.endedAt) && (
             <span aria-label="Vergadering bezig" className="size-2 rounded-full bg-[var(--wrap-handled)]" />
@@ -106,27 +114,41 @@ function Sidebar() {
 }
 
 export function AppShell({ children }: { children: ReactNode }) {
+  const [overviewRevision, setOverviewRevision] = useState(0);
   return (
     <AppUiProvider>
-      <div className="app-theme flex min-h-dvh flex-col bg-app-shell lg:flex-row">
-        <Hydrated fallback={<div className="lg:min-h-dvh lg:w-60 lg:shrink-0" />}>
-          <Sidebar />
-        </Hydrated>
-        <div className="relative flex min-w-0 flex-1 flex-col pt-4">
-          {/* Lichte band; links sluit ze aan op de bovenkant van de zijbalk. */}
-          <div aria-hidden className="absolute inset-x-0 top-0 h-12 bg-app-band" />
-          <main className="relative flex-1 rounded-tl-[24px] bg-app px-4 pt-8 pb-16 sm:px-10">
-            <div className="mx-auto flex w-full max-w-[920px] flex-col gap-3.5 has-[[data-meetings-overview]]:max-w-none has-[[data-meeting-detail]]:max-w-none">
-              {children}
-            </div>
-          </main>
-        </div>
+      <div className="app-theme flex min-h-dvh flex-col bg-app-shell">
         <Hydrated>
-          <ChimeScheduler />
-          <UnattendedSync />
-          <RunningMeetingPill />
-          <AfterSaveAssistant />
+          <OverviewPrototypeBarHost onLoad={() => setOverviewRevision((value) => value + 1)} />
         </Hydrated>
+        <div className="flex flex-1 flex-col lg:flex-row">
+          <Hydrated fallback={<div className="lg:min-h-dvh lg:w-60 lg:shrink-0" />}>
+            <Sidebar
+              onMeetingsClick={() => {
+                if (!isDemoEnvironment()) return;
+                loadMeetingsOverviewScenario("default");
+                setOverviewRevision((value) => value + 1);
+              }}
+            />
+          </Hydrated>
+          <div className="relative flex min-w-0 flex-1 flex-col pt-4">
+            {/* Lichte band; links sluit ze aan op de bovenkant van de zijbalk. */}
+            <div aria-hidden className="absolute inset-x-0 top-0 h-12 bg-app-band" />
+            <main className="relative flex-1 rounded-tl-[24px] bg-app px-4 pt-8 pb-16 sm:px-10">
+              <div className="mx-auto flex w-full max-w-[920px] flex-col gap-3.5 has-[[data-meetings-overview]]:max-w-none has-[[data-meeting-detail]]:max-w-none">
+                <div key={overviewRevision} className="contents">
+                  {children}
+                </div>
+              </div>
+            </main>
+          </div>
+          <Hydrated>
+            <ChimeScheduler />
+            <UnattendedSync />
+            <RunningMeetingPill />
+            <AfterSaveAssistant />
+          </Hydrated>
+        </div>
       </div>
       <Hydrated>
         <AddMeetingsDialogHost />
@@ -138,4 +160,9 @@ export function AppShell({ children }: { children: ReactNode }) {
 function AddMeetingsDialogHost() {
   const { addMeetingsOpen, setAddMeetingsOpen } = useAppUi();
   return <AddMeetingsDialog open={addMeetingsOpen} onOpenChange={setAddMeetingsOpen} />;
+}
+
+function OverviewPrototypeBarHost({ onLoad }: { onLoad: () => void }) {
+  const pathname = usePathname();
+  return pathname === "/app" ? <MeetingsOverviewPrototypeBar onLoad={onLoad} /> : null;
 }

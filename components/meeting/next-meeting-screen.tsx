@@ -37,9 +37,10 @@ export function NextMeetingScreen({ meeting, onBack }: { meeting: Meeting; onBac
         );
     }
     ops.putMeeting({
-      ...closeManually(latest, meetingNow(latest)),
+      ...(latest.endedAt ? latest : closeManually(latest, meetingNow(latest))),
       seriesId,
     });
+    onBack();
   };
 
   return (

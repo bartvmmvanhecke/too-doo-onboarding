@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
-import Link from "next/link";
+import { NextMeetingScreen } from "./next-meeting-screen";
 import { formatTime } from "@/lib/time";
 import { CalendarDays, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -37,6 +37,7 @@ export function MeetingWrapUp({ meeting }: { meeting: Meeting }) {
       personId,
       name: people.find((p) => p.id === personId)?.name ?? personId,
     }));
+  const [planningNext, setPlanningNext] = useState(false);
   const [text, setText] = useState("");
   const [kind, setKind] = useState<EntryKind>("action");
   const minutes = Math.round((actualDuration(meeting) ?? 0) / 60000);
@@ -78,6 +79,7 @@ export function MeetingWrapUp({ meeting }: { meeting: Meeting }) {
     }
     setText("");
   };
+  if (planningNext) return <NextMeetingScreen meeting={meeting} onBack={() => setPlanningNext(false)} />;
   return (
     <div className="app-theme w-full">
       <main className="mx-auto w-full max-w-[960px] py-4">
@@ -246,10 +248,21 @@ export function MeetingWrapUp({ meeting }: { meeting: Meeting }) {
                       </p>
                     </div>
                   </div>
-                  <Link href={`/app/overleg/${next.id}`} className="text-sm font-bold text-brand">
-                    Bekijk vergadering
-                  </Link>
+                  <Button variant="ghost" onClick={() => setPlanningNext(true)}>
+                    Wijzigen
+                  </Button>
                 </div>
+              </section>
+            )}
+            {!next && (
+              <section className="mb-5 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-line bg-white p-5">
+                <div>
+                  <h2 className="font-bold">Volgende vergadering</h2>
+                  <p className="mt-2 text-sm text-ink-3">Nog geen volgende vergadering gepland.</p>
+                </div>
+                <Button variant="outline" onClick={() => setPlanningNext(true)}>
+                  Volgende vergadering plannen
+                </Button>
               </section>
             )}
             <footer className="mt-6 flex flex-wrap items-center justify-between gap-3">

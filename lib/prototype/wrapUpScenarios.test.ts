@@ -18,6 +18,17 @@ beforeEach(() => {
 afterEach(() => vi.unstubAllEnvs());
 const current = () => useStore.getState().meetings.find((m) => m.id === id)!;
 describe("prototypebediening", () => {
+  it("start opnieuw bij het eerste punt zonder behandelde punten of opvolging", () => {
+    loadWrapUpScenario("jumps", id, now);
+    loadWrapUpScenario("start", id, now);
+    const m = current();
+    expect(m.run?.currentId).toBe("wrap-demo-1");
+    expect(m.run?.doneIds).toEqual([]);
+    expect(m.blocks[0].items.every((i) => !isHandled(m, i.id) && i.entries.length === 0)).toBe(true);
+    expect(m.actions).toEqual([]);
+    expect(meetingNow(m, now) - m.startedAt!).toBe(0);
+    expect(timerEnd(m) - meetingNow(m, now)).toBe(60 * 60000);
+  });
   it("laadt sprongen met gevulde opvolging en volgend punt 6", () => {
     loadWrapUpScenario("jumps", id, now);
     const m = current();

@@ -1,6 +1,5 @@
 "use client";
 
-import { ChimeControl } from "./chime-control";
 import { MeetingPrototypeBar } from "@/components/prototype/meeting-prototype-bar";
 import { elapsedClock, remainingLabel, timerEnd, meetingNow } from "@/lib/meeting-clock";
 import { useEffect, useRef, useState } from "react";
@@ -8,11 +7,13 @@ import {
   ArrowDown,
   Bold,
   Check,
+  CircleStop,
   Ellipsis,
   Italic,
   Link2,
   List,
   ListOrdered,
+  Minimize2,
   Plus,
   Timer,
   Trash2,
@@ -20,7 +21,6 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { nextInSeries } from "@/lib/meeting-wrap-up";
-import { Logo } from "@/components/brand";
 import { Avatar } from "@/components/avatar";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -30,7 +30,8 @@ import { OVERTIME_EXTEND_MIN } from "@/lib/meetingWrapUp.config";
 import { clockTime } from "@/lib/meeting-wrap-up";
 import { Button } from "@/components/ui/button";
 import { useNow } from "./meeting-context";
-import { closeManually, isHandled, navigateTo, nextOpenItem, othersOpen } from "@/lib/meeting-wrap-up";
+import { NextMeetingScreen } from "./next-meeting-screen";
+import { closeManually, isHandled, navigateTo, othersOpen } from "@/lib/meeting-wrap-up";
 import { cn } from "@/lib/utils";
 
 const pill =
@@ -55,7 +56,6 @@ function LiveMeetingContent({ meeting }: { meeting: Meeting }) {
   const end = timerEnd(meeting);
   const overtime = now >= end;
   const otherOpen = othersOpen(meeting, run.currentId);
-  const nextOpen = nextOpenItem(meeting, run.currentId);
   const handled = items.filter((i) => isHandled(meeting, i.id)).length;
   const openNumbers = otherOpen.map((i) => items.indexOf(i) + 1).join(" en ");
   const finish = () => {
@@ -70,6 +70,28 @@ function LiveMeetingContent({ meeting }: { meeting: Meeting }) {
   const item = items.find((i) => i.id === run.currentId);
   const block = meeting.blocks.find((b) => b.id === run.currentId || b.items.some((i) => i.id === run.currentId));
   const [minimizePrompt, setMinimizePrompt] = useState(false);
+  const [finishPrompt, setFinishPrompt] = useState(false);
+  const [planningNext, setPlanningNext] = useState(false);
+  const undoStart = () => {
+    if (note.trim()) saveNote();
+    const latest = useStore.getState().meetings.find((m) => m.id === meeting.id)!;
+    ops.putMeeting({
+      ...latest,
+      run: null,
+      startedAt: undefined,
+      startedBy: undefined,
+      lastActivityAt: undefined,
+      overtimeUntil: undefined,
+      demoTimeOffsetMs: undefined,
+      followUpStatus: undefined,
+      wrapUpOpen: false,
+      minimized: false,
+      blocks: latest.blocks.map((b) => ({
+        ...b,
+        items: b.items.map((i) => ({ ...i, runStatus: "open", handledAt: undefined })),
+      })),
+    });
+  };
   const minimize = () =>
     ops.putMeeting({ ...useStore.getState().meetings.find((m) => m.id === meeting.id)!, minimized: true });
   const [editing, setEditing] = useState<EntryKind | "agenda" | null>(null);
@@ -81,6 +103,9 @@ function LiveMeetingContent({ meeting }: { meeting: Meeting }) {
   const [fileError, setFileError] = useState("");
   const [moving, setMoving] = useState(false);
   const activeCard = useRef<HTMLElement>(null);
+  const [previouslyHandled, setPreviouslyHandled] = useState(
+    () => new Set(items.filter((i) => isHandled(meeting, i.id)).map((i) => i.id)),
+  );
   useEffect(() => {
     activeCard.current?.querySelector<HTMLButtonElement>("button[aria-current]")?.focus();
     activeCard.current?.scrollIntoView({ block: "nearest", inline: "nearest" });
@@ -128,6 +153,7 @@ function LiveMeetingContent({ meeting }: { meeting: Meeting }) {
   };
   const selectItem = (id: string) => {
     if (note.trim()) saveNote();
+    if (isHandled(meeting, id)) setPreviouslyHandled((ids) => new Set([...ids, id]));
     setNote("");
     ops.putMeeting(
       navigateTo(
@@ -151,58 +177,63 @@ function LiveMeetingContent({ meeting }: { meeting: Meeting }) {
     setNote("");
   };
 
+  if (planningNext) return <NextMeetingScreen meeting={meeting} onBack={() => setPlanningNext(false)} />;
+
   return (
     <div className="contents">
       <header className="flex min-h-16 shrink-0 flex-wrap items-center gap-3 px-3 py-2 text-white sm:px-5">
-        <Logo tone="white" href="/app" className="mr-3 lg:w-[280px]" />
-        <h1 className="order-last w-full min-w-0 truncate text-base font-bold sm:order-none sm:w-auto sm:flex-1">
+        <h1 className="mr-3 min-w-0 text-2xl font-bold lg:w-[280px] lg:shrink-0">
           {meeting.name}
         </h1>
-        <div className="flex flex-wrap items-center gap-2 text-xs">
+        <p className="order-last w-full min-w-0 truncate text-[14pt] font-bold sm:order-none sm:w-auto sm:flex-1">
+          {item?.text ?? block?.title}
+        </p>
+        <div className="flex flex-wrap items-center gap-4 text-xs">
           <span>
-            {handled} van {items.length} behandeld{otherOpen.length > 0 && ` · nog open: ${openNumbers}`}
+            {handled} van de {items.length} behandeld
           </span>
           <span
             role="status"
             className={cn(
-              "rounded-full px-3 py-2",
-              overtime ? "bg-[var(--wrap-amber-bg)] text-[var(--wrap-amber-ink)]" : "bg-white/15",
+              "flex min-h-11 items-center gap-3 rounded-full border border-white/50 px-3 py-2 text-[11pt]",
+              overtime ? "bg-[var(--wrap-amber-bg)] text-[var(--wrap-amber-ink)]" : "bg-white/25",
             )}
           >
-            <span className="tabular-nums">{elapsedClock(now - run.startedAt)}</span> ·{" "}
-            {overtime ? `${Math.floor((now - end) / 60000)} min over gepland einde` : remainingLabel(end - now)}
-          </span>
-          {!overtime && (
+            <span>
+              <span className="tabular-nums">{elapsedClock(now - run.startedAt)}</span> ·{" "}
+              {overtime ? `${Math.floor((now - end) / 60000)} min over gepland einde` : remainingLabel(end - now)}
+            </span>
             <progress
               aria-label="Verstreken vergadertijd"
-              value={Math.max(0, now - run.startedAt)}
+              value={Math.min(Math.max(0, now - run.startedAt), Math.max(1, end - run.startedAt))}
               max={Math.max(1, end - run.startedAt)}
-              className="h-1 w-24"
+              className="h-1 w-24 shrink-0 overflow-hidden border-0 bg-white [&::-moz-progress-bar]:bg-green-600 [&::-webkit-progress-bar]:bg-white [&::-webkit-progress-value]:bg-green-600"
             />
-          )}
+          </span>
         </div>
-        <ChimeControl />
-        <Button
-          variant="inverse"
-          size="sm"
-          className="rounded-full"
-          onClick={() => (overtime || handled === items.length ? setMinimizePrompt(true) : minimize())}
-        >
-          Minimaliseren
-        </Button>
         <button
           type="button"
-          onClick={finish}
+          onClick={() => setFinishPrompt(true)}
           aria-label="Afronden"
-          className="ml-auto mr-10 flex min-h-11 items-center gap-2 rounded-full bg-danger px-4 text-sm font-semibold text-white hover:bg-danger/90"
+          className="ml-auto flex min-h-11 items-center gap-2 rounded-full bg-danger px-4 text-sm font-semibold text-white hover:bg-danger/90"
         >
+          <Check aria-hidden className="size-4" />
           <span className="hidden sm:inline">Afronden</span>
           <span className="sm:hidden">Afronden</span>
+        </button>
+        <button
+          type="button"
+          aria-label="Minimaliseren"
+          title="Minimaliseren"
+          className="flex size-11 shrink-0 items-center justify-center rounded-full text-white hover:bg-white/10"
+          onClick={() => (overtime || handled === items.length ? setMinimizePrompt(true) : minimize())}
+        >
+          <Minimize2 aria-hidden className="size-5" />
         </button>
       </header>
       <div className="flex min-h-0 flex-1 flex-col lg:flex-row">
         <aside aria-label="Vergaderagenda" className="flex shrink-0 flex-col text-white lg:w-[315px]">
-          <div className="flex gap-2 overflow-x-auto p-2 lg:flex-1 lg:flex-col lg:overflow-y-auto">
+          <div className="flex gap-2 overflow-x-auto p-2 lg:flex-1 lg:flex-col lg:overflow-y-auto lg:pt-0.5 lg:pr-[18px]">
             {meeting.blocks
               .flatMap((b) =>
                 b.kind === "topics"
@@ -226,68 +257,64 @@ function LiveMeetingContent({ meeting }: { meeting: Meeting }) {
                     key={i.id}
                     className={cn(
                       "min-w-[260px] rounded-2xl border border-white/20 p-3 lg:min-w-0",
-                      active && "bg-white text-ink ring-2 ring-brand",
+                      active && "border-white/50 bg-white/15 text-white",
                     )}
                   >
-                    {active && (
-                      <>
-                        <span className="inline-block rounded-full bg-white/20 px-2.5 py-0.5 text-xs font-bold">
-                          {i.theme}
+                    <div className={cn(active && "mb-3 flex items-start justify-between gap-3")}>
+                      <button
+                        type="button"
+                        onClick={() => selectItem(i.id)}
+                        aria-current={active ? "step" : undefined}
+                        className={cn(
+                          "flex min-h-11 w-full items-center gap-2 text-left text-base font-bold",
+                          active && "min-h-0 min-w-0 flex-1 items-start text-[13pt] focus-visible:outline-none",
+                        )}
+                      >
+                        <span className={cn("min-w-0 flex-1", !active && isHandled(meeting, i.id) && "line-through")}>
+                          {i.text}
                         </span>
-                        <div className="mt-2 flex items-center justify-end gap-3 text-xs">
-                          <Timer aria-hidden className="size-4" />
-                          {i.duration !== null ? `${i.duration} min` : "Geen tijd ingesteld"}
-                          {owner && <Avatar person={owner} size={28} decorative />}
+                        {!active && (
+                          <>
+                            <span className="shrink-0 text-right text-xs">
+                              {isHandled(meeting, i.id) ? "behandeld" : `${i.duration ?? 0} min`}
+                            </span>
+                            {isHandled(meeting, i.id) ? (
+                              <Check
+                                aria-label="Behandeld"
+                                className="size-5 shrink-0 rounded-full bg-[var(--wrap-handled)] text-white"
+                              />
+                            ) : (
+                              <span aria-hidden className="size-5 shrink-0 rounded-full border-2 border-current" />
+                            )}
+                          </>
+                        )}
+                      </button>
+                      {active && (
+                        <div className="flex shrink-0 flex-col items-end gap-2 text-xs">
+                          {(isHandled(meeting, i.id) || previouslyHandled.has(i.id)) && (
+                            <span className="flex items-center gap-2 font-bold">
+                              behandeld
+                              <Check
+                                aria-label="Behandeld"
+                                className="size-5 shrink-0 rounded-full bg-[var(--wrap-handled)] text-white"
+                              />
+                            </span>
+                          )}
+                          <div className="flex items-center gap-2">
+                            <Timer aria-hidden className="size-4" />
+                            {i.duration !== null ? `${i.duration} min` : "Geen tijd ingesteld"}
+                            {owner && <Avatar person={owner} size={28} decorative />}
+                          </div>
                         </div>
-                      </>
-                    )}
-                    <button
-                      type="button"
-                      onClick={() => selectItem(i.id)}
-                      aria-current={active ? "step" : undefined}
-                      className={cn(
-                        "flex min-h-11 w-full items-center justify-between gap-2 text-left text-base font-bold",
-                        active && "mt-3 mb-3 text-xl",
                       )}
-                    >
-                      <span className={isHandled(meeting, i.id) ? "line-through" : ""}>{i.text}</span>
-                      <span className="text-xs">
-                        {active ? "nu" : isHandled(meeting, i.id) ? "behandeld" : `${i.duration ?? 0} min`}
-                      </span>
-                      {isHandled(meeting, i.id) ? (
-                        <Check
-                          aria-label="Behandeld"
-                          className="size-5 shrink-0 rounded-full bg-[var(--wrap-handled)] text-white"
-                        />
-                      ) : (
-                        <span aria-hidden className="size-4 shrink-0 rounded-full border-2 border-current" />
-                      )}
-                    </button>
+                    </div>
                     {active && (
                       <>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            const next = nextOpenItem(meeting, run.currentId);
-                            if (next) selectItem(next.id);
-                            else finish();
-                          }}
-                          className={cn(
-                            pill,
-                            "w-full border-[#b3d4f3]",
-                            !otherOpen.length && "border-danger bg-danger text-white hover:bg-danger/90",
-                          )}
-                        >
-                          <Check aria-hidden className="size-4" />
-                          {otherOpen.length
-                            ? `Behandeld · volgend open punt (${items.findIndex((i) => i.id === nextOpen?.id) + 1})`
-                            : "Afronden →"}
-                        </button>
                         <div className="mt-2 flex gap-1">
                           <button
                             type="button"
                             onClick={() => setMoving(true)}
-                            className="min-h-11 flex-1 rounded-full border border-blue-200/70 px-3 text-sm font-bold hover:bg-white/10"
+                            className="min-h-11 flex-1 rounded-full border border-white px-3 text-sm font-bold hover:bg-white/10"
                           >
                             Verplaats agendapunt
                           </button>
@@ -296,7 +323,7 @@ function LiveMeetingContent({ meeting }: { meeting: Meeting }) {
                               <button
                                 type="button"
                                 aria-label="Meer opties voor agendapunt"
-                                className="flex size-11 items-center justify-center rounded-full border border-blue-200/70"
+                                className="flex size-11 items-center justify-center rounded-full border border-white"
                               >
                                 <Ellipsis className="size-5" />
                               </button>
@@ -312,6 +339,16 @@ function LiveMeetingContent({ meeting }: { meeting: Meeting }) {
                             </PopoverContent>
                           </Popover>
                         </div>
+                        {otherOpen.length === 0 && !isHandled(meeting, i.id) && (
+                          <button
+                            type="button"
+                            onClick={() => setFinishPrompt(true)}
+                            className="mt-2 flex min-h-11 w-full items-center justify-center gap-2 rounded-full bg-danger px-4 text-sm font-semibold text-white hover:bg-danger/90"
+                          >
+                            <Check aria-hidden className="size-4" />
+                            Afronden
+                          </button>
+                        )}
                       </>
                     )}
                   </article>
@@ -642,6 +679,43 @@ function LiveMeetingContent({ meeting }: { meeting: Meeting }) {
           </section>
         </main>
       </div>
+      <Dialog open={finishPrompt} onOpenChange={setFinishPrompt}>
+        <DialogContent className="app-theme max-w-[450px] gap-5 rounded-2xl p-6 sm:p-7">
+          <div className="mb-1 flex size-16 items-center justify-center rounded-full bg-[#f4faff]">
+            <div className="flex size-11 items-center justify-center rounded-full bg-[#e5f3ff] text-[#2055e5]">
+              <CircleStop aria-hidden className="size-6" />
+            </div>
+          </div>
+          <DialogTitle className="text-xl font-bold">Vergadering beëindigen</DialogTitle>
+          <DialogDescription className="text-base leading-relaxed">
+            Klaar om af te ronden? Je gaat naar de samenvatting waar je openstaande agendapunten,
+            beslissingen en nieuwe acties kunt nakijken voordat je afsluit.
+          </DialogDescription>
+          <div className="mt-5 flex flex-col gap-3">
+            <button
+              type="button"
+              onClick={() => {
+                if (note.trim()) saveNote();
+                setFinishPrompt(false);
+                setPlanningNext(true);
+              }}
+              className="min-h-11 rounded-full bg-[#2055e5] px-4 text-base font-bold text-white hover:bg-[#1948c9]"
+            >
+              Vergadering afronden
+            </button>
+            <button
+              type="button"
+              onClick={() => setFinishPrompt(false)}
+              className="min-h-11 rounded-full border border-[#b3d4f3] bg-[#e5f3ff] px-4 text-base font-bold text-[#2055e5] hover:bg-[#d4eaff]"
+            >
+              Vergadering voortzetten
+            </button>
+            <button type="button" onClick={undoStart} className="mt-3 min-h-11 font-bold text-ink-2 underline underline-offset-4">
+              Start ongedaan maken
+            </button>
+          </div>
+        </DialogContent>
+      </Dialog>
       <Dialog open={!!editing} onOpenChange={(open) => !open && setEditing(null)}>
         <DialogContent className="app-theme">
           <DialogTitle>

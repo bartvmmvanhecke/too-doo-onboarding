@@ -15,10 +15,12 @@ import { USER_PERSON_ID } from "@/lib/mock-data";
 import { usePeople, useStore, type Meeting } from "@/lib/store";
 import { formatTime } from "@/lib/time";
 import { cn } from "@/lib/utils";
+import { clockTime } from "@/lib/meeting-wrap-up";
 
-type Status = "pending" | "done" | "planned";
+type Status = "pending" | "done" | "planned" | "wrapUp";
 
 const STATUS: Record<Status, { label: string; className: string }> = {
+  wrapUp: { label: "Nog af te ronden", className: "bg-[var(--wrap-amber-bg)] text-[var(--wrap-amber-ink)]" },
   pending: { label: "In afwachting", className: "bg-warning-bg text-warning" },
   done: { label: "Afgerond", className: "bg-success-bg text-success-ink" },
   planned: { label: "Ingepland", className: "bg-app text-ink-2" },
@@ -34,6 +36,7 @@ function isPast(m: Meeting, todayISO: string) {
 }
 
 function statusOf(m: Meeting, todayISO: string): Status {
+  if (m.endedAt && m.followUpStatus === "pending") return "wrapUp";
   if (!isPast(m, todayISO)) return "planned";
   return m.held ? "done" : "pending";
 }
@@ -169,8 +172,8 @@ export function MeetingsList() {
       ) : (
         <>
           <MeetingGroup id="afronden" title="Nog af te ronden" meetings={pending} todayISO={todayISO} />
-          <MeetingGroup id="afgelopen" title="Afgelopen vergaderingen" meetings={past} todayISO={todayISO} />
           <MeetingGroup id="aankomend" title="Aankomende" meetings={upcoming} todayISO={todayISO} />
+          <MeetingGroup id="afgelopen" title="Afgelopen vergaderingen" meetings={past} todayISO={todayISO} />
         </>
       )}
     </>
@@ -216,6 +219,13 @@ function MeetingRow({ meeting: m, status }: { meeting: Meeting; status: Status }
   const shown = attendees.slice(0, 4);
   const rest = attendees.length - shown.length;
   const href = `/app/overleg/${m.id}`;
+  const needsWrapUp = status === "wrapUp";
+  const unowned = m.actions.filter((a) => !a.ownerId).length;
+  const openDetail = () => {
+    if (!needsWrapUp) return;
+    const latest = useStore.getState().meetings.find((meeting) => meeting.id === m.id)!;
+    useStore.getState().putMeeting({ ...latest, wrapUpOpen: false, minimized: true });
+  };
 
   const menuItem =
     "flex min-h-11 w-full cursor-pointer items-center gap-2.5 rounded-lg px-2.5 text-left text-sm font-bold text-ink no-underline hover:bg-app hover:text-ink";
@@ -224,19 +234,19 @@ function MeetingRow({ meeting: m, status }: { meeting: Meeting; status: Status }
     <li className="flex items-center gap-2 rounded-[14px] border border-line-soft bg-white pr-2 hover:bg-row-hover">
       <Link
         href={href}
+        onClick={openDetail}
         className="flex min-h-14 min-w-0 flex-1 flex-wrap items-center gap-x-6 gap-y-2 py-2.5 pl-4 text-ink no-underline hover:text-ink"
       >
         <span className="flex min-w-0 flex-col">
           <span className="flex min-w-0 flex-wrap items-center gap-2">
             <span className="truncate text-[17px] font-bold">{m.name}</span>
-            {m.endedAt && m.followUpStatus === "pending" && (
-              <span className="rounded-full bg-[var(--wrap-amber-bg)] px-2 py-1 text-xs font-bold text-[var(--wrap-amber-ink)]">
-                Nog af te ronden
-              </span>
-            )}
             <span className="rounded-full bg-brand-soft px-2 py-0.5 text-xs font-bold text-brand">{m.type}</span>
           </span>
-          <span className="text-[13px] text-ink-3">{whenLine(m)}</span>
+          <span className="text-[13px] text-ink-3">
+            {needsWrapUp
+              ? `${m.endReason === "auto" ? "automatisch afgesloten" : "afgesloten"} ${clockTime(m.endedAt!)} · ${m.actions.length} ${m.actions.length === 1 ? "actie" : "acties"} · ${unowned} zonder eigenaar`
+              : whenLine(m)}
+          </span>
         </span>
         {shown.length > 0 && (
           <span className="flex items-center">
@@ -253,10 +263,22 @@ function MeetingRow({ meeting: m, status }: { meeting: Meeting; status: Status }
             )}
           </span>
         )}
-        <span className={cn("ml-auto rounded-full px-2.5 py-0.5 text-xs font-bold", STATUS[status].className)}>
-          {STATUS[status].label}
-        </span>
+        {!needsWrapUp && (
+          <span className={cn("ml-auto rounded-full px-2.5 py-0.5 text-xs font-bold", STATUS[status].className)}>
+            {STATUS[status].label}
+          </span>
+        )}
       </Link>
+      {needsWrapUp && (
+        <Link
+          href={href}
+          onClick={openDetail}
+          aria-label={`Afronden: ${m.name}`}
+          className="inline-flex min-h-11 shrink-0 items-center justify-center rounded-full bg-danger px-4 text-sm font-bold text-white no-underline hover:bg-danger/90 hover:text-white"
+        >
+          Afronden →
+        </Link>
+      )}
       <Popover open={open} onOpenChange={setOpen}>
         <PopoverTrigger asChild>
           <Button variant="ghost" size="icon" aria-label={`Meer acties voor ${m.name}`}>

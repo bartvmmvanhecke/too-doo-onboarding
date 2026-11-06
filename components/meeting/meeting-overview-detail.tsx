@@ -95,7 +95,11 @@ export function MeetingOverviewDetail({ meeting }: { meeting: Meeting }) {
           </Link>
           <header className="flex flex-wrap items-center justify-between gap-5 py-2">
             <div className="flex min-w-0 flex-col items-start gap-2">
-              {!pending && (
+              {pending ? (
+                <span className="rounded-full bg-[var(--wrap-amber-bg)] px-3 py-1 text-sm font-bold text-[var(--wrap-amber-ink)]">
+                  Nog af te ronden
+                </span>
+              ) : (
                 <span className={pill}>
                   <CalendarCheck className="size-4" aria-hidden />
                   {meeting.held ? "Afgerond" : "Ingepland"}
@@ -103,11 +107,6 @@ export function MeetingOverviewDetail({ meeting }: { meeting: Meeting }) {
               )}
               <div className="flex flex-wrap items-center gap-3">
                 <h1 className="max-w-full text-[36px] leading-tight font-semibold sm:text-[40px]">{meeting.name}</h1>
-                {meeting.endedAt && meeting.followUpStatus === "pending" && (
-                  <span className="rounded-full bg-[var(--wrap-amber-bg)] px-3 py-1 text-sm font-bold text-[var(--wrap-amber-ink)]">
-                    Nog af te ronden
-                  </span>
-                )}
               </div>
               <div className="flex flex-wrap items-center gap-3">
                 <p className="text-sm font-semibold text-ink-3">

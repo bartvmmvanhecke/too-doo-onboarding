@@ -1,7 +1,12 @@
 export const IDLE_BUFFER_MIN = 15;
 export const OVERTIME_EXTEND_MIN = 15;
-export const REMINDER_AFTER_MIN = 15;
-export const AUTO_CLOSE_AFTER_HOURS = 8;
+export const REMINDER_MIN_AFTER_END_MIN = 30;
+export const REMINDER_FALLBACK_AFTER_MIN = 120;
+export const WORKDAY_END = "17:30";
+export const WORKDAY_START = "08:30";
+export const AUTO_CLOSE_AT = "22:00";
+export const PENDING_TO_PAST_DAYS = 7;
+export const RESUME_SAME_DAY_ONLY = true;
 export const OUTLIER_FACTOR = 3;
 export const CHIME_DEFAULT_ON = false;
 export const CHIME_GAIN = 0.2;

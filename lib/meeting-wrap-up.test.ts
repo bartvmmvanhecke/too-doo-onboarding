@@ -16,6 +16,7 @@ import {
   plannedEnd,
   unattended,
 } from "./meeting-wrap-up";
+import { autoCloseAt, reminderAt } from "./meeting-schedule";
 const min = 60_000;
 function fixture(): Meeting {
   return {
@@ -99,28 +100,27 @@ describe("vergadering afronden", () => {
     expect(actualDuration({ ...m, startedAt: 100 * min, endReason: "manual", endedAt: 90 * min })).toBe(0);
   });
   it("queues one reminder, auto closes from activity and never sends follow-up", () => {
-    const m = fixture(),
-      end = plannedEnd(m);
-    const reminded = unattended(m, end + 16 * min);
+    const m = fixture();
+    const reminded = unattended(m, reminderAt(m));
     expect(reminded.reminderQueuedAt).toBeDefined();
-    expect(unattended(reminded, end + 17 * min).reminderQueuedAt).toBe(reminded.reminderQueuedAt);
-    const auto = unattended(reminded, end + 9 * 60 * min);
+    expect(unattended(reminded, reminderAt(m) + min).reminderQueuedAt).toBe(reminded.reminderQueuedAt);
+    const auto = unattended(reminded, autoCloseAt(m) + min);
     expect(auto).toMatchObject({ run: null, endReason: "auto", endedAt: 76 * min, followUpStatus: "pending" });
-    expect(unattended({ ...m, lastActivityAt: end + 8 * 60 * min }, end + 9 * 60 * min).run).not.toBeNull();
+    expect(unattended({ ...m, lastActivityAt: autoCloseAt(m) }, autoCloseAt(m) + min).run).not.toBeNull();
   });
   it("carries only untreated points once, retaining metadata", () => {
     const m = closeManually(completeCurrent(fixture(), 120 * min), 120 * min);
     m.blocks[0].items[1].carry = "drop";
     const next = { ...fixture(), id: "next", date: "2026-11-12", blocks: [] };
     const meetings = carryForward(m, [m, next]);
-    expect(meetings[1].blocks[0].title).toBe("Lopende zaken");
+    expect(meetings[1].blocks[0].title).toBe("Thema");
     expect(meetings[1].blocks[0].items.map((i) => i.text)).toEqual(["3", "4", "5", "6"]);
     expect(carryForward(m, meetings)[1].blocks[0].items).toHaveLength(4);
   });
   it("verwijdert een eerder automatisch doorgeschoven kopie bij laten vallen", () => {
     const m = fixture();
     const next = { ...fixture(), id: "next", date: "2026-11-12", blocks: [] };
-    const auto = unattended(m, plannedEnd(m) + 9 * 60 * min);
+    const auto = unattended(m, autoCloseAt(m) + min);
     const meetings = carryForward(auto, [auto, next]);
     auto.blocks[0].items[2].carry = "drop";
     expect(carryForward(auto, meetings)[1].blocks[0].items.map((i) => i.text)).not.toContain("3");
@@ -128,7 +128,7 @@ describe("vergadering afronden", () => {
   it("bewaart behandelde status na het wissen van de run en respecteert bevestigde eindtijd", () => {
     const m = fixture();
     m.run!.doneIds = ["1"];
-    const auto = unattended(m, plannedEnd(m) + 9 * 60 * min);
+    const auto = unattended(m, autoCloseAt(m) + min);
     expect(othersOpen(auto, null).map((i) => i.id)).not.toContain("1");
     expect(effectiveEnd({ ...auto, endedAt: 100 * min, endTimeConfirmed: true })).toBe(100 * min);
   });

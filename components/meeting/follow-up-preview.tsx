@@ -9,11 +9,13 @@ export function FollowUpPreview({
   open,
   onOpenChange,
   onSend,
+  disabled = false,
 }: {
   meeting: Meeting;
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSend: () => void;
+  disabled?: boolean;
 }) {
   const people = usePeople();
   const meetings = useStore((s) => s.meetings);
@@ -64,7 +66,9 @@ export function FollowUpPreview({
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Nog aanpassen
           </Button>
-          <Button onClick={onSend}>Rond af &amp; verstuur opvolging</Button>
+          <Button disabled={disabled} onClick={onSend}>
+            Rond af &amp; verstuur opvolging
+          </Button>
         </div>
       </DialogContent>
     </Dialog>

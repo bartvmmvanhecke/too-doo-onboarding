@@ -1,6 +1,7 @@
 "use client";
 import { PreviousFollowUpBanner } from "./previous-follow-up-banner";
 
+import { ChimeControl } from "./chime-control";
 import { AwayPrompt } from "./away-prompt";
 import { MeetingPrototypeBar } from "@/components/prototype/meeting-prototype-bar";
 import { elapsedClock, remainingLabel, timerEnd, meetingNow } from "@/lib/meeting-clock";
@@ -66,7 +67,9 @@ function LiveMeetingContent({ meeting }: { meeting: Meeting }) {
   const otherOpen = othersOpen(meeting, run.currentId);
   const completingLast = otherOpen.length === 0 && !!run.currentId && !isHandled(meeting, run.currentId);
   const handled = items.filter((i) => isHandled(meeting, i.id)).length;
-  const openNumbers = otherOpen.map((i) => items.indexOf(i) + 1).join(" en ");
+  const openNumbers = new Intl.ListFormat("nl", { type: "conjunction" }).format(
+    otherOpen.map((i) => String(items.indexOf(i) + 1)),
+  );
   const finish = (allowSkip = false) => {
     if (note.trim()) saveNote();
     const closed = closeManually(
@@ -225,9 +228,10 @@ function LiveMeetingContent({ meeting }: { meeting: Meeting }) {
             />
           </span>
         </div>
+        <ChimeControl />
         <button
           type="button"
-          onClick={() => setFinishPrompt(true)}
+          onClick={() => finish()}
           aria-label="Rond vergadering af"
           className={cn(
             "ml-auto flex min-h-11 items-center gap-2 rounded-full px-4 text-sm font-semibold",
@@ -339,18 +343,20 @@ function LiveMeetingContent({ meeting }: { meeting: Meeting }) {
                               if (completingLast) finish(true);
                             }}
                             className={cn(
-                              "inline-flex min-h-11 flex-1 items-center justify-center gap-2 whitespace-nowrap rounded-full border px-3 text-sm font-bold",
+                              "inline-flex min-h-11 min-w-0 flex-1 items-center justify-center gap-2 whitespace-nowrap rounded-full border px-3 text-sm font-bold",
                               completingLast
                                 ? ops.demo.wrapUpPrimary
-                                  ? "border-brand bg-brand text-white hover:bg-brand/90"
+                                  ? "border-[var(--wrap-primary)] bg-[var(--wrap-primary)] text-white hover:opacity-90"
                                   : "border-danger bg-danger text-white hover:bg-danger/90"
                                 : "border-[var(--wrap-color-b3d4f3)] bg-[var(--wrap-color-e5f3ff)] text-[var(--wrap-color-2055e5)] hover:bg-[var(--wrap-color-d4eaff)]",
                             )}
                           >
                             <Check aria-hidden className="size-4 shrink-0" />
-                            {completingLast
-                              ? "Voltooi & rond af →"
-                              : `Voltooi · volgend open punt (${nextOpen ? items.indexOf(nextOpen) + 1 : "—"})`}
+                            <span className="truncate">
+                              {completingLast
+                                ? "Voltooi & rond af →"
+                                : `Voltooi · volgend open punt (${nextOpen ? items.indexOf(nextOpen) + 1 : "—"})`}
+                            </span>
                           </button>
                           <button
                             type="button"
@@ -912,6 +918,18 @@ function LiveMeetingContent({ meeting }: { meeting: Meeting }) {
         <DialogContent className="app-theme">
           <DialogTitle>Verplaats agendapunt</DialogTitle>
           <DialogDescription>Kies het thema waar je dit agendapunt wil bespreken.</DialogDescription>
+          {ops.demo.wrapUpSingleMove && (
+            <Button
+              variant="outline"
+              onClick={() => {
+                if (item) ops.updateItem(meeting.id, item.id, { decision: "next", carry: "next" });
+                ops.nextStep(meeting.id, "postpone");
+                setMoving(false);
+              }}
+            >
+              Naar volgende vergadering
+            </Button>
+          )}
           {meeting.blocks
             .filter((b) => b.kind === "topics")
             .map((b) => (

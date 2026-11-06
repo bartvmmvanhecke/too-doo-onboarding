@@ -8,6 +8,7 @@ import { registrationState } from "@/lib/meeting-schedule";
 export function RegistrationQuestion({ meeting }: { meeting: Meeting }) {
   const ops = useStore();
   const [notHeld, setNotHeld] = useState(meeting.outcome === "not_held");
+  const [beforeConfirmation, setBeforeConfirmation] = useState<Meeting[] | null>(null);
   const [confirmed, setConfirmed] = useState(meeting.outcome === "not_held");
   const state = registrationState(meeting);
   useEffect(() => {
@@ -80,7 +81,8 @@ export function RegistrationQuestion({ meeting }: { meeting: Meeting }) {
             <Button
               variant="outline"
               onClick={() => {
-                ops.putMeeting({ ...meeting, outcome: undefined });
+                if (beforeConfirmation) useStore.setState({ meetings: beforeConfirmation });
+                else ops.putMeeting({ ...meeting, outcome: undefined });
                 setNotHeld(false);
                 setConfirmed(false);
               }}
@@ -98,6 +100,7 @@ export function RegistrationQuestion({ meeting }: { meeting: Meeting }) {
                   endedAt: end,
                   endReason: "manual",
                 };
+                setBeforeConfirmation(useStore.getState().meetings);
                 const transferred = carryForward(source, useStore.getState().meetings);
                 useStore.setState({
                   meetings: transferred.map((m) =>

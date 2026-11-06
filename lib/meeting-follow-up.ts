@@ -55,10 +55,23 @@ export function sendFollowUp(id: string, undoable = false, now = Date.now()) {
 export function undoFollowUp(now = Date.now()) {
   const undo = useFollowUpUndo.getState();
   if (!undo.meetingId || now > undo.expiresAt) return false;
+  const source = undo.before.find((m) => m.id === undo.meetingId);
+  const oldIds = new Set(undo.before.flatMap((m) => m.blocks.flatMap((b) => b.items.map((i) => i.id))));
   useStore.setState({
-    meetings: undo.before.map((m) =>
-      m.id === undo.meetingId ? { ...m, wrapUpOpen: true, followUpStatus: "pending", followUpSentAt: undefined } : m,
-    ),
+    meetings: useStore.getState().meetings.map((m) => {
+      if (m.id === undo.meetingId && source)
+        return { ...source, wrapUpOpen: true, followUpStatus: "pending", followUpSentAt: undefined };
+      const original = undo.before.find((old) => old.id === m.id);
+      return {
+        ...m,
+        blocks: m.blocks
+          .map((b) => ({
+            ...b,
+            items: b.items.filter((i) => !i.carriedSourceId?.startsWith(`${undo.meetingId}:`) || oldIds.has(i.id)),
+          }))
+          .filter((b) => b.items.length > 0 || original?.blocks.some((old) => old.id === b.id)),
+      };
+    }),
   });
   useFollowUpUndo.setState({ meetingId: null, before: [], expiresAt: 0 });
   return true;

@@ -32,16 +32,18 @@ export function MeetingScreen() {
     useStore
       .getState()
       .putMeeting(meeting.endedAt ? { ...meeting, wrapUpOpen: true } : closeManually(meeting, meetingNow(meeting)));
-    router.replace(`/app/overleg/${meeting.id}`);
+    router.replace(`/vergaderingen/${meeting.id}/afronden`);
   }, [meeting, params, router]);
 
   if (!meeting) return null;
   const registration = registrationState(meeting, meetingNow(meeting));
   if (
     meeting.outcome === "not_held" ||
-    (meeting.followUpStatus === "pending" &&
-      !meeting.outcome &&
-      (registration === "empty" || registration === "not_started"))
+    (!meeting.outcome &&
+      (params.get("doorgegaan") === "ja" ||
+        params.get("doorgegaan") === "nee" ||
+        (meeting.followUpStatus === "pending" &&
+          ((registration === "empty" && !!meeting.endedAt) || registration === "not_started"))))
   )
     return <RegistrationQuestion meeting={meeting} />;
   if (params.get("herinnering") === "1") return <MeetingReminderPreview meeting={meeting} />;

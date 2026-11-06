@@ -20,9 +20,9 @@ export function plannedEnd(m: Meeting) {
   return (m.startedAt ?? m.run?.startedAt ?? 0) + m.duration * 60_000;
 }
 export function lastActivity(m: Meeting) {
-  if (m.lastActivityAt !== undefined) return m.lastActivityAt;
   const stamps = [
-    ...agendaItems(m).flatMap((i) => [i.updatedAt, ...i.entries.map((e) => e.updatedAt ?? e.createdAt)]),
+    m.lastActivityAt,
+    ...agendaItems(m).flatMap((i) => [i.visitedAt, i.updatedAt, ...i.entries.map((e) => e.updatedAt ?? e.createdAt)]),
     ...m.actions.map((a) => a.updatedAt),
   ].filter((v): v is number => v !== undefined);
   // TODO(api): fetch historical updatedAt records from the API; use all supplied timestamps locally.
@@ -30,6 +30,19 @@ export function lastActivity(m: Meeting) {
 }
 export function effectiveEnd(m: Meeting, now = Date.now()): number | null {
   if (m.outcome === "not_held") return null;
+  const historicalStart = m.startedAt ?? m.run?.startedAt;
+  if (
+    lastActivity(m) === undefined &&
+    historicalStart !== undefined &&
+    m.endedAt !== undefined &&
+    !m.endTimeConfirmed &&
+    !m.filledAfterwards &&
+    m.endedAt - historicalStart > OUTLIER_FACTOR * m.duration * 60000
+  )
+    return null;
+  const observedStart = m.startedAt ?? m.run?.startedAt;
+  if (observedStart !== undefined && lastActivity(m) === observedStart && !m.endTimeConfirmed && !m.filledAfterwards)
+    return null;
   if (m.endReason === "manual" || m.endTimeConfirmed) return m.endedAt ?? null;
   const activity = lastActivity(m);
   const startTime = m.startedAt ?? m.run?.startedAt;
@@ -63,7 +76,17 @@ export function navigateTo(m: Meeting, id: string, now = Date.now()): Meeting {
       ...b,
       items: b.items.map((i) => (i.id === id ? { ...i, visitedAt: i.visitedAt ?? now } : i)),
     })),
-    run: { ...m.run, currentId: id, stepStartedAt: now },
+    run: {
+      ...m.run,
+      currentId: id,
+      stepStartedAt: now,
+      actuals: m.run.currentId
+        ? {
+            ...m.run.actuals,
+            [m.run.currentId]: (m.run.actuals[m.run.currentId] ?? 0) + Math.max(0, now - m.run.stepStartedAt) / 1000,
+          }
+        : m.run.actuals,
+    },
   };
 }
 export function completeCurrent(m: Meeting, now = Date.now()): Meeting {

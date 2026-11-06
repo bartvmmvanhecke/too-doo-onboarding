@@ -205,7 +205,13 @@ export function PendingFollowUp({ meeting }: { meeting: Meeting }) {
           </p>
         </div>
       )}
-      <FollowUpPreview meeting={meeting} open={preview} onOpenChange={setPreview} onSend={send} />
+      <FollowUpPreview
+        meeting={meeting}
+        open={preview}
+        onOpenChange={setPreview}
+        onSend={send}
+        disabled={missing > 0}
+      />
     </section>
   );
 }

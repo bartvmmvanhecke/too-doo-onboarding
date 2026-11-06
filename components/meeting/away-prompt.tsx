@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import { closeManually, clockTime, lastActivity } from "@/lib/meeting-wrap-up";
@@ -9,6 +10,7 @@ import { meetingNow } from "@/lib/meeting-clock";
 import { useStore, type Meeting } from "@/lib/store";
 
 export function AwayPrompt({ meeting }: { meeting: Meeting }) {
+  const router = useRouter();
   const [open, setOpen] = useState(false);
   const tick = useRef(0);
   useEffect(() => {
@@ -50,6 +52,7 @@ export function AwayPrompt({ meeting }: { meeting: Meeting }) {
           <Button
             onClick={() => {
               useStore.getState().putMeeting(closeManually(meeting, end));
+              router.push(`/vergaderingen/${meeting.id}/afronden`);
               setOpen(false);
             }}
           >

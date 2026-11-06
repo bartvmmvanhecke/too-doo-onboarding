@@ -88,6 +88,7 @@ describe("vergadering afronden", () => {
     expect(effectiveEnd({ ...m, endReason: "manual", endedAt: 200 * min })).toBe(200 * min);
     expect(effectiveEnd({ ...m, endedAt: 900 * min })).toBe(76 * min);
     expect(actualDuration({ ...m, lastActivityAt: undefined, endedAt: 900 * min })).toBeNull();
+    expect(actualDuration({ ...m, lastActivityAt: undefined, endedAt: 900 * min, endReason: "manual" })).toBeNull();
     m.blocks[0].items[0].entries.push({
       id: "e",
       kind: "note",

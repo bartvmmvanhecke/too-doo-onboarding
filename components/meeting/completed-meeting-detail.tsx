@@ -2,10 +2,12 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { useFollowUpUndo, undoFollowUp } from "@/lib/meeting-follow-up";
 import Link from "next/link";
-import { ArrowLeft, CheckCircle2 } from "lucide-react";
+import { ArrowLeft, CheckCircle2, Ellipsis } from "lucide-react";
 import { usePeople, useStore, type Meeting } from "@/lib/store";
 import { actualDuration, agendaItems, isHandled, nextInSeries } from "@/lib/meeting-wrap-up";
 import { formatShortDate } from "@/lib/date";
@@ -13,6 +15,7 @@ import { formatTime } from "@/lib/time";
 
 export function CompletedMeetingDetail({ meeting }: { meeting: Meeting }) {
   const router = useRouter();
+  const [sharing, setSharing] = useState(false);
   const undo = useFollowUpUndo();
   const [undoVisible, setUndoVisible] = useState(undo.meetingId === meeting.id);
   const message = useRef<HTMLElement>(null);
@@ -29,7 +32,8 @@ export function CompletedMeetingDetail({ meeting }: { meeting: Meeting }) {
   const next = nextInSeries(meeting, meetings);
   const items = agendaItems(meeting);
   const participants = meeting.attendance?.filter((p) => p.present).length ?? meeting.participants.length;
-  const minutes = Math.round((actualDuration(meeting) ?? 0) / 60000);
+  const duration = actualDuration(meeting);
+  const minutes = duration === null ? null : Math.round(duration / 60000);
   return (
     <div data-meeting-detail className="flex flex-col gap-6">
       <Link href="/app" className="inline-flex min-h-11 items-center gap-2 self-start text-sm text-brand">
@@ -40,13 +44,26 @@ export function CompletedMeetingDetail({ meeting }: { meeting: Meeting }) {
         <div className="flex flex-wrap items-center gap-3">
           <h1 className="text-4xl font-semibold">{meeting.name}</h1>
           <span className="rounded-full bg-success-bg px-3 py-1 text-sm font-bold text-success-ink">Afgerond</span>
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button variant="outline" size="icon" aria-label="Meer opties voor vergadering" className="ml-auto">
+                <Ellipsis className="size-5" />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="app-theme">
+              <Button variant="ghost" onClick={() => setSharing(true)}>
+                Opvolging delen
+              </Button>
+            </PopoverContent>
+          </Popover>
         </div>
         <p className="mt-3 text-sm text-ink-3">
           {meeting.date ? formatShortDate(meeting.date) : ""}
           {meeting.time !== null
             ? ` · ${formatTime(meeting.time)}–${formatTime(meeting.time + meeting.duration)}`
             : ""}{" "}
-          · {minutes} min (gepland {meeting.duration}) · {participants} deelnemers
+          · {minutes === null ? "duur onbekend" : `${minutes} min`} (gepland {meeting.duration}) · {participants}{" "}
+          deelnemers
         </p>
       </header>
       <section
@@ -62,6 +79,8 @@ export function CompletedMeetingDetail({ meeting }: { meeting: Meeting }) {
             <p className="mt-1">
               Volgende vergadering: {formatShortDate(next.date)}
               {next.time !== null ? ` · ${formatTime(next.time)}–${formatTime(next.time + next.duration)}` : ""}.
+              {items.some((i) => i.carry === "next") &&
+                ` Punten ${new Intl.ListFormat("nl", { type: "conjunction" }).format(items.flatMap((i, index) => (i.carry === "next" ? [String(index + 1)] : [])))} staan erop.`}
             </p>
           )}
         </div>
@@ -110,8 +129,10 @@ export function CompletedMeetingDetail({ meeting }: { meeting: Meeting }) {
                 {isHandled(meeting, item.id)
                   ? "voltooid"
                   : item.carry === "drop"
-                    ? "laten vallen"
-                    : "bewaard voor later"}
+                    ? "gevallen"
+                    : next?.date
+                      ? `naar ${formatShortDate(next.date)}`
+                      : "bewaard voor later"}
               </span>
             </summary>
             <div className="space-y-3 pb-4 text-sm">
@@ -141,6 +162,28 @@ export function CompletedMeetingDetail({ meeting }: { meeting: Meeting }) {
         ))}
         {!items.length && <p className="py-4 text-sm text-ink-3">Geen agendapunten.</p>}
       </div>
+      <Dialog open={sharing} onOpenChange={setSharing}>
+        <DialogContent className="app-theme">
+          <DialogTitle>Opvolging delen</DialogTitle>
+          <DialogDescription>Stuur de opvolging door naar iemand die er niet bij was.</DialogDescription>
+          <Button asChild>
+            <a
+              href={`mailto:?subject=${encodeURIComponent(`Opvolging ${meeting.name}`)}&body=${encodeURIComponent(`${meeting.name}\n\n${items.flatMap((i) => [i.text, ...i.entries.map((e) => e.text)]).join("\n")}`)}`}
+            >
+              Delen via mail
+            </a>
+          </Button>
+          <Button
+            variant="outline"
+            onClick={() => {
+              setSharing(false);
+              window.setTimeout(() => window.print(), 100);
+            }}
+          >
+            Bewaar als pdf
+          </Button>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

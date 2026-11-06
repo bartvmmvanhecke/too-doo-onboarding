@@ -368,7 +368,9 @@ const storeInitializer: StateCreator<Store> = (set, get) => {
       meetings: s.meetings.map((m) => {
         if (m.id !== id) return m;
         const updated = fn(m);
-        return m.run && !m.endedAt ? { ...updated, lastActivityAt: meetingNow(m) } : updated;
+        return m.run && !m.endedAt && meetingNow(m) - (m.lastActivityAt ?? 0) >= 30000
+          ? { ...updated, lastActivityAt: meetingNow(m) }
+          : updated;
       }),
     }));
 
@@ -620,7 +622,12 @@ const storeInitializer: StateCreator<Store> = (set, get) => {
           minimized: false,
           blocks: m.blocks.map((b) => ({
             ...b,
-            items: b.items.map((i) => ({ ...i, runStatus: "open", doneAt: undefined })),
+            items: b.items.map((i) => ({
+              ...i,
+              runStatus: "open",
+              doneAt: undefined,
+              visitedAt: i.id === runSteps(m.blocks)[0] ? now : undefined,
+            })),
           })),
           run: {
             startedAt: now,

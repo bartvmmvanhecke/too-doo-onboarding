@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { Logo } from "@/components/brand";
 import { CalendarDays } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useStore, usePeople, type Meeting } from "@/lib/store";
@@ -100,7 +101,10 @@ export function MeetingWrapUp({ meeting }: { meeting: Meeting }) {
   return (
     <div className="app-theme w-full">
       <header className="mb-6 flex flex-wrap items-center justify-between gap-3 border-b border-line pb-4">
-        <span className="font-bold">too-doo · {meeting.name} · afronden</span>
+        <div className="flex items-center gap-4">
+          <Logo href="/app" />
+          <span className="font-bold">{meeting.name} · afronden</span>
+        </div>
         <Button variant="ghost" onClick={back}>
           ← Terug naar vergadering
         </Button>
@@ -336,7 +340,13 @@ export function MeetingWrapUp({ meeting }: { meeting: Meeting }) {
           </div>
         </footer>
       </main>
-      <FollowUpPreview meeting={meeting} open={preview} onOpenChange={setPreview} onSend={send} />
+      <FollowUpPreview
+        meeting={meeting}
+        open={preview}
+        onOpenChange={setPreview}
+        onSend={send}
+        disabled={missing > 0}
+      />
     </div>
   );
 }

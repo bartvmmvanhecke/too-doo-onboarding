@@ -3,6 +3,7 @@ import { PreviousFollowUpBanner } from "./previous-follow-up-banner";
 
 import { useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { ArrowLeft, CalendarCheck, Check, ChevronUp, Clock, Coffee, Play, Plus } from "lucide-react";
 import { PendingFollowUp } from "./pending-follow-up";
 import { isHandled } from "@/lib/meeting-wrap-up";
@@ -32,6 +33,7 @@ const addButton = "rounded-full border-brand-tint bg-brand-soft text-brand hover
 
 /** Detail vanuit het vergaderoverzicht, met de bestaande agenda- en opslagfuncties. */
 export function MeetingOverviewDetail({ meeting }: { meeting: Meeting }) {
+  const router = useRouter();
   const people = usePeople();
   const user = useStore((s) => s.user);
   const ops = useMeetingOps();
@@ -181,7 +183,10 @@ export function MeetingOverviewDetail({ meeting }: { meeting: Meeting }) {
                 {meeting.endedAt && meeting.followUpStatus === "pending" ? (
                   <button
                     type="button"
-                    onClick={() => ops.putMeeting({ ...meeting, wrapUpOpen: true })}
+                    onClick={() => {
+                      ops.putMeeting({ ...meeting, wrapUpOpen: true });
+                      router.push(`/vergaderingen/${meeting.id}/afronden`);
+                    }}
                     className="flex min-h-11 items-center gap-2 rounded-full bg-danger px-4 text-sm font-bold text-white hover:bg-danger/90"
                   >
                     <Check className="size-4" aria-hidden />

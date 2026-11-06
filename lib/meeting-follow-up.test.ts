@@ -14,6 +14,7 @@ const fixture = (): Meeting => ({
   participants: ["jp"],
   actions: [{ id: "a", what: "Actie", ownerId: null, deadline: "", done: false }],
   startedAt: 1,
+  lastActivityAt: 2,
   endedAt: 60001,
   startedBy: "jp",
   followUpStatus: "pending",

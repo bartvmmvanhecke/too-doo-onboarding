@@ -223,12 +223,11 @@ function LiveMeetingContent({ meeting }: { meeting: Meeting }) {
         <button
           type="button"
           onClick={() => setFinishPrompt(true)}
-          aria-label="Afronden"
+          aria-label="Rond vergadering af"
           className="ml-auto flex min-h-11 items-center gap-2 rounded-full bg-danger px-4 text-sm font-semibold text-white hover:bg-danger/90"
         >
           <Check aria-hidden className="size-4" />
-          <span className="hidden sm:inline">Afronden</span>
-          <span className="sm:hidden">Afronden</span>
+          <span>Rond vergadering af</span>
         </button>
         <button
           type="button"
@@ -328,7 +327,12 @@ function LiveMeetingContent({ meeting }: { meeting: Meeting }) {
                               ops.nextStep(meeting.id, "done");
                               if (completingLast) setFinishPrompt(true);
                             }}
-                            className="inline-flex min-h-11 flex-1 items-center justify-center gap-2 whitespace-nowrap rounded-full border border-[#b3d4f3] bg-[#e5f3ff] px-3 text-sm font-bold text-[#2055e5] hover:bg-[#d4eaff]"
+                            className={cn(
+                              "inline-flex min-h-11 flex-1 items-center justify-center gap-2 whitespace-nowrap rounded-full border px-3 text-sm font-bold",
+                              completingLast
+                                ? "border-danger bg-danger text-white hover:bg-danger/90"
+                                : "border-[#b3d4f3] bg-[#e5f3ff] text-[#2055e5] hover:bg-[#d4eaff]",
+                            )}
                           >
                             <Check aria-hidden className="size-4 shrink-0" />
                             {completingLast ? "Voltooi & rond af →" : "Voltooi"}

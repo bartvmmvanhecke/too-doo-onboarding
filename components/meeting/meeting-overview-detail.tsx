@@ -1,11 +1,12 @@
 "use client";
+import { PreviousFollowUpBanner } from "./previous-follow-up-banner";
 
 import { useState } from "react";
 import Link from "next/link";
-import { ArrowLeft, CalendarCheck, Check, ChevronUp, Ellipsis, Clock, Coffee, Play, Plus } from "lucide-react";
+import { ArrowLeft, CalendarCheck, Check, ChevronUp, Clock, Coffee, Play, Plus } from "lucide-react";
 import { PendingFollowUp } from "./pending-follow-up";
 import { isHandled } from "@/lib/meeting-wrap-up";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { PendingMeetingMenu } from "./pending-meeting-menu";
 import { Avatar } from "@/components/avatar";
 import { BreakBlock, TopicsBlock } from "@/components/meeting/agenda";
 import { InlineText } from "@/components/meeting/bits";
@@ -95,6 +96,7 @@ export function MeetingOverviewDetail({ meeting }: { meeting: Meeting }) {
             <ArrowLeft className="size-4" aria-hidden />
             Terug naar overzicht
           </Link>
+          <PreviousFollowUpBanner meeting={meeting} />
           <header className="flex flex-wrap items-center justify-between gap-5 py-2">
             <div className="flex min-w-0 flex-col items-start gap-2">
               {compact ? (
@@ -143,20 +145,20 @@ export function MeetingOverviewDetail({ meeting }: { meeting: Meeting }) {
               </div>
             </div>
             {pending ? (
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button variant="outline" size="icon" aria-label="Meer opties voor vergadering">
-                    <Ellipsis className="size-5" />
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="app-theme">
-                  <Button variant="ghost" onClick={() => ops.startRun(meeting.id)}>
-                    Vergadering hervatten
-                  </Button>
-                </PopoverContent>
-              </Popover>
+              <PendingMeetingMenu meeting={meeting}>
+                <Button variant="ghost" onClick={() => openAdd("theme")}>
+                  Thema toevoegen
+                </Button>
+                <Button variant="ghost" onClick={() => openAdd("item")}>
+                  Agendapunt toevoegen
+                </Button>
+                <Button variant="ghost" onClick={() => ops.addBlock(meeting.id, "break")}>
+                  Pauze
+                </Button>
+              </PendingMeetingMenu>
             ) : (
               <div className="flex flex-wrap items-center gap-4">
+                {pending && <PendingMeetingMenu meeting={meeting} />}
                 <div
                   className={cn(
                     "flex flex-wrap items-center gap-3 font-bold",

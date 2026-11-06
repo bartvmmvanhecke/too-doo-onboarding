@@ -43,3 +43,11 @@ describe("v2 planning", () => {
     expect(canResume(m, at("2026-11-07T12:00:00"))).toBe(false);
   });
 });
+
+describe("voorzitter en registratie", () => {
+ it("toont nooit gestarte vergaderingen pas na 30 minuten als niet gestart", () => {
+  const m={...meeting(),startedAt:undefined,lastActivityAt:undefined};
+  expect(registrationState(m,at("2026-11-06T10:29:59"))).toBe("upcoming");
+  expect(registrationState(m,at("2026-11-06T10:30:00"))).toBe("not_started");
+ });
+});

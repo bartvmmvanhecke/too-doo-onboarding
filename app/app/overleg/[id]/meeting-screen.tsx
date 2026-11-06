@@ -1,5 +1,7 @@
 "use client";
 
+import { RegistrationQuestion } from "@/components/meeting/registration-question";
+import { registrationState } from "@/lib/meeting-schedule";
 import { meetingNow } from "@/lib/meeting-clock";
 import { MeetingReminderPreview } from "@/components/b/meeting-reminder-preview";
 import { closeManually } from "@/lib/meeting-wrap-up";
@@ -34,6 +36,14 @@ export function MeetingScreen() {
   }, [meeting, params, router]);
 
   if (!meeting) return null;
+  const registration = registrationState(meeting, meetingNow(meeting));
+  if (
+    meeting.outcome === "not_held" ||
+    (meeting.followUpStatus === "pending" &&
+      !meeting.outcome &&
+      (registration === "empty" || registration === "not_started"))
+  )
+    return <RegistrationQuestion meeting={meeting} />;
   if (params.get("herinnering") === "1") return <MeetingReminderPreview meeting={meeting} />;
   if (params.get("meldingen") === "1")
     return (

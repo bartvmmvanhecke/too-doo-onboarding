@@ -87,3 +87,19 @@ export function resumeMeeting(meeting: Meeting, now = Date.now()): Meeting {
     },
   };
 }
+export function isChair(meeting: Meeting, userId = "jp") {
+  return (
+    (meeting.attendance?.find((p) => p.role === "Voorzitter")?.personId ??
+      meeting.startedBy ??
+      meeting.participants[0]) === userId
+  );
+}
+export function pendingForChair(meeting: Meeting, now = Date.now(), userId = "jp") {
+  return (
+    meeting.outcome !== "not_held" &&
+    meeting.followUpStatus !== "sent" &&
+    isChair(meeting, userId) &&
+    (meeting.followUpStatus === "pending" || registrationState(meeting, now) === "not_started") &&
+    !pendingExpired(meeting, now)
+  );
+}

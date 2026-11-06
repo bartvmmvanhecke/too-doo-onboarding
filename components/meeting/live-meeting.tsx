@@ -1,4 +1,5 @@
 "use client";
+import { PreviousFollowUpBanner } from "./previous-follow-up-banner";
 
 import { AwayPrompt } from "./away-prompt";
 import { MeetingPrototypeBar } from "@/components/prototype/meeting-prototype-bar";
@@ -38,13 +39,14 @@ import { closeManually, isHandled, navigateTo, othersOpen, nextOpenItem } from "
 import { cn } from "@/lib/utils";
 
 const pill =
-  "inline-flex min-h-11 items-center justify-center gap-2 rounded-full border border-[#2255ff] bg-[#e5f3ff] px-4 text-sm font-bold text-[#2055e5] hover:bg-[#d4eaff] disabled:cursor-not-allowed disabled:opacity-50";
+  "inline-flex min-h-11 items-center justify-center gap-2 rounded-full border border-[var(--wrap-color-2255ff)] bg-[var(--wrap-color-e5f3ff)] px-4 text-sm font-bold text-[var(--wrap-color-2055e5)] hover:bg-[var(--wrap-color-d4eaff)] disabled:cursor-not-allowed disabled:opacity-50";
 
 export function LiveMeeting({ meeting }: { meeting: Meeting }) {
   return (
-    <div className="app-theme fixed inset-0 z-40 flex flex-col overflow-hidden bg-[linear-gradient(180deg,transparent,#08042e),linear-gradient(110deg,#2e6090,#73c8fb_75%)] text-[#1f2b3b]">
+    <div className="app-theme fixed inset-0 z-40 flex flex-col overflow-hidden bg-[linear-gradient(180deg,transparent,var(--wrap-color-08042e)),linear-gradient(110deg,var(--wrap-color-2e6090),#73c8fb_75%)] text-[var(--wrap-color-1f2b3b)]">
       <MeetingPrototypeBar meetingId={meeting.id} />
       <AwayPrompt meeting={meeting} />
+      <PreviousFollowUpBanner meeting={meeting} />
       <LiveMeetingContent key={meeting.demoScenarioRevision ?? 0} meeting={meeting} />
     </div>
   );
@@ -342,7 +344,7 @@ function LiveMeetingContent({ meeting }: { meeting: Meeting }) {
                                 ? ops.demo.wrapUpPrimary
                                   ? "border-brand bg-brand text-white hover:bg-brand/90"
                                   : "border-danger bg-danger text-white hover:bg-danger/90"
-                                : "border-[#b3d4f3] bg-[#e5f3ff] text-[#2055e5] hover:bg-[#d4eaff]",
+                                : "border-[var(--wrap-color-b3d4f3)] bg-[var(--wrap-color-e5f3ff)] text-[var(--wrap-color-2055e5)] hover:bg-[var(--wrap-color-d4eaff)]",
                             )}
                           >
                             <Check aria-hidden className="size-4 shrink-0" />
@@ -451,7 +453,7 @@ function LiveMeetingContent({ meeting }: { meeting: Meeting }) {
             </button>
           </div>
         </aside>
-        <main className="flex min-h-0 min-w-0 flex-1 flex-col gap-7 overflow-y-auto rounded-tl-2xl bg-[#f9f9fc] p-5 xl:flex-row xl:p-6">
+        <main className="flex min-h-0 min-w-0 flex-1 flex-col gap-7 overflow-y-auto rounded-tl-2xl bg-[var(--wrap-color-f9f9fc)] p-5 xl:flex-row xl:p-6">
           <div className="min-w-0 flex-1">
             {(minimizePrompt || overtime) && (
               <section
@@ -524,7 +526,10 @@ function LiveMeetingContent({ meeting }: { meeting: Meeting }) {
               return (
                 <section
                   key={section.kind}
-                  className={cn("pb-7", section.kind === "document" && "border-t border-[#e1e3ec] pt-6")}
+                  className={cn(
+                    "pb-7",
+                    section.kind === "document" && "border-t border-[var(--wrap-color-e1e3ec)] pt-6",
+                  )}
                 >
                   <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
                     <h2 className="text-base font-bold">{section.title}</h2>
@@ -574,7 +579,7 @@ function LiveMeetingContent({ meeting }: { meeting: Meeting }) {
                       ))}
                     </ul>
                   ) : (
-                    <p className="text-sm text-[#777891]">{section.empty}</p>
+                    <p className="text-sm text-[var(--wrap-color-777891)]">{section.empty}</p>
                   )}
                   {section.kind === "action" && block?.kind === "actions" && (
                     <ul className="mt-3 space-y-2">
@@ -644,14 +649,14 @@ function LiveMeetingContent({ meeting }: { meeting: Meeting }) {
           </div>
           <section
             aria-label="Vergadernotities"
-            className="flex min-h-[560px] min-w-0 flex-1 flex-col overflow-hidden rounded-2xl bg-[#f0f1f6] xl:min-h-0"
+            className="flex min-h-[560px] min-w-0 flex-1 flex-col overflow-hidden rounded-2xl bg-[var(--wrap-color-f0f1f6)] xl:min-h-0"
           >
             <div className="flex items-center justify-between p-4">
               <h2 className="text-base font-bold">Vergadernotities</h2>
               <Popover>
                 <PopoverTrigger asChild>
                   <button type="button" aria-label="Notitieopties" className="flex size-11 items-center justify-center">
-                    <Ellipsis aria-hidden className="size-5 text-[#777891]" />
+                    <Ellipsis aria-hidden className="size-5 text-[var(--wrap-color-777891)]" />
                   </button>
                 </PopoverTrigger>
                 <PopoverContent className="app-theme text-sm">
@@ -662,7 +667,9 @@ function LiveMeetingContent({ meeting }: { meeting: Meeting }) {
             </div>
             <div className="min-h-[150px] flex-1 overflow-y-auto px-4 pb-4">
               {!notes.length && !privateNotes.length ? (
-                <p className="pt-8 text-center text-sm text-[#777891]">Nog geen vergadernotities toegevoegd.</p>
+                <p className="pt-8 text-center text-sm text-[var(--wrap-color-777891)]">
+                  Nog geen vergadernotities toegevoegd.
+                </p>
               ) : (
                 <ul className="space-y-3">
                   {notes.map((e) => (
@@ -705,7 +712,7 @@ function LiveMeetingContent({ meeting }: { meeting: Meeting }) {
               }}
               className="border-t border-line bg-white p-4"
             >
-              <div className="rounded-lg border border-[#cfd5e0] bg-white p-3 shadow-sm">
+              <div className="rounded-lg border border-[var(--wrap-color-cfd5e0)] bg-white p-3 shadow-sm">
                 <div role="toolbar" aria-label="Notitieopmaak" className="mb-3 flex gap-1">
                   {[
                     { label: "Vet", Icon: Bold, before: "**", after: "**" },
@@ -721,7 +728,7 @@ function LiveMeetingContent({ meeting }: { meeting: Meeting }) {
                       aria-label={label}
                       disabled={!item}
                       onClick={() => format(before, after)}
-                      className="flex size-11 items-center justify-center rounded text-[#98a4b9] hover:bg-line-soft"
+                      className="flex size-11 items-center justify-center rounded text-[var(--wrap-color-98a4b9)] hover:bg-line-soft"
                     >
                       <Icon aria-hidden className="size-4" />
                     </button>
@@ -737,7 +744,7 @@ function LiveMeetingContent({ meeting }: { meeting: Meeting }) {
                     setNote(e.target.value);
                     recordTyping();
                   }}
-                  className="min-h-[110px] w-full resize-y bg-transparent text-base outline-none placeholder:text-[#777891]"
+                  className="min-h-[110px] w-full resize-y bg-transparent text-base outline-none placeholder:text-[var(--wrap-color-777891)]"
                 />
               </div>
               <div className="mt-4 flex flex-wrap items-center justify-end gap-2">
@@ -760,8 +767,8 @@ function LiveMeetingContent({ meeting }: { meeting: Meeting }) {
       </div>
       <Dialog open={finishPrompt} onOpenChange={setFinishPrompt}>
         <DialogContent className="app-theme max-w-[450px] gap-5 rounded-2xl p-6 sm:p-7">
-          <div className="mb-1 flex size-16 items-center justify-center rounded-full bg-[#f4faff]">
-            <div className="flex size-11 items-center justify-center rounded-full bg-[#e5f3ff] text-[#2055e5]">
+          <div className="mb-1 flex size-16 items-center justify-center rounded-full bg-[var(--wrap-color-f4faff)]">
+            <div className="flex size-11 items-center justify-center rounded-full bg-[var(--wrap-color-e5f3ff)] text-[var(--wrap-color-2055e5)]">
               <CircleStop aria-hidden className="size-6" />
             </div>
           </div>
@@ -777,14 +784,14 @@ function LiveMeetingContent({ meeting }: { meeting: Meeting }) {
                 setFinishPrompt(false);
                 finish();
               }}
-              className="min-h-11 rounded-full bg-[#2055e5] px-4 text-base font-bold text-white hover:bg-[#1948c9]"
+              className="min-h-11 rounded-full bg-[var(--wrap-color-2055e5)] px-4 text-base font-bold text-white hover:bg-[var(--wrap-color-1948c9)]"
             >
               Vergadering afronden
             </button>
             <button
               type="button"
               onClick={() => setFinishPrompt(false)}
-              className="min-h-11 rounded-full border border-[#b3d4f3] bg-[#e5f3ff] px-4 text-base font-bold text-[#2055e5] hover:bg-[#d4eaff]"
+              className="min-h-11 rounded-full border border-[var(--wrap-color-b3d4f3)] bg-[var(--wrap-color-e5f3ff)] px-4 text-base font-bold text-[var(--wrap-color-2055e5)] hover:bg-[var(--wrap-color-d4eaff)]"
             >
               Vergadering voortzetten
             </button>

@@ -1,5 +1,7 @@
 "use client";
 
+import { suggestDecision, nextInSeries } from "@/lib/meeting-wrap-up";
+import { useStore } from "@/lib/store";
 import { formatShortDate } from "@/lib/date";
 
 import { useState, type DragEvent, type ReactNode } from "react";
@@ -99,6 +101,8 @@ export function AgendaItemRow({
   const { updateItem } = useMeetingOps();
   const [armed, setArmed] = useState(false);
   const [dropAt, setDropAt] = useState<"before" | "after" | null>(null);
+  const meetings = useStore((s) => s.meetings);
+  const nextMeeting = nextInSeries(meeting, meetings);
   const run = meeting.run;
   const pendingFollowUp = !!meeting.endedAt && meeting.followUpStatus === "pending";
   const status = pendingFollowUp
@@ -117,6 +121,8 @@ export function AgendaItemRow({
 
   return (
     <li
+      id={`agenda-item-${item.id}`}
+      data-agenda-item={item.id}
       draggable={armed}
       onDragStart={(e) => {
         e.dataTransfer.setData(ITEM_TYPE, item.id);
@@ -163,7 +169,29 @@ export function AgendaItemRow({
           status === "postponed" && "text-ink-3",
         )}
       />
-      {pendingFollowUp && (
+      {pendingFollowUp && status !== "done" && (
+        <label className="ml-auto">
+          <span className="sr-only">Wat met dit punt? {item.text}</span>
+          <select
+            value={item.decision ?? (meeting.filledAfterwards ? "" : suggestDecision(item))}
+            onChange={(e) => update({ decision: e.target.value as "done" | "next" | "drop" })}
+            className={cn(
+              "min-h-11 rounded-lg border bg-white px-3 text-sm",
+              meeting.filledAfterwards && !item.decision ? "border-warning" : "border-line",
+            )}
+          >
+            <option value="" disabled>
+              Kies…
+            </option>
+            <option value="done">Voltooid</option>
+            <option value="next">
+              {nextMeeting?.date ? `Naar ${formatShortDate(nextMeeting.date)}` : "Bewaren voor later"}
+            </option>
+            <option value="drop">Laten vallen</option>
+          </select>
+        </label>
+      )}
+      {pendingFollowUp && status === "done" && (
         <span
           className={cn(
             "ml-auto rounded-md px-2.5 py-1 text-xs font-bold",
@@ -171,6 +199,14 @@ export function AgendaItemRow({
           )}
         >
           {status === "done" ? "voltooid" : "niet voltooid"}
+        </span>
+      )}
+      {pendingFollowUp && status !== "done" && (
+        <span className="w-full text-xs text-ink-3">
+          {item.visitedAt
+            ? `Besproken, niet voltooid${run?.actuals[item.id] ? ` · ${Math.round(run.actuals[item.id] / 60)} van ${item.duration ?? 0} min` : ""}`
+            : "Niet aan bod gekomen"}
+          {item.entries.some((e) => e.kind === "action" && !e.ownerId) ? " · 1 actie zonder eigenaar" : ""}
         </span>
       )}
       {item.carriedFrom && <span className="text-xs text-ink-3">uit {formatShortDate(item.carriedFrom)}</span>}

@@ -11,7 +11,7 @@ export function MeetingsOverviewPrototypeBar({ onLoad }: { onLoad: () => void })
     <div
       role="region"
       aria-label="Prototype-bediening meetingoverzicht"
-      className="flex flex-wrap items-center gap-2 rounded-xl bg-[var(--prototype-bar-bg)] px-6 py-2.5 pr-16 text-[13px] text-white"
+      className="flex flex-wrap items-center gap-2 bg-[var(--prototype-bar-bg)] px-6 py-2.5 pr-16 text-[13px] text-white"
     >
       <span className="text-[11px] font-bold tracking-[0.06em] text-[var(--prototype-bar-muted)] uppercase">
         PROTOTYPE
@@ -36,7 +36,7 @@ export function MeetingsOverviewPrototypeBar({ onLoad }: { onLoad: () => void })
           {label}
         </button>
       ))}
-      <span aria-live="polite" className="text-[var(--prototype-bar-muted)]">
+      <span aria-live="polite" className="ml-auto text-[var(--prototype-bar-muted)]">
         {selected
           ? `2 afgeronde · 2 aankomende${selected === "pending" ? " · 1 nog af te ronden" : ""}`
           : "Kies een testscenario"}

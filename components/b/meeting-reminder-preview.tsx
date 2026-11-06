@@ -38,7 +38,7 @@ export function MeetingReminderPreview({ meeting }: { meeting: Meeting }) {
           vast als einde, je kunt ze nog aanpassen.
         </p>
         <Button asChild>
-          <Link href={`/app/overleg/${meeting.id}?afronden=1`}>Bekijk &amp; verstuur opvolging</Link>
+          <Link href={`/vergaderingen/${meeting.id}#afronden`}>Bekijk &amp; verstuur opvolging</Link>
         </Button>
         <p>
           Doe je niets, dan sluiten we de vergadering vanavond automatisch af. De opvolging versturen we dan niet. Dat

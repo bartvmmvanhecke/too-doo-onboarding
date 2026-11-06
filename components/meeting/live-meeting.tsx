@@ -21,6 +21,9 @@ import {
   Underline,
 } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { needsDecisions } from "@/lib/meeting-wrap-up";
+import { sendFollowUp } from "@/lib/meeting-follow-up";
 import { nextInSeries } from "@/lib/meeting-wrap-up";
 import { Avatar } from "@/components/avatar";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
@@ -49,6 +52,7 @@ export function LiveMeeting({ meeting }: { meeting: Meeting }) {
 
 function LiveMeetingContent({ meeting }: { meeting: Meeting }) {
   const ops = useStore();
+  const router = useRouter();
   const people = usePeople();
   const run = meeting.run!;
   const items = allItems(meeting.blocks);
@@ -61,14 +65,17 @@ function LiveMeetingContent({ meeting }: { meeting: Meeting }) {
   const completingLast = otherOpen.length === 0 && !!run.currentId && !isHandled(meeting, run.currentId);
   const handled = items.filter((i) => isHandled(meeting, i.id)).length;
   const openNumbers = otherOpen.map((i) => items.indexOf(i) + 1).join(" en ");
-  const finish = () => {
+  const finish = (allowSkip = false) => {
     if (note.trim()) saveNote();
-    ops.putMeeting(
-      closeManually(
-        useStore.getState().meetings.find((m) => m.id === meeting.id)!,
-        now,
-      ),
+    const closed = closeManually(
+      useStore.getState().meetings.find((m) => m.id === meeting.id)!,
+      now,
     );
+    ops.putMeeting(closed);
+    if (allowSkip && ops.demo.wrapUpSkip && !needsDecisions(closed, useStore.getState().meetings)) {
+      sendFollowUp(meeting.id, true);
+      router.push(`/vergaderingen/${meeting.id}`);
+    } else router.push(`/vergaderingen/${meeting.id}/afronden`);
   };
   const item = items.find((i) => i.id === run.currentId);
   const block = meeting.blocks.find((b) => b.id === run.currentId || b.items.some((i) => i.id === run.currentId));
@@ -327,7 +334,7 @@ function LiveMeetingContent({ meeting }: { meeting: Meeting }) {
                               if (note.trim()) saveNote();
                               setNote("");
                               ops.nextStep(meeting.id, "done");
-                              if (completingLast) finish();
+                              if (completingLast) finish(true);
                             }}
                             className={cn(
                               "inline-flex min-h-11 flex-1 items-center justify-center gap-2 whitespace-nowrap rounded-full border px-3 text-sm font-bold",
@@ -475,7 +482,7 @@ function LiveMeetingContent({ meeting }: { meeting: Meeting }) {
                   >
                     {minimizePrompt ? "Minimaliseren" : "+15 min"}
                   </Button>
-                  <Button size="sm" onClick={finish}>
+                  <Button size="sm" onClick={() => finish()}>
                     Afronden
                   </Button>
                 </div>

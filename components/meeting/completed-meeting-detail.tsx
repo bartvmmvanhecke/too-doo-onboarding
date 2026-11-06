@@ -1,5 +1,9 @@
 "use client";
 
+import { useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
+import { Button } from "@/components/ui/button";
+import { useFollowUpUndo, undoFollowUp } from "@/lib/meeting-follow-up";
 import Link from "next/link";
 import { ArrowLeft, CheckCircle2 } from "lucide-react";
 import { usePeople, useStore, type Meeting } from "@/lib/store";
@@ -8,6 +12,18 @@ import { formatShortDate } from "@/lib/date";
 import { formatTime } from "@/lib/time";
 
 export function CompletedMeetingDetail({ meeting }: { meeting: Meeting }) {
+  const router = useRouter();
+  const undo = useFollowUpUndo();
+  const [undoVisible, setUndoVisible] = useState(undo.meetingId === meeting.id);
+  const message = useRef<HTMLElement>(null);
+  useEffect(() => {
+    message.current?.focus();
+  }, []);
+  useEffect(() => {
+    if (undo.meetingId !== meeting.id) return;
+    const timer = setTimeout(() => setUndoVisible(false), Math.max(0, undo.expiresAt - Date.now()));
+    return () => clearTimeout(timer);
+  }, [undo.meetingId, undo.expiresAt, meeting.id]);
   const meetings = useStore((s) => s.meetings);
   const people = usePeople();
   const next = nextInSeries(meeting, meetings);
@@ -34,6 +50,8 @@ export function CompletedMeetingDetail({ meeting }: { meeting: Meeting }) {
         </p>
       </header>
       <section
+        ref={message}
+        tabIndex={-1}
         role="status"
         className="flex flex-wrap items-start gap-3 rounded-2xl bg-success-bg p-5 text-success-ink"
       >
@@ -47,6 +65,21 @@ export function CompletedMeetingDetail({ meeting }: { meeting: Meeting }) {
             </p>
           )}
         </div>
+        {undoVisible && undo.meetingId === meeting.id && (
+          <>
+            <Button
+              variant="outline"
+              onClick={() => {
+                if (undoFollowUp()) router.push(`/vergaderingen/${meeting.id}/afronden`);
+              }}
+            >
+              Ongedaan maken
+            </Button>
+            <Button variant="ghost" onClick={() => document.getElementById("completed-agenda")?.scrollIntoView()}>
+              Bekijk
+            </Button>
+          </>
+        )}
         {next && (
           <Link
             href={`/app/overleg/${next.id}`}
@@ -56,7 +89,9 @@ export function CompletedMeetingDetail({ meeting }: { meeting: Meeting }) {
           </Link>
         )}
       </section>
-      <h2 className="text-3xl font-semibold">Agenda</h2>
+      <h2 id="completed-agenda" className="text-3xl font-semibold">
+        Agenda
+      </h2>
       <div className="rounded-2xl border border-line bg-white px-5 py-2">
         {items.map((item, index) => (
           <details key={item.id} className="border-b border-line-faint last:border-0">

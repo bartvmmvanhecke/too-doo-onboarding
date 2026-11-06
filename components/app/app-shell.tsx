@@ -35,7 +35,7 @@ function Sidebar({ onMeetingsClick }: { onMeetingsClick: () => void }) {
   // Variant B (flow 3): "Dashboard" opent het overzicht.
   const bMode = useStore((s) => s.flow === 3 || s.meetings.some((m) => m.origin === "b"));
   // De voorbeeldvergadering (/voorbeeld) hoort ook bij "Vergaderingen".
-  const inMeetings = pathname.startsWith("/app") || pathname === "/voorbeeld";
+  const inMeetings = pathname.startsWith("/app") || pathname.startsWith("/vergaderingen") || pathname === "/voorbeeld";
   const lazyUser = useStore((s) =>
     s.variant === "A" && s.lazy && s.user ? `${s.user.firstName} ${s.user.lastName}`.trim() : null,
   );

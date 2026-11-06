@@ -125,7 +125,7 @@ export function ReminderMailModal({
                 we vast als einde, je kunt ze nog aanpassen.
               </p>
               <Link
-                href={`/app/overleg/${meeting.id}?afronden=1`}
+                href={`/vergaderingen/${meeting.id}#afronden`}
                 onClick={onFollowUp}
                 className="inline-flex min-h-11 items-center rounded-md bg-[#2055e5] px-5 py-3 font-bold text-white hover:bg-[#1948c9]"
               >

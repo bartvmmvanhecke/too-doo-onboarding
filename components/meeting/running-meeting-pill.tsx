@@ -15,7 +15,7 @@ export function RunningMeetingPill() {
     <aside
       role="status"
       aria-label="Lopende vergadering"
-      className="fixed right-4 bottom-5 z-30 flex max-w-[calc(100%-2rem)] flex-wrap items-center gap-3 rounded-2xl border border-line bg-white p-3 shadow-lg"
+      className={`fixed right-4 bottom-5 z-30 flex max-w-[calc(100%-2rem)] flex-wrap items-center gap-3 rounded-2xl border border-line p-3 shadow-lg ${over ? "bg-[var(--wrap-amber-bg)]" : "bg-white"}`}
     >
       <span className={over ? "text-[var(--wrap-amber-ink)]" : "text-brand"}>
         ● {meeting.name} · <span className="tabular-nums">{elapsedClock(now - meeting.run!.startedAt)}</span> ·{" "}
@@ -25,7 +25,7 @@ export function RunningMeetingPill() {
       </span>
       <Button variant="outline" size="sm" asChild>
         <Link
-          href={`/app/overleg/${meeting.id}?afronden=1`}
+          href={`/vergaderingen/${meeting.id}/afronden`}
           onClick={() => useStore.getState().putMeeting(closeManually(meeting, now))}
         >
           Afronden

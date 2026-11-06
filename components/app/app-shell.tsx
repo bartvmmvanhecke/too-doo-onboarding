@@ -16,6 +16,8 @@ import { AfterSaveAssistant } from "@/components/probeer/after-save";
 import { notAvailable } from "@/lib/not-available";
 import { useStore } from "@/lib/store";
 import { cn } from "@/lib/utils";
+import { isDemoEnvironment } from "@/lib/demo-environment";
+import { loadMeetingsOverviewScenario } from "@/lib/prototype/meetingsOverviewScenarios";
 
 const active = "bg-white/15 font-semibold text-white";
 
@@ -27,7 +29,7 @@ function Badge({ children }: { children: ReactNode }) {
 }
 
 /** Zijbalk van de product-app, transparant op het verloop; op smalle schermen een balk bovenaan. */
-function Sidebar() {
+function Sidebar({ onMeetingsClick }: { onMeetingsClick: () => void }) {
   const pathname = usePathname();
   const meetings = useStore((s) => s.meetings);
   // Variant B (flow 3): "Dashboard" opent het overzicht.
@@ -75,7 +77,12 @@ function Sidebar() {
         ) : (
           comingSoon("Dashboard")
         )}
-        <Link href="/app" aria-current={inMeetings ? "page" : undefined} className={cn(item, inMeetings && active)}>
+        <Link
+          onClick={onMeetingsClick}
+          href="/app"
+          aria-current={inMeetings ? "page" : undefined}
+          className={cn(item, inMeetings && active)}
+        >
           Vergaderingen
           {meetings.some((m) => m.run && !m.endedAt) && (
             <span aria-label="Vergadering bezig" className="size-2 rounded-full bg-[var(--wrap-handled)]" />
@@ -116,7 +123,13 @@ export function AppShell({ children }: { children: ReactNode }) {
         </Hydrated>
         <div className="flex flex-1 flex-col lg:flex-row">
           <Hydrated fallback={<div className="lg:min-h-dvh lg:w-60 lg:shrink-0" />}>
-            <Sidebar />
+            <Sidebar
+              onMeetingsClick={() => {
+                if (!isDemoEnvironment()) return;
+                loadMeetingsOverviewScenario("default");
+                setOverviewRevision((value) => value + 1);
+              }}
+            />
           </Hydrated>
           <div className="relative flex min-w-0 flex-1 flex-col pt-4">
             {/* Lichte band; links sluit ze aan op de bovenkant van de zijbalk. */}

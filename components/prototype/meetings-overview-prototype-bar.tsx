@@ -1,11 +1,16 @@
 "use client";
 
-import { useState } from "react";
+import { useStore } from "@/lib/store";
 import { isDemoEnvironment } from "@/lib/demo-environment";
-import { loadMeetingsOverviewScenario, type MeetingsOverviewScenario } from "@/lib/prototype/meetingsOverviewScenarios";
+import { loadMeetingsOverviewScenario } from "@/lib/prototype/meetingsOverviewScenarios";
 
 export function MeetingsOverviewPrototypeBar({ onLoad }: { onLoad: () => void }) {
-  const [selected, setSelected] = useState<MeetingsOverviewScenario | null>(null);
+  const meetings = useStore((s) => s.meetings);
+  const selected = meetings.some((m) => m.id === "overview-demo-pending")
+    ? "pending"
+    : meetings.length === 4 && meetings.every((m) => m.id.startsWith("overview-demo-"))
+      ? "default"
+      : null;
   if (!isDemoEnvironment()) return null;
   return (
     <div
@@ -28,7 +33,6 @@ export function MeetingsOverviewPrototypeBar({ onLoad }: { onLoad: () => void })
           aria-pressed={selected === value}
           onClick={() => {
             loadMeetingsOverviewScenario(value);
-            setSelected(value);
             onLoad();
           }}
           className="min-h-8 rounded-lg border border-[var(--prototype-bar-border)] bg-[var(--prototype-bar-button)] px-3 text-white aria-pressed:ring-2 aria-pressed:ring-white/60 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--prototype-bar-focus)]"

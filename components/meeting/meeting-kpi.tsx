@@ -14,14 +14,19 @@ export function MeetingKpi() {
       <h1 className="text-3xl font-bold">Vergaderingen</h1>
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         {[
-          { title: "Totaal vergaderingen", value: String(kpi.total) },
+          { title: "Totaal vergaderingen", value: String(kpi.total), sub: `${kpi.known} met gekende duur` },
           { title: "Gepland", value: hours(kpi.scheduled) },
-          { title: "Werkelijk", value: hours(kpi.actual) },
-          { title: "Niet afgerond", value: `${kpi.automatic} van ${kpi.total}`, sub: "automatisch afgesloten" },
+          { title: "Werkelijk", value: hours(kpi.actual), sub: "o.b.v. laatste activiteit" },
+          { title: "Niet afgerond", value: String(kpi.pending), sub: "opvolging niet verstuurd" },
+          {
+            title: "Zonder registratie",
+            value: String(kpi.empty + kpi.notStarted),
+            sub: `${kpi.empty} niets vastgelegd · ${kpi.notStarted} niet gestart`,
+          },
         ].map((tile) => (
           <section
             key={tile.title}
-            className={`rounded-2xl border border-line p-5 ${tile.sub ? "bg-[var(--wrap-amber-bg)]" : "bg-white"}`}
+            className={`rounded-2xl border border-line p-5 ${["Niet afgerond", "Zonder registratie"].includes(tile.title) ? "bg-[var(--wrap-amber-bg)]" : "bg-white"}`}
           >
             <h2 className="text-sm text-ink-2">{tile.title}</h2>
             <p className="my-2 text-3xl font-bold">{tile.value}</p>
@@ -66,7 +71,13 @@ export function MeetingKpi() {
                   <span
                     className={`rounded-full px-3 py-1 text-xs font-bold ${row.manual ? "bg-[var(--wrap-success-bg)] text-[var(--wrap-success-ink)]" : "bg-line-soft text-ink-2"}`}
                   >
-                    {row.manual ? "afgerond" : "automatisch"}
+                    {row.notStarted
+                      ? `${row.notStarted} niet gestart`
+                      : row.empty
+                        ? `${row.empty} niets vastgelegd`
+                        : row.manual
+                          ? "afgerond"
+                          : "automatisch"}
                   </span>
                   {!row.manual && <span className="mt-2 block text-xs text-ink-3">stond {hours(row.raw)} open</span>}
                 </td>

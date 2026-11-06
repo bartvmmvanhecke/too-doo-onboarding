@@ -4,6 +4,7 @@ import { useState, type ReactNode } from "react";
 import { MeetingsOverviewPrototypeBar } from "@/components/prototype/meetings-overview-prototype-bar";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { StartReminder } from "@/components/meeting/start-reminder";
 import { ChimeScheduler } from "@/components/meeting/chime-scheduler";
 import { UnattendedSync } from "@/components/meeting/unattended-sync";
 import { RunningMeetingPill } from "@/components/meeting/running-meeting-pill";
@@ -16,6 +17,8 @@ import { AfterSaveAssistant } from "@/components/probeer/after-save";
 import { notAvailable } from "@/lib/not-available";
 import { useStore } from "@/lib/store";
 import { cn } from "@/lib/utils";
+import { pendingForChair } from "@/lib/meeting-schedule";
+import { meetingNow } from "@/lib/meeting-clock";
 import { isDemoEnvironment } from "@/lib/demo-environment";
 import { loadMeetingsOverviewScenario } from "@/lib/prototype/meetingsOverviewScenarios";
 
@@ -43,6 +46,7 @@ function Sidebar({ onMeetingsClick }: { onMeetingsClick: () => void }) {
     (n, m) => n + (m.reviewSuggestions ?? []).filter((a) => a.reviewStatus === "open").length,
     0,
   );
+  const pendingCount = meetings.filter((m) => pendingForChair(m, meetingNow(m))).length;
   const openActions = meetings.reduce((n, m) => n + m.actions.filter((a) => !a.done).length, 0);
 
   const comingSoon = (label: string, badge?: ReactNode) => (
@@ -84,6 +88,14 @@ function Sidebar({ onMeetingsClick }: { onMeetingsClick: () => void }) {
           className={cn(item, inMeetings && active)}
         >
           Vergaderingen
+          {pendingCount > 0 && (
+            <span
+              aria-label={`${pendingCount} nog af te ronden`}
+              className="rounded-full bg-warning-bg px-2 py-0.5 text-xs font-bold text-warning"
+            >
+              {pendingCount}
+            </span>
+          )}
           {meetings.some((m) => m.run && !m.endedAt) && (
             <span aria-label="Vergadering bezig" className="size-2 rounded-full bg-[var(--wrap-handled)]" />
           )}
@@ -144,6 +156,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           </div>
           <Hydrated>
             <ChimeScheduler />
+            <StartReminder />
             <UnattendedSync />
             <RunningMeetingPill />
             <AfterSaveAssistant />

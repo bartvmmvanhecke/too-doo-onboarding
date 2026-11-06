@@ -1,3 +1,4 @@
+import { DIRECTIE_AGENDA_TITLES } from "./meetingFixtures";
 import { autoCloseAt } from "../meeting-schedule";
 import { newBlock, newItem, type Entry } from "../agenda";
 import { unattended } from "../meeting-wrap-up";
@@ -86,15 +87,9 @@ export function loadWrapUpScenario(kind: WrapUpScenario, meetingId: string, real
           ],
           6: [entry("kerst", "note", "Kerstdrink valt in week 51", null, "")],
         };
-  const titles = [
-    "Opening en vorige besluiten",
-    "Budgetvoorstel Q1",
-    "Strategische prioriteiten",
-    "Veiligheidsaudit",
-    "Opleidingsbudget Q4",
-    "Varia",
-  ];
-  const handled = kind === "start" ? [] : kind === "jumps" ? [1, 4] : kind === "third-last" ? [1, 2, 4, 5, 6] : [1, 2, 3, 4, 5];
+  const titles = DIRECTIE_AGENDA_TITLES;
+  const handled =
+    kind === "start" ? [] : kind === "jumps" ? [1, 4] : kind === "third-last" ? [1, 2, 4, 5, 6] : [1, 2, 3, 4, 5];
   const actions: Action[] = Object.values(entries)
     .flat()
     .filter((e) => e.kind === "action")
@@ -136,7 +131,10 @@ export function loadWrapUpScenario(kind: WrapUpScenario, meetingId: string, real
             duration: 10,
             ownerIds: [],
             runStatus: handled.includes(i + 1) ? "done" : "open",
-            visitedAt: handled.includes(i + 1) || (kind === "jumps" && [2, 5].includes(i + 1)) ? start + elapsed * 60000 : undefined,
+            visitedAt:
+              handled.includes(i + 1) || (kind === "jumps" && [2, 5].includes(i + 1))
+                ? start + elapsed * 60000
+                : undefined,
             doneAt: handled.includes(i + 1) ? start + elapsed * 60000 : undefined,
             entries: entries[i + 1] ?? [],
           }),

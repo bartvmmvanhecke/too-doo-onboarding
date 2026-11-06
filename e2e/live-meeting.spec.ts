@@ -91,6 +91,8 @@ test("aanwezigheid naar vergadermodus, verslag opslaan en vergadering beëindige
   await expect(page).toHaveURL(/\/vergaderingen\/live-test$/);
   await expect(page.getByRole("complementary", { name: "Vergaderagenda" })).toBeVisible();
   await page.getByRole("button", { name: "Rond vergadering af", exact: true }).click();
+  await expect(page).toHaveURL(/\/vergaderingen\/live-test\/afronden$/);
+  await expect(page.getByRole("heading", { name: "Vergadering afronden", exact: true })).toBeFocused();
   await page.getByLabel("Datum", { exact: true }).fill("2026-11-13");
   await page.getByRole("button", { name: "Bewaar", exact: true }).click();
   await expect(page.getByRole("heading", { name: "Beslissingen (1)", exact: true })).toBeVisible();
@@ -102,7 +104,8 @@ test("aanwezigheid naar vergadermodus, verslag opslaan en vergadering beëindige
   expect(reviewing.run).not.toBeNull();
   await page.screenshot({ path: "/tmp/live-v2-before-send.png", fullPage: true, animations: "disabled" });
   await page.getByRole("button", { name: "Rond af & verstuur opvolging", exact: true }).click();
-  await expect(page.getByText("Afgerond", { exact: true })).toBeVisible();
+  await expect(page).toHaveURL(/\/vergaderingen\/live-test$/);
+  await expect(page.getByRole("main").getByText("Afgerond", { exact: true })).toBeVisible();
   await expect(page.getByRole("complementary", { name: "Vergaderagenda" })).toHaveCount(0);
   const meeting = await page.evaluate(() => JSON.parse(localStorage.getItem("too-doo-onboarding")!).state.meetings[0]);
   expect(meeting.run).toBeNull();

@@ -6,7 +6,6 @@ import { meetingNow } from "@/lib/meeting-clock";
 import { MeetingReminderPreview } from "@/components/b/meeting-reminder-preview";
 import { closeManually } from "@/lib/meeting-wrap-up";
 import { CompletedMeetingDetail } from "@/components/meeting/completed-meeting-detail";
-import { MeetingWrapUp } from "@/components/meeting/meeting-wrap-up";
 import { MeetingStartGate } from "@/components/meeting/meeting-start-gate";
 import { useEffect } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
@@ -59,7 +58,7 @@ export function MeetingScreen() {
       <div data-meeting-detail className="contents">
         <SavedBanner meeting={meeting} />
         {meeting.wrapUpOpen ? (
-          <MeetingWrapUp meeting={meeting} />
+          <WrapUpRedirect id={meeting.id} />
         ) : meeting.followUpStatus === "sent" ? (
           <CompletedMeetingDetail meeting={meeting} />
         ) : params.get("variant") === "b" && !meeting.run ? (
@@ -72,4 +71,12 @@ export function MeetingScreen() {
       </div>
     </MeetingStartGate>
   );
+}
+
+function WrapUpRedirect({ id }: { id: string }) {
+  const router = useRouter();
+  useEffect(() => {
+    router.replace(`/vergaderingen/${id}/afronden`);
+  }, [id, router]);
+  return null;
 }

@@ -206,3 +206,23 @@ test("compacte variant en kleurkeuzes blijven bij herstart demo bewaard", async 
   expect(stored.wrapUpCompact).toBe(true);
   expect(stored.wrapUpPrimary).toBe(true);
 });
+
+test("Directieoverleg gebruikt de startagenda en titelklik herstelt Default", async ({ page }) => {
+  await seed(page);
+  await page.goto("/app");
+  const bar = page.getByRole("region", { name: "Prototype-bediening meetingoverzicht" });
+  await bar.getByRole("button", { name: "Default", exact: true }).click();
+  await expect(page.getByText("Productieoverleg", { exact: true })).toHaveCount(0);
+  await page.getByRole("link").filter({ hasText: "Directieoverleg" }).first().click();
+  await expect(page.getByRole("heading", { name: "Directieoverleg", exact: true })).toBeVisible();
+  await expect(page.getByText("Budgetvoorstel Q1", { exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Start vergadering", exact: true }).click();
+  const proceed = page.getByRole("button", { name: "Doorgaan", exact: true });
+  if (await proceed.isVisible()) await proceed.click();
+  await expect(agenda(page)).toBeVisible();
+  await expect(agenda(page).getByText("Opleidingsbudget Q4", { exact: true })).toBeVisible();
+  await page.getByRole("heading", { name: "Directieoverleg", exact: true }).getByRole("button").click();
+  await expect(page).toHaveURL("http://localhost:3000/app");
+  await expect(bar.getByRole("button", { name: "Default", exact: true })).toHaveAttribute("aria-pressed", "true");
+  await expect(page.locator('section[aria-labelledby="groep-aankomend"] li')).toHaveCount(2);
+});

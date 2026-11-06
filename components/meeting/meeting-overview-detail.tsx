@@ -1,4 +1,6 @@
 "use client";
+import { isDemoEnvironment } from "@/lib/demo-environment";
+import { loadMeetingsOverviewScenario } from "@/lib/prototype/meetingsOverviewScenarios";
 import { PreviousFollowUpBanner } from "./previous-follow-up-banner";
 
 import { useState } from "react";
@@ -112,7 +114,22 @@ export function MeetingOverviewDetail({ meeting }: { meeting: Meeting }) {
                 </span>
               )}
               <div className="flex flex-wrap items-center gap-3">
-                <h1 className="max-w-full text-[36px] leading-tight font-semibold sm:text-[40px]">{meeting.name}</h1>
+                <h1 className="max-w-full text-[36px] leading-tight font-semibold sm:text-[40px]">
+                  {isDemoEnvironment() && meeting.run && !meeting.endedAt ? (
+                    <button
+                      type="button"
+                      className="min-h-11 text-left"
+                      onClick={() => {
+                        loadMeetingsOverviewScenario("default");
+                        router.push("/app");
+                      }}
+                    >
+                      {meeting.name}
+                    </button>
+                  ) : (
+                    meeting.name
+                  )}
+                </h1>
               </div>
               <div className="flex flex-wrap items-center gap-3">
                 <p className="text-sm font-semibold text-ink-3">

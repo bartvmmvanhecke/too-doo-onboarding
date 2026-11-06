@@ -1,4 +1,6 @@
 "use client";
+import { isDemoEnvironment } from "@/lib/demo-environment";
+import { loadMeetingsOverviewScenario } from "@/lib/prototype/meetingsOverviewScenarios";
 import { PreviousFollowUpBanner } from "./previous-follow-up-banner";
 
 import { ChimeControl } from "./chime-control";
@@ -201,7 +203,7 @@ function LiveMeetingContent({ meeting }: { meeting: Meeting }) {
   return (
     <div className="contents">
       <header className="flex min-h-16 shrink-0 flex-wrap items-center gap-3 px-3 py-2 text-white sm:px-5">
-        <h1 className="mr-3 min-w-0 text-2xl font-bold lg:w-[280px] lg:shrink-0">{meeting.name}</h1>
+        <h1 className="mr-3 min-w-0 text-2xl font-bold lg:w-[280px] lg:shrink-0">{isDemoEnvironment() ? <button type="button" className="min-h-11 text-left" onClick={() => { loadMeetingsOverviewScenario("default"); router.push("/app"); }}>{meeting.name}</button> : meeting.name}</h1>
         <p className="order-last w-full min-w-0 truncate text-[14pt] font-bold sm:order-none sm:w-auto sm:flex-1">
           {item?.text ?? block?.title}
         </p>

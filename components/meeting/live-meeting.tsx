@@ -196,7 +196,7 @@ function LiveMeetingContent({ meeting }: { meeting: Meeting }) {
         </p>
         <div className="flex flex-wrap items-center gap-4 text-xs">
           <span>
-            {handled} van de {items.length} behandeld
+            {handled} van de {items.length} voltooid
           </span>
           <span
             role="status"
@@ -282,11 +282,11 @@ function LiveMeetingContent({ meeting }: { meeting: Meeting }) {
                         {!active && (
                           <>
                             <span className="shrink-0 text-right text-xs">
-                              {isHandled(meeting, i.id) ? "behandeld" : `${i.duration ?? 0} min`}
+                              {isHandled(meeting, i.id) ? "voltooid" : `${i.duration ?? 0} min`}
                             </span>
                             {isHandled(meeting, i.id) ? (
                               <Check
-                                aria-label="Behandeld"
+                                aria-label="Voltooid"
                                 className="size-5 shrink-0 rounded-full bg-[var(--wrap-handled)] text-white"
                               />
                             ) : (
@@ -299,9 +299,9 @@ function LiveMeetingContent({ meeting }: { meeting: Meeting }) {
                         <div className="flex shrink-0 flex-col items-end gap-2 text-xs">
                           {(isHandled(meeting, i.id) || previouslyHandled.has(i.id)) && (
                             <span className="flex items-center gap-2 font-bold">
-                              behandeld
+                              voltooid
                               <Check
-                                aria-label="Behandeld"
+                                aria-label="Voltooid"
                                 className="size-5 shrink-0 rounded-full bg-[var(--wrap-handled)] text-white"
                               />
                             </span>
@@ -386,7 +386,7 @@ function LiveMeetingContent({ meeting }: { meeting: Meeting }) {
             )}
           </div>
           <p className="px-3 py-2 text-xs text-white/80">
-            Een punt telt als behandeld zodra je naar een ander punt gaat. Klik erop om het te heropenen.
+            Een punt telt als voltooid zodra je naar een ander punt gaat. Klik erop om het te heropenen.
           </p>
           <div className="border-t border-white/15 p-2 lg:pt-4">
             <button
@@ -414,7 +414,7 @@ function LiveMeetingContent({ meeting }: { meeting: Meeting }) {
                 <h2 className="font-bold">{minimizePrompt ? "Eerst afronden?" : "Vergadering nog bezig?"}</h2>
                 <p className="my-2 text-sm">
                   {minimizePrompt
-                    ? `${overtime ? "Het geplande einde is voorbij." : "Alle agendapunten zijn behandeld."} Minimaliseer je, dan loopt de vergadering gewoon door.`
+                    ? `${overtime ? "Het geplande einde is voorbij." : "Alle agendapunten zijn voltooid."} Minimaliseer je, dan loopt de vergadering gewoon door.`
                     : `Het geplande einde (${clockTime(end)}) is voorbij.${otherOpen.length ? ` Punt ${openNumbers} staan nog open.` : ""}`}
                 </p>
                 <div className="flex gap-2">
@@ -443,7 +443,7 @@ function LiveMeetingContent({ meeting }: { meeting: Meeting }) {
             )}
             {!run.currentId && (
               <p className="mb-5 rounded-lg bg-blue-50 p-3 text-sm">
-                Alle agendapunten zijn behandeld. Voeg een punt toe of rond de vergadering af.
+                Alle agendapunten zijn voltooid. Voeg een punt toe of rond de vergadering af.
               </p>
             )}
             {block && !item && (

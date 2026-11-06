@@ -324,8 +324,9 @@ function LiveMeetingContent({ meeting }: { meeting: Meeting }) {
                               setNote("");
                               ops.nextStep(meeting.id, "done");
                             }}
-                            className="min-h-11 flex-1 whitespace-nowrap rounded-full border border-white px-3 text-sm font-bold hover:bg-white/10"
+                            className="inline-flex min-h-11 flex-1 items-center justify-center gap-2 whitespace-nowrap rounded-full border border-[#b3d4f3] bg-[#e5f3ff] px-3 text-sm font-bold text-[#2055e5] hover:bg-[#d4eaff]"
                           >
+                            <Check aria-hidden className="size-4 shrink-0" />
                             Voltooi
                           </button>
                           <button

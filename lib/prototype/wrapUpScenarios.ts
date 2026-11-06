@@ -38,7 +38,7 @@ export function loadWrapUpScenario(kind: WrapUpScenario, meetingId: string, real
       blocks: current.blocks.map((b) => ({
         ...b,
         items: b.items.map((i) =>
-          i.id === current.run?.currentId ? { ...i, runStatus: "handled", handledAt: now } : i,
+          i.id === current.run?.currentId ? { ...i, runStatus: "done", doneAt: now } : i,
         ),
       })),
     };
@@ -140,8 +140,8 @@ export function loadWrapUpScenario(kind: WrapUpScenario, meetingId: string, real
             id: `wrap-demo-${i + 1}`,
             duration: 10,
             ownerIds: [],
-            runStatus: handled.includes(i + 1) ? "handled" : "open",
-            handledAt: handled.includes(i + 1) ? start + elapsed * 60000 : undefined,
+            runStatus: handled.includes(i + 1) ? "done" : "open",
+            doneAt: handled.includes(i + 1) ? start + elapsed * 60000 : undefined,
             entries: entries[i + 1] ?? [],
           }),
         ),

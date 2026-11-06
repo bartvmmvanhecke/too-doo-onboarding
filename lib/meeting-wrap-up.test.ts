@@ -3,6 +3,10 @@ import { newBlock, newItem } from "./agenda";
 import type { Meeting } from "./store";
 import {
   actualDuration,
+  completeCurrent,
+  suggestDecision,
+  needsDecisions,
+  isLastOpen,
   carryForward,
   closeManually,
   effectiveEnd,
@@ -40,18 +44,40 @@ function fixture(): Meeting {
   };
 }
 describe("vergadering afronden", () => {
+  it("voltooit alleen via de knop en bewaart voltooide punten bij navigatie", () => {
+    let m = completeCurrent(fixture(), 100 * min);
+    expect(m.blocks[0].items[0].runStatus).toBe("done");
+    m = navigateTo(m, "1", 101 * min);
+    expect(m.blocks[0].items[0].runStatus).toBe("done");
+    expect(closeManually(navigateTo(m, "3"), 120 * min).blocks[0].items[2].runStatus).not.toBe("done");
+  });
+  it("stelt alleen voltooid voor na bezoek en vastlegging; herkent laatste open punt", () => {
+    const m = fixture();
+    const item = m.blocks[0].items[0];
+    item.entries = [{ id: "e", kind: "note", text: "Notitie", ownerId: null, date: "" }];
+    expect(suggestDecision(item)).toBe("next");
+    item.visitedAt = 1;
+    expect(suggestDecision(item)).toBe("done");
+    m.blocks[0].items.forEach((i) => {
+      i.runStatus = i.id === "3" ? "open" : "done";
+    });
+    expect(isLastOpen(m, "3")).toBe(true);
+    expect(needsDecisions(m)).toBe(true);
+    m.blocks[0].items[2].runStatus = "done";
+    expect(needsDecisions(m, [m, { ...m, id: "next", date: "2026-11-12" }])).toBe(false);
+  });
   it("volgt status bij 1 → 4 → 2 → 5 en heropent", () => {
     let m = fixture();
     for (const id of ["4", "2", "5"]) m = navigateTo(m, id);
-    expect(m.run?.doneIds).toEqual(["1", "4", "2"]);
-    expect(othersOpen(m, "5").map((i) => i.id)).toEqual(["3", "6"]);
+    expect(m.run?.doneIds).toEqual([]);
+    expect(othersOpen(m, "5").map((i) => i.id)).toEqual(["1", "2", "3", "4", "6"]);
     expect(nextOpenItem(m, "5")?.id).toBe("6");
     m = navigateTo(m, "2");
-    expect(othersOpen(m, null).map((i) => i.id)).toEqual(["2", "3", "6"]);
+    expect(othersOpen(m, null).map((i) => i.id)).toEqual(["1", "2", "3", "4", "5", "6"]);
   });
   it("wraps backwards and returns null on the final open item", () => {
     let m = fixture();
-    m.blocks[0].items.forEach((i) => (i.runStatus = i.id === "2" ? "open" : "handled"));
+    m.blocks[0].items.forEach((i) => (i.runStatus = i.id === "2" ? "open" : "done"));
     expect(nextOpenItem(m, "6")?.id).toBe("2");
     m = navigateTo(m, "2");
     expect(nextOpenItem(m, "2")).toBeNull();
@@ -83,7 +109,7 @@ describe("vergadering afronden", () => {
     expect(unattended({ ...m, lastActivityAt: end + 8 * 60 * min }, end + 9 * 60 * min).run).not.toBeNull();
   });
   it("carries only untreated points once, retaining metadata", () => {
-    const m = closeManually(fixture(), 120 * min);
+    const m = closeManually(completeCurrent(fixture(), 120 * min), 120 * min);
     m.blocks[0].items[1].carry = "drop";
     const next = { ...fixture(), id: "next", date: "2026-11-12", blocks: [] };
     const meetings = carryForward(m, [m, next]);

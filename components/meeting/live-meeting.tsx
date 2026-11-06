@@ -87,7 +87,7 @@ function LiveMeetingContent({ meeting }: { meeting: Meeting }) {
       minimized: false,
       blocks: latest.blocks.map((b) => ({
         ...b,
-        items: b.items.map((i) => ({ ...i, runStatus: "open", handledAt: undefined })),
+        items: b.items.map((i) => ({ ...i, runStatus: "open", doneAt: undefined })),
       })),
     });
   };

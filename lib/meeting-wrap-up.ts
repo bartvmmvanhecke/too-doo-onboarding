@@ -4,7 +4,7 @@ import { AUTO_CLOSE_AFTER_HOURS, IDLE_BUFFER_MIN, OUTLIER_FACTOR, REMINDER_AFTER
 
 export const agendaItems = (m: Meeting) => allItems(m.blocks);
 export const isHandled = (m: Meeting, id: string) =>
-  agendaItems(m).find((i) => i.id === id)?.runStatus === "handled" || !!m.run?.doneIds.includes(id);
+  agendaItems(m).find((i) => i.id === id)?.runStatus === "done" || !!m.run?.doneIds.includes(id);
 export const othersOpen = (m: Meeting, currentId: string | null) =>
   agendaItems(m).filter((i) => i.id !== currentId && !isHandled(m, i.id));
 export function nextOpenItem(m: Meeting, currentId: string | null) {
@@ -44,29 +44,44 @@ export function actualDuration(m: Meeting, now = Date.now()) {
     end = effectiveEnd(m, now);
   return start === undefined || end === null ? null : Math.max(0, end - start);
 }
+export const isLastOpen = (m: Meeting, currentId: string | null) =>
+  !!currentId && othersOpen(m, currentId).length === 0;
+export const suggestDecision = (item: import("./agenda").AgendaItem): "done" | "next" =>
+  item.visitedAt !== undefined && item.entries.length > 0 ? "done" : "next";
+export const needsDecisions = (m: Meeting, meetings: Meeting[] = []) =>
+  othersOpen(m, null).length > 0 || m.actions.some((a) => !a.ownerId) || !nextInSeries(m, meetings)?.date;
 export function navigateTo(m: Meeting, id: string, now = Date.now()): Meeting {
   if (!m.run || m.run.currentId === id) return m;
-  const current = m.run.currentId;
   return {
+    ...m,
+    lastActivityAt: now - (m.lastActivityAt ?? 0) >= 30000 ? now : m.lastActivityAt,
+    blocks: m.blocks.map((b) => ({
+      ...b,
+      items: b.items.map((i) => (i.id === id ? { ...i, visitedAt: i.visitedAt ?? now } : i)),
+    })),
+    run: { ...m.run, currentId: id, stepStartedAt: now },
+  };
+}
+export function completeCurrent(m: Meeting, now = Date.now()): Meeting {
+  if (!m.run?.currentId) return m;
+  const id = m.run.currentId;
+  const completed: Meeting = {
     ...m,
     lastActivityAt: now,
     blocks: m.blocks.map((b) => ({
       ...b,
       items: b.items.map((i) =>
-        i.id === id
-          ? { ...i, runStatus: "open", handledAt: undefined }
-          : i.id === current
-            ? { ...i, runStatus: "handled", handledAt: now }
-            : i,
+        i.id === id ? { ...i, runStatus: "done", doneAt: now, visitedAt: i.visitedAt ?? now } : i,
       ),
     })),
     run: {
       ...m.run,
-      currentId: id,
-      stepStartedAt: now,
-      doneIds: [...new Set([...m.run.doneIds, ...(current ? [current] : [])])].filter((v) => v !== id),
+      doneIds: [...new Set([...m.run.doneIds, id])],
+      actuals: { ...m.run.actuals, [id]: (now - m.run.stepStartedAt) / 1000 },
     },
   };
+  const next = nextOpenItem(completed, id);
+  return { ...completed, run: { ...completed.run!, currentId: next?.id ?? null, stepStartedAt: now } };
 }
 export function closeManually(m: Meeting, now = Date.now()): Meeting {
   return {
@@ -79,11 +94,9 @@ export function closeManually(m: Meeting, now = Date.now()): Meeting {
     blocks: m.blocks.map((b) => ({
       ...b,
       items: b.items.map((i) =>
-        i.id === m.run?.currentId
-          ? { ...i, runStatus: "handled", handledAt: now }
-          : isHandled(m, i.id)
-            ? { ...i, runStatus: "handled" }
-            : { ...i, carry: i.carry ?? "next" },
+        isHandled(m, i.id)
+          ? { ...i, runStatus: "done" }
+          : { ...i, decision: i.decision ?? suggestDecision(i), carry: i.carry ?? "next" },
       ),
     })),
   };
@@ -108,7 +121,7 @@ export function unattended(m: Meeting, now: number): Meeting {
       held: true,
       blocks: m.blocks.map((b) => ({
         ...b,
-        items: b.items.map((i) => (isHandled(m, i.id) ? { ...i, runStatus: "handled" } : { ...i, carry: "next" })),
+        items: b.items.map((i) => (isHandled(m, i.id) ? { ...i, runStatus: "done" } : { ...i, carry: "next" })),
       })),
     };
   }

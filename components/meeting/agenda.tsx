@@ -102,7 +102,7 @@ export function AgendaItemRow({
   const run = meeting.run;
   const pendingFollowUp = !!meeting.endedAt && meeting.followUpStatus === "pending";
   const status = pendingFollowUp
-    ? item.runStatus === "handled" || run?.doneIds.includes(item.id)
+    ? item.runStatus === "done" || run?.doneIds.includes(item.id)
       ? "done"
       : "todo"
     : run

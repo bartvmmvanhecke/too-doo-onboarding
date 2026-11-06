@@ -37,7 +37,7 @@ import {
 } from "@/lib/mock-data";
 import { createPerson, initialsFrom, isEmail } from "@/lib/people";
 import { meetingNow } from "@/lib/meeting-clock";
-import { closeManually } from "@/lib/meeting-wrap-up";
+import { closeManually, completeCurrent, navigateTo } from "@/lib/meeting-wrap-up";
 import { uid } from "@/lib/utils";
 
 export type LoginOutcome = "success" | "blocked";
@@ -89,6 +89,9 @@ export interface Meeting extends MeetingSchedule {
   reviewSuggestions?: import("@/lib/assistant/types").GuestAction[];
   id: string;
   startedAt?: number;
+  followUpSentAt?: number;
+  outcome?: "held" | "not_held";
+  filledAfterwards?: boolean;
   endedAt?: number;
   autoClosedAt?: number;
   overtimeUntil?: number;
@@ -168,6 +171,10 @@ interface Data {
     /** Prototype: het oude eerste scherm "Zet je eerste vaste overleg klaar" op een lege Vergaderingen. */
     altEmpty?: boolean;
     wrapUpToolbar?: boolean;
+    wrapUpCompact?: boolean;
+    wrapUpPrimary?: boolean;
+    wrapUpSingleMove?: boolean;
+    wrapUpSkip?: boolean;
   };
   user: User | null;
   calendar: CalendarState;
@@ -613,7 +620,7 @@ const storeInitializer: StateCreator<Store> = (set, get) => {
           minimized: false,
           blocks: m.blocks.map((b) => ({
             ...b,
-            items: b.items.map((i) => ({ ...i, runStatus: "open", handledAt: undefined })),
+            items: b.items.map((i) => ({ ...i, runStatus: "open", doneAt: undefined })),
           })),
           run: {
             startedAt: now,
@@ -627,25 +634,12 @@ const storeInitializer: StateCreator<Store> = (set, get) => {
       }),
     nextStep: (meetingId, how = "done") =>
       updateMeeting(meetingId, (m) => {
-        const run = m.run;
-        if (!run?.currentId) return m;
-        const now = meetingNow(m);
-        const current = run.currentId;
-        const handled = new Set([...run.doneIds, ...run.postponedIds, current]);
+        if (how === "done") return completeCurrent(m, meetingNow(m));
+        if (!m.run?.currentId) return m;
         const steps = runSteps(m.blocks);
-        const from = steps.indexOf(current);
-        const next = [...steps.slice(from + 1), ...steps.slice(0, from)].find((id) => !handled.has(id)) ?? null;
-        return {
-          ...m,
-          run: {
-            ...run,
-            stepStartedAt: now,
-            currentId: next,
-            doneIds: how === "done" ? [...run.doneIds, current] : run.doneIds,
-            postponedIds: how === "postpone" ? [...run.postponedIds, current] : run.postponedIds,
-            actuals: how === "done" ? { ...run.actuals, [current]: (now - run.stepStartedAt) / 1000 } : run.actuals,
-          },
-        };
+        const at = steps.indexOf(m.run.currentId);
+        const next = steps[(at + 1) % steps.length];
+        return navigateTo(m, next, meetingNow(m));
       }),
     endRun: (meetingId) => updateMeeting(meetingId, (m) => closeManually(m, meetingNow(m))),
     dismissWelcome: (meetingId) => updateMeeting(meetingId, (m) => ({ ...m, showWelcome: false })),
@@ -850,9 +844,29 @@ export const createDraftStore = () => createStore<Store>()(storeInitializer);
 export const useStore = create<Store>()(
   persist(storeInitializer, {
     name: STORAGE_KEY,
-    version: 4,
+    version: 5,
     // Oudere opgeslagen state mist velden (flows, variant B, agendablokken): begin opnieuw.
-    migrate: () => initialData(),
+    migrate: (persisted) => {
+      const saved = persisted as Partial<Data>;
+      return {
+        ...initialData(),
+        ...saved,
+        meetings: (saved.meetings ?? []).map((m) => ({
+          ...m,
+          blocks: m.blocks.map((b) => ({
+            ...b,
+            items: b.items.map((i) => {
+              const legacy = i as unknown as { runStatus?: string; handledAt?: number };
+              return {
+                ...i,
+                runStatus: legacy.runStatus === "handled" ? ("done" as const) : i.runStatus,
+                doneAt: i.doneAt ?? legacy.handledAt,
+              };
+            }),
+          })),
+        })),
+      };
+    },
     storage: createJSONStorage(() => (typeof window === "undefined" ? noopStorage : window.localStorage)),
     // De voorbeeldvergadering leeft enkel zolang /voorbeeld open is.
     partialize: (s) => ({ ...s, meetings: s.meetings.filter((m) => !m.example) }),

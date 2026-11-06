@@ -376,7 +376,7 @@ const storeInitializer: StateCreator<Store> = (set, get) => {
     ...initialData(),
 
     setDemo: (patch) => set((s) => ({ demo: { ...s.demo, ...patch } })),
-    reset: () => set(initialData()),
+    reset: () => set((s) => ({ ...initialData(), demo: s.demo })),
 
     signIn: (user) => set({ user }),
     setCalendar: (calendar) => set({ calendar, calendarNotice: null }),

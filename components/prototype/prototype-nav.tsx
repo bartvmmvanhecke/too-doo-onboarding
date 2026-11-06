@@ -1,4 +1,5 @@
 "use client";
+import { resetDemoStorage } from "@/lib/demo-preferences";
 
 import { useRef, useState, type KeyboardEvent } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
@@ -29,7 +30,7 @@ const navButton =
 /** Wist alle state (gast, demo en app) en opent de website, volledig herladen. */
 function restartDemo() {
   try {
-    window.localStorage.removeItem(STORAGE_KEY);
+    resetDemoStorage(window.localStorage, STORAGE_KEY);
     window.localStorage.removeItem(GUEST_STORAGE_KEY);
     window.sessionStorage.clear();
   } catch {

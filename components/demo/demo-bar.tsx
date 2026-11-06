@@ -1,4 +1,5 @@
 "use client";
+import { resetDemoStorage } from "@/lib/demo-preferences";
 
 import { useEffect, useId } from "react";
 import { useRouter } from "next/navigation";
@@ -57,7 +58,7 @@ export function DemoBar() {
   // Volledig herladen naar de hero: zo kan geen scherm nog met oude state doorverwijzen.
   const resetDemo = () => {
     try {
-      window.localStorage.removeItem(STORAGE_KEY);
+      resetDemoStorage(window.localStorage, STORAGE_KEY);
       // Ook de proefomgeving van Variant A.
       window.localStorage.removeItem(GUEST_STORAGE_KEY);
       window.location.assign(new URL("/", window.location.origin));
@@ -72,7 +73,7 @@ export function DemoBar() {
       <section
         id={panelId}
         aria-label="Demo-instellingen"
-        className="w-[min(320px,calc(100vw-24px))] rounded-2xl border border-white/10 bg-ink p-4 text-white shadow-[0_20px_50px_rgba(10,20,40,0.35)]"
+        className="max-h-[calc(100dvh-5rem)] overflow-y-auto w-[min(400px,calc(100vw-24px))] rounded-2xl border border-white/10 bg-ink p-4 text-white shadow-[0_20px_50px_rgba(10,20,40,0.35)]"
       >
         <div className="mb-3 flex items-start justify-between gap-2">
           <div>
@@ -111,6 +112,45 @@ export function DemoBar() {
           />
           Prototypebalk in vergadermodus
         </label>
+        {(
+          [
+            [
+              "wrapUpCompact",
+              "Afronden: compacte detailpagina",
+              "Verbergt infokaart, tabs en timer; bewerkacties staan onder ⋯.",
+            ],
+            [
+              "wrapUpPrimary",
+              "Afronden: knoppen in primaire kleur",
+              "Blauwe voltooi- en afrondknoppen, witte knop in de bovenbalk.",
+            ],
+            [
+              "wrapUpSingleMove",
+              "Afronden: één verschuif-actie",
+              "Combineert verplaatsen en naar de volgende vergadering.",
+            ],
+            [
+              "wrapUpSkip",
+              "Afronden: overslaan als er niets te beslissen valt",
+              "Verstuurt meteen als alles klaar is, met 10 seconden Ongedaan maken.",
+            ],
+          ] as const
+        ).map(([key, label, description]) => (
+          <label key={key} className="mb-3 flex min-h-11 cursor-pointer items-start gap-3 text-[13px]">
+            <input
+              type="checkbox"
+              checked={!!demo[key]}
+              onChange={(event) => setDemo({ [key]: event.target.checked })}
+              className="mt-1 size-4 shrink-0"
+            />
+            <span>
+              <strong>
+                {label} · {demo[key] ? "Aan" : "Uit"}
+              </strong>
+              <span className="mt-1 block text-xs text-nav-muted">{description}</span>
+            </span>
+          </label>
+        ))}
         <button
           type="button"
           onClick={resetDemo}

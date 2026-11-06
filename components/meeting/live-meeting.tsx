@@ -1,5 +1,6 @@
 "use client";
 
+import { AwayPrompt } from "./away-prompt";
 import { MeetingPrototypeBar } from "@/components/prototype/meeting-prototype-bar";
 import { elapsedClock, remainingLabel, timerEnd, meetingNow } from "@/lib/meeting-clock";
 import { useEffect, useRef, useState } from "react";
@@ -30,7 +31,7 @@ import { OVERTIME_EXTEND_MIN } from "@/lib/meetingWrapUp.config";
 import { clockTime } from "@/lib/meeting-wrap-up";
 import { Button } from "@/components/ui/button";
 import { useNow } from "./meeting-context";
-import { closeManually, isHandled, navigateTo, othersOpen } from "@/lib/meeting-wrap-up";
+import { closeManually, isHandled, navigateTo, othersOpen, nextOpenItem } from "@/lib/meeting-wrap-up";
 import { cn } from "@/lib/utils";
 
 const pill =
@@ -40,6 +41,7 @@ export function LiveMeeting({ meeting }: { meeting: Meeting }) {
   return (
     <div className="app-theme fixed inset-0 z-40 flex flex-col overflow-hidden bg-[linear-gradient(180deg,transparent,#08042e),linear-gradient(110deg,#2e6090,#73c8fb_75%)] text-[#1f2b3b]">
       <MeetingPrototypeBar meetingId={meeting.id} />
+      <AwayPrompt meeting={meeting} />
       <LiveMeetingContent key={meeting.demoScenarioRevision ?? 0} meeting={meeting} />
     </div>
   );
@@ -54,6 +56,7 @@ function LiveMeetingContent({ meeting }: { meeting: Meeting }) {
   const now = meetingNow(meeting, useNow(true, timerEnd(meeting) - meetingNow(meeting, 0)));
   const end = timerEnd(meeting);
   const overtime = now >= end;
+  const nextOpen = nextOpenItem(meeting, run.currentId);
   const otherOpen = othersOpen(meeting, run.currentId);
   const completingLast = otherOpen.length === 0 && !!run.currentId && !isHandled(meeting, run.currentId);
   const handled = items.filter((i) => isHandled(meeting, i.id)).length;
@@ -107,14 +110,12 @@ function LiveMeetingContent({ meeting }: { meeting: Meeting }) {
     const card = activeCard.current;
     if (!card) return;
     const observer = new ResizeObserver(([entry]) =>
-      setCompactActions(entry.contentRect.width < (completingLast ? 360 : 240)),
+      setCompactActions(entry.contentRect.width < (completingLast ? 360 : 440)),
     );
     observer.observe(card);
     return () => observer.disconnect();
   }, [run.currentId, completingLast]);
-  const [previouslyHandled, setPreviouslyHandled] = useState(
-    () => new Set(items.filter((i) => isHandled(meeting, i.id)).map((i) => i.id)),
-  );
+
   useEffect(() => {
     activeCard.current?.querySelector<HTMLButtonElement>("button[aria-current]")?.focus();
     activeCard.current?.scrollIntoView({ block: "nearest", inline: "nearest" });
@@ -162,7 +163,6 @@ function LiveMeetingContent({ meeting }: { meeting: Meeting }) {
   };
   const selectItem = (id: string) => {
     if (note.trim()) saveNote();
-    if (isHandled(meeting, id)) setPreviouslyHandled((ids) => new Set([...ids, id]));
     setNote("");
     ops.putMeeting(
       navigateTo(
@@ -195,7 +195,7 @@ function LiveMeetingContent({ meeting }: { meeting: Meeting }) {
         </p>
         <div className="flex flex-wrap items-center gap-4 text-xs">
           <span>
-            {handled} van de {items.length} voltooid
+            {handled} / {items.length} voltooid{otherOpen.length ? ` · nog open: ${openNumbers}` : ""}
           </span>
           <span
             role="status"
@@ -220,7 +220,12 @@ function LiveMeetingContent({ meeting }: { meeting: Meeting }) {
           type="button"
           onClick={() => setFinishPrompt(true)}
           aria-label="Rond vergadering af"
-          className="ml-auto flex min-h-11 items-center gap-2 rounded-full bg-danger px-4 text-sm font-semibold text-white hover:bg-danger/90"
+          className={cn(
+            "ml-auto flex min-h-11 items-center gap-2 rounded-full px-4 text-sm font-semibold",
+            ops.demo.wrapUpPrimary
+              ? "bg-white text-brand hover:bg-white/90"
+              : "bg-danger text-white hover:bg-danger/90",
+          )}
         >
           <Check aria-hidden className="size-4" />
           <span>Rond vergadering af</span>
@@ -261,7 +266,7 @@ function LiveMeetingContent({ meeting }: { meeting: Meeting }) {
                     key={i.id}
                     className={cn(
                       "@container min-w-[260px] rounded-2xl border border-white/20 p-3 lg:min-w-0",
-                      active && "border-white/50 bg-white/15 text-white",
+                      active && "border-brand bg-white text-brand ring-2 ring-brand",
                     )}
                   >
                     <div className={cn(active && "mb-3 flex items-start justify-between gap-3")}>
@@ -295,7 +300,8 @@ function LiveMeetingContent({ meeting }: { meeting: Meeting }) {
                       </button>
                       {active && (
                         <div className="flex shrink-0 flex-col items-end gap-2 text-xs">
-                          {(isHandled(meeting, i.id) || previouslyHandled.has(i.id)) && (
+                          <span className="font-bold">nu</span>
+                          {isHandled(meeting, i.id) && (
                             <span className="flex items-center gap-2 font-bold">
                               voltooid
                               <Check
@@ -321,24 +327,28 @@ function LiveMeetingContent({ meeting }: { meeting: Meeting }) {
                               if (note.trim()) saveNote();
                               setNote("");
                               ops.nextStep(meeting.id, "done");
-                              if (completingLast) setFinishPrompt(true);
+                              if (completingLast) finish();
                             }}
                             className={cn(
                               "inline-flex min-h-11 flex-1 items-center justify-center gap-2 whitespace-nowrap rounded-full border px-3 text-sm font-bold",
                               completingLast
-                                ? "border-danger bg-danger text-white hover:bg-danger/90"
+                                ? ops.demo.wrapUpPrimary
+                                  ? "border-brand bg-brand text-white hover:bg-brand/90"
+                                  : "border-danger bg-danger text-white hover:bg-danger/90"
                                 : "border-[#b3d4f3] bg-[#e5f3ff] text-[#2055e5] hover:bg-[#d4eaff]",
                             )}
                           >
                             <Check aria-hidden className="size-4 shrink-0" />
-                            {completingLast ? "Voltooi & rond af →" : "Voltooi"}
+                            {completingLast
+                              ? "Voltooi & rond af →"
+                              : `Voltooi · volgend open punt (${nextOpen ? items.indexOf(nextOpen) + 1 : "—"})`}
                           </button>
                           <button
                             type="button"
                             onClick={() => setMoving(true)}
                             className={cn(
-                              "hidden min-h-11 flex-1 whitespace-nowrap rounded-full border border-white px-3 text-sm font-bold hover:bg-white/10",
-                              completingLast ? "@min-[360px]:block" : "@min-[240px]:block",
+                              "hidden min-h-11 flex-1 whitespace-nowrap rounded-full border border-current px-3 text-sm font-bold hover:bg-white/10",
+                              completingLast ? "@min-[360px]:block" : "@min-[440px]:block",
                             )}
                           >
                             Verplaats
@@ -348,7 +358,7 @@ function LiveMeetingContent({ meeting }: { meeting: Meeting }) {
                               <button
                                 type="button"
                                 aria-label="Meer opties voor agendapunt"
-                                className="flex size-11 shrink-0 items-center justify-center rounded-full border border-white"
+                                className="flex size-11 shrink-0 items-center justify-center rounded-full border border-current"
                               >
                                 <Ellipsis className="size-5" />
                               </button>
@@ -373,13 +383,41 @@ function LiveMeetingContent({ meeting }: { meeting: Meeting }) {
                               >
                                 Bewerk agendapunt
                               </button>
-                              <button
-                                type="button"
-                                onClick={() => ops.nextStep(meeting.id, "postpone")}
-                                className="min-h-11 text-sm"
-                              >
-                                Uitstellen naar later
-                              </button>
+                              {isHandled(meeting, i.id) && (
+                                <button
+                                  type="button"
+                                  className="min-h-11 w-full text-left text-sm"
+                                  onClick={() => {
+                                    const latest = useStore.getState().meetings.find((m) => m.id === meeting.id)!;
+                                    ops.putMeeting({
+                                      ...latest,
+                                      blocks: latest.blocks.map((b) => ({
+                                        ...b,
+                                        items: b.items.map((entry) =>
+                                          entry.id === i.id
+                                            ? { ...entry, runStatus: "open", doneAt: undefined }
+                                            : entry,
+                                        ),
+                                      })),
+                                      run: { ...latest.run!, doneIds: latest.run!.doneIds.filter((id) => id !== i.id) },
+                                    });
+                                  }}
+                                >
+                                  Heropenen
+                                </button>
+                              )}
+                              {!ops.demo.wrapUpSingleMove && (
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    ops.updateItem(meeting.id, i.id, { decision: "next", carry: "next" });
+                                    ops.nextStep(meeting.id, "postpone");
+                                  }}
+                                  className="min-h-11 text-sm"
+                                >
+                                  Naar volgende vergadering
+                                </button>
+                              )}
                             </PopoverContent>
                           </Popover>
                         </div>
@@ -393,7 +431,7 @@ function LiveMeetingContent({ meeting }: { meeting: Meeting }) {
             )}
           </div>
           <p className="px-3 py-2 text-xs text-white/80">
-            Een punt telt als voltooid zodra je naar een ander punt gaat. Klik erop om het te heropenen.
+            Voltooi vinkt een punt af. Spring je naar een ander punt, dan blijft het open tot je het voltooit.
           </p>
           <div className="border-t border-white/15 p-2 lg:pt-4">
             <button
@@ -445,7 +483,7 @@ function LiveMeetingContent({ meeting }: { meeting: Meeting }) {
             )}
             {item && otherOpen.length === 0 && (
               <p className="mb-5 rounded-xl bg-brand-soft p-4 font-bold text-brand">
-                → Laatste open punt · daarna versturen we de opvolging
+                → Laatste open punt · voltooi het om de vergadering af te ronden
               </p>
             )}
             {!run.currentId && (

@@ -94,7 +94,7 @@ function LiveMeetingContent({ meeting }: { meeting: Meeting }) {
   };
   const minimize = () =>
     ops.putMeeting({ ...useStore.getState().meetings.find((m) => m.id === meeting.id)!, minimized: true });
-  const [editing, setEditing] = useState<EntryKind | "agenda" | null>(null);
+  const [editing, setEditing] = useState<EntryKind | "agenda" | "edit-agenda" | null>(null);
   const [text, setText] = useState("");
   const [ownerId, setOwnerId] = useState("");
   const [date, setDate] = useState("");
@@ -103,6 +103,14 @@ function LiveMeetingContent({ meeting }: { meeting: Meeting }) {
   const [fileError, setFileError] = useState("");
   const [moving, setMoving] = useState(false);
   const activeCard = useRef<HTMLElement>(null);
+  const [compactActions, setCompactActions] = useState(false);
+  useEffect(() => {
+    const card = activeCard.current;
+    if (!card) return;
+    const observer = new ResizeObserver(([entry]) => setCompactActions(entry.contentRect.width < 240));
+    observer.observe(card);
+    return () => observer.disconnect();
+  }, [run.currentId]);
   const [previouslyHandled, setPreviouslyHandled] = useState(
     () => new Set(items.filter((i) => isHandled(meeting, i.id)).map((i) => i.id)),
   );
@@ -182,9 +190,7 @@ function LiveMeetingContent({ meeting }: { meeting: Meeting }) {
   return (
     <div className="contents">
       <header className="flex min-h-16 shrink-0 flex-wrap items-center gap-3 px-3 py-2 text-white sm:px-5">
-        <h1 className="mr-3 min-w-0 text-2xl font-bold lg:w-[280px] lg:shrink-0">
-          {meeting.name}
-        </h1>
+        <h1 className="mr-3 min-w-0 text-2xl font-bold lg:w-[280px] lg:shrink-0">{meeting.name}</h1>
         <p className="order-last w-full min-w-0 truncate text-[14pt] font-bold sm:order-none sm:w-auto sm:flex-1">
           {item?.text ?? block?.title}
         </p>
@@ -256,7 +262,7 @@ function LiveMeetingContent({ meeting }: { meeting: Meeting }) {
                     ref={active ? activeCard : undefined}
                     key={i.id}
                     className={cn(
-                      "min-w-[260px] rounded-2xl border border-white/20 p-3 lg:min-w-0",
+                      "@container min-w-[260px] rounded-2xl border border-white/20 p-3 lg:min-w-0",
                       active && "border-white/50 bg-white/15 text-white",
                     )}
                   >
@@ -310,25 +316,55 @@ function LiveMeetingContent({ meeting }: { meeting: Meeting }) {
                     </div>
                     {active && (
                       <>
-                        <div className="mt-2 flex gap-1">
+                        <div className="mt-2 flex flex-nowrap gap-1">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (note.trim()) saveNote();
+                              setNote("");
+                              ops.nextStep(meeting.id, "done");
+                            }}
+                            className="min-h-11 flex-1 whitespace-nowrap rounded-full border border-white px-3 text-sm font-bold hover:bg-white/10"
+                          >
+                            Voltooi
+                          </button>
                           <button
                             type="button"
                             onClick={() => setMoving(true)}
-                            className="min-h-11 flex-1 rounded-full border border-white px-3 text-sm font-bold hover:bg-white/10"
+                            className="hidden min-h-11 flex-1 whitespace-nowrap rounded-full border border-white px-3 text-sm font-bold hover:bg-white/10 @min-[240px]:block"
                           >
-                            Verplaats agendapunt
+                            Verplaats
                           </button>
                           <Popover>
                             <PopoverTrigger asChild>
                               <button
                                 type="button"
                                 aria-label="Meer opties voor agendapunt"
-                                className="flex size-11 items-center justify-center rounded-full border border-white"
+                                className="flex size-11 shrink-0 items-center justify-center rounded-full border border-white"
                               >
                                 <Ellipsis className="size-5" />
                               </button>
                             </PopoverTrigger>
                             <PopoverContent className="app-theme w-56">
+                              {compactActions && (
+                                <button
+                                  type="button"
+                                  onClick={() => setMoving(true)}
+                                  className="min-h-11 w-full text-left text-sm"
+                                >
+                                  Verplaats
+                                </button>
+                              )}
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setText(i.text);
+                                  setEditing("edit-agenda");
+                                }}
+                                className="min-h-11 w-full text-left text-sm"
+                              >
+                                Bewerk agendapunt
+                              </button>
                               <button
                                 type="button"
                                 onClick={() => ops.nextStep(meeting.id, "postpone")}
@@ -339,16 +375,7 @@ function LiveMeetingContent({ meeting }: { meeting: Meeting }) {
                             </PopoverContent>
                           </Popover>
                         </div>
-                        {otherOpen.length === 0 && !isHandled(meeting, i.id) && (
-                          <button
-                            type="button"
-                            onClick={() => setFinishPrompt(true)}
-                            className="mt-2 flex min-h-11 w-full items-center justify-center gap-2 rounded-full bg-danger px-4 text-sm font-semibold text-white hover:bg-danger/90"
-                          >
-                            <Check aria-hidden className="size-4" />
-                            Afronden
-                          </button>
-                        )}
+
                       </>
                     )}
                   </article>
@@ -688,8 +715,8 @@ function LiveMeetingContent({ meeting }: { meeting: Meeting }) {
           </div>
           <DialogTitle className="text-xl font-bold">Vergadering beëindigen</DialogTitle>
           <DialogDescription className="text-base leading-relaxed">
-            Klaar om af te ronden? Je gaat naar de samenvatting waar je openstaande agendapunten,
-            beslissingen en nieuwe acties kunt nakijken voordat je afsluit.
+            Klaar om af te ronden? Je gaat naar de samenvatting waar je openstaande agendapunten, beslissingen en nieuwe
+            acties kunt nakijken voordat je afsluit.
           </DialogDescription>
           <div className="mt-5 flex flex-col gap-3">
             <button
@@ -710,7 +737,11 @@ function LiveMeetingContent({ meeting }: { meeting: Meeting }) {
             >
               Vergadering voortzetten
             </button>
-            <button type="button" onClick={undoStart} className="mt-3 min-h-11 font-bold text-ink-2 underline underline-offset-4">
+            <button
+              type="button"
+              onClick={undoStart}
+              className="mt-3 min-h-11 font-bold text-ink-2 underline underline-offset-4"
+            >
               Start ongedaan maken
             </button>
           </div>
@@ -719,23 +750,42 @@ function LiveMeetingContent({ meeting }: { meeting: Meeting }) {
       <Dialog open={!!editing} onOpenChange={(open) => !open && setEditing(null)}>
         <DialogContent className="app-theme">
           <DialogTitle>
-            {editing === "agenda"
-              ? "Agendapunt toevoegen"
-              : editing === "decision"
-                ? "Beslissing toevoegen"
-                : "Actie toevoegen"}
+            {editing === "edit-agenda"
+              ? "Bewerk agendapunt"
+              : editing === "agenda"
+                ? "Agendapunt toevoegen"
+                : editing === "decision"
+                  ? "Beslissing toevoegen"
+                  : "Actie toevoegen"}
           </DialogTitle>
           <DialogDescription>
-            {editing === "agenda"
-              ? "Voeg een nieuw punt toe aan de vergaderagenda."
-              : "Leg vast wat jullie voor dit agendapunt afspreken."}
+            {editing === "edit-agenda"
+              ? "Pas de omschrijving van dit agendapunt aan."
+              : editing === "agenda"
+                ? "Voeg een nieuw punt toe aan de vergaderagenda."
+                : "Leg vast wat jullie voor dit agendapunt afspreken."}
           </DialogDescription>
           <form
             className="flex flex-col gap-3"
             onSubmit={(e) => {
               e.preventDefault();
               if (!text.trim()) return;
-              if (editing === "agenda") {
+              if (editing === "edit-agenda") {
+                const latest = useStore.getState().meetings.find((m) => m.id === meeting.id)!;
+                ops.putMeeting({
+                  ...latest,
+                  blocks: latest.blocks.map((b) =>
+                    b.id === run.currentId
+                      ? { ...b, title: text.trim() }
+                      : {
+                          ...b,
+                          items: b.items.map((entry) =>
+                            entry.id === run.currentId ? { ...entry, text: text.trim() } : entry,
+                          ),
+                        },
+                  ),
+                });
+              } else if (editing === "agenda") {
                 const target =
                   meeting.blocks.find((b) => b.kind === "topics")?.id ?? ops.addBlock(meeting.id, "topics");
                 const id = ops.addAgendaItem(meeting.id, target, text.trim());
@@ -795,7 +845,7 @@ function LiveMeetingContent({ meeting }: { meeting: Meeting }) {
               </>
             )}
             <button type="submit" className={cn(pill, "self-end")}>
-              Toevoegen
+              {editing === "edit-agenda" ? "Opslaan" : "Toevoegen"}
             </button>
           </form>
         </DialogContent>

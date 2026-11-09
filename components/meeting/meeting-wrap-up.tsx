@@ -7,7 +7,8 @@ import { Button } from "@/components/ui/button";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { useStore, usePeople, type Meeting, type WrapUpDraft } from "@/lib/store";
 import { agendaItems, clockTime, isHandled } from "@/lib/meeting-wrap-up";
-import { initialWrapUpDraft, assignMissingOwners } from "@/lib/wrap-up-flow";
+import { initialWrapUpDraft, assignMissingOwners, finishWrapUp } from "@/lib/wrap-up-flow";
+import { WrapUpPlanning, WrapUpFollowUp } from "./wrap-up-follow-up";
 import { AgendaItemRow } from "./agenda";
 import { EntryPanel } from "./entries";
 import { MeetingProvider } from "./meeting-context";
@@ -91,11 +92,22 @@ export function MeetingWrapUp({ meeting }: { meeting: Meeting }) {
             <p className="mb-7 text-ink-2">Kijk na wat er nog openstaat en wie wat doet tegen wanneer.</p>
             <AgendaReview meeting={meeting} draft={draft} patch={patch} />
           </>
+        ) : step === 1 ? (
+          <WrapUpPlanning meeting={meeting} draft={draft} patch={patch} />
         ) : (
-          <p className="my-8 text-ink-2">
-            {step === 1 ? "Bevestig de volgende vergadering." : "Kijk de opvolging na."}
-          </p>
+          <WrapUpFollowUp
+            meeting={meeting}
+            draft={draft}
+            patch={patch}
+            finish={(status) => {
+              // TODO(api): send the exact preview payload via the mail provider only on this explicit click.
+              const latest = useStore.getState().meetings.find((m) => m.id === meeting.id)!;
+              useStore.setState({ meetings: finishWrapUp(latest, useStore.getState().meetings, status) });
+              router.push(`/app/overleg/${meeting.id}`);
+            }}
+          />
         )}
+
         {notice && (
           <p role="status" className="my-5 rounded-xl bg-[var(--wrap-amber-bg)] p-4 text-[var(--wrap-amber-ink)]">
             {notice}

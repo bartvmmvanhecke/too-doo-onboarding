@@ -1,4 +1,8 @@
 "use client";
+import styles from "./meeting-wrap-up.module.css";
+import { Calendar } from "@/components/ui/calendar";
+import { nlBE } from "react-day-picker/locale";
+import { toISO } from "@/lib/date";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { usePeople, useStore, type Meeting, type WrapUpDraft } from "@/lib/store";
@@ -18,47 +22,64 @@ export function WrapUpPlanning({
 }) {
   const meetings = useStore((s) => s.meetings);
   const next = nextInSeries(meeting, meetings);
-  const [editing, setEditing] = useState(!next);
+  const selected = draft.nextDate ? new Date(`${draft.nextDate}T12:00:00`) : undefined;
+  const [month, setMonth] = useState(() => selected ?? new Date());
   const carried = agendaItems(meeting).filter((i) => draft.decisions?.[i.id] === "next");
   const when = draft.nextDate ? formatShortDate(draft.nextDate) : "Nog niet ingepland";
   const [h, m] = (draft.nextTime || "09:00").split(":").map(Number);
   const end = h * 60 + m + meeting.duration;
   const endTime = `${String(Math.floor(end / 60) % 24).padStart(2, "0")}:${String(end % 60).padStart(2, "0")}`;
   return (
-    <section className="mt-6 space-y-5 rounded-2xl border border-line bg-white p-5 sm:p-7">
-      <div className="flex flex-wrap items-center justify-between gap-3">
+    <section className={styles.planning}>
+      <div className={styles.planningSummary}>
+        <span className={styles.summaryLabel}>Volgende vergadering</span>
         <h2 className="font-bold">
           Volgende vergadering:{" "}
           {draft.noNext ? "niet gepland" : `${when}${draft.nextDate ? ` · ${draft.nextTime}–${endTime}` : ""}`}
         </h2>
-        <Button variant="ghost" onClick={() => setEditing(!editing)}>
-          Wijzigen
-        </Button>
       </div>
-      {editing && (
-        <div className="flex flex-wrap gap-5">
-          <label className="flex flex-col gap-2 text-sm font-semibold">
-            Datum
-            <input
-              className={field}
-              type="date"
-              value={draft.nextDate ?? ""}
-              min={meeting.date ?? undefined}
-              onChange={(e) => patch({ nextDate: e.target.value, noNext: false })}
-            />
-          </label>
-          <label className="flex flex-col gap-2 text-sm font-semibold">
-            Begintijd
-            <input
-              className={field}
-              type="time"
-              value={draft.nextTime ?? "09:00"}
-              onChange={(e) => patch({ nextTime: e.target.value })}
-            />
-          </label>
-          <p className="self-end py-3 text-sm text-ink-3">Duur: {meeting.duration} min</p>
-        </div>
-      )}
+      <div>
+        <label id="wrap-calendar-label" className="mb-2 block text-sm font-bold">
+          Datum
+        </label>
+        <Calendar
+          className={styles.calendar}
+          mode="single"
+          locale={nlBE}
+          weekStartsOn={1}
+          fixedWeeks
+          captionLayout="dropdown"
+          aria-labelledby="wrap-calendar-label"
+          selected={selected}
+          month={month}
+          onMonthChange={setMonth}
+          startMonth={new Date(new Date().getFullYear() - 1, 0)}
+          endMonth={new Date(new Date().getFullYear() + 10, 11)}
+          disabled={meeting.date ? { before: new Date(`${meeting.date}T00:00:00`) } : undefined}
+          onSelect={(date) => {
+            if (date) patch({ nextDate: toISO(date), noNext: false });
+          }}
+        />
+      </div>
+      <div className="grid gap-4 sm:grid-cols-2">
+        <label className="flex flex-col gap-2 text-sm font-bold">
+          Starttijd
+          <input
+            className={field}
+            type="time"
+            value={draft.nextTime ?? "09:00"}
+            onChange={(e) => patch({ nextTime: e.target.value })}
+          />
+        </label>
+        <label className="flex flex-col gap-2 text-sm font-bold">
+          Duur
+          <input
+            className={field}
+            readOnly
+            value={`${String(Math.floor(meeting.duration / 60)).padStart(2, "0")}:${String(meeting.duration % 60).padStart(2, "0")}`}
+          />
+        </label>
+      </div>
       {!next && (
         <label className="flex min-h-11 items-center gap-3 text-sm">
           <input

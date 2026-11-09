@@ -1,0 +1,260 @@
+.shell {
+  --wizard-gradient-start: #315f94;
+  --wizard-gradient-end: #70c5fb;
+  --wizard-gradient-bottom: #08042e;
+  --wizard-surface: #f9f9fc;
+  --wizard-card: #f4f5f9;
+  --wizard-step-soft: #e4eafb;
+  height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background:
+    linear-gradient(180deg, transparent, var(--wizard-gradient-bottom)),
+    linear-gradient(110deg, var(--wizard-gradient-start), var(--wizard-gradient-end));
+}
+.header {
+  min-height: 64px;
+  flex-shrink: 0;
+  display: grid;
+  grid-template-columns: minmax(140px, 300px) 1fr;
+  align-items: center;
+  gap: 24px;
+  padding: 8px 12px;
+  color: white;
+}
+.header > span {
+  font-size: 15px;
+  font-weight: 700;
+}
+.panel {
+  min-height: 0;
+  flex: 1;
+  margin-left: 12px;
+  border-radius: 18px 0 0 0;
+  background: var(--wizard-surface);
+  display: flex;
+  flex-direction: column;
+}
+.scroll {
+  overflow-y: auto;
+  min-height: 0;
+  flex: 1;
+}
+.content {
+  max-width: 768px;
+  margin: 0 auto;
+  padding: 40px 24px 32px;
+}
+.steps {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin: 0 -12px 24px;
+}
+.step {
+  min-height: 76px;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 4px;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--ink-3);
+  text-align: center;
+}
+.step::before {
+  content: "";
+  position: absolute;
+  top: 18px;
+  left: -50%;
+  width: 100%;
+  height: 2px;
+  background: var(--line);
+}
+.step:first-child::before {
+  display: none;
+}
+.step[data-reached="true"]::before {
+  background: var(--brand);
+}
+.step[aria-current="step"] {
+  color: var(--brand);
+}
+.step[data-complete="true"] {
+  color: var(--ink);
+}
+.dot {
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  height: 20px;
+  width: 20px;
+  border-radius: 50%;
+  background: var(--wizard-surface);
+  border: 4px solid var(--wizard-step-soft);
+}
+.step[aria-current="step"] .dot::after {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--brand);
+}
+.step[data-complete="true"] .dot {
+  background: var(--wizard-step-soft);
+  color: var(--brand);
+  border: 0;
+}
+.body > h1 {
+  font-size: 24px;
+}
+.body > section,
+.body > div > section,
+.body details {
+  background: transparent;
+  box-shadow: none;
+}
+.footer {
+  flex-shrink: 0;
+  border-top: 1px solid var(--line-soft);
+  background: var(--wizard-surface);
+}
+.footerInner {
+  max-width: 768px;
+  margin: auto;
+  padding: 16px 24px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.footerActions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+}
+.planning {
+  margin-top: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+.planningSummary {
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 20px;
+  background: var(--wizard-card);
+}
+.summaryLabel {
+  display: inline-flex;
+  border-radius: 24px;
+  background: var(--line-soft);
+  padding: 4px 12px;
+  font-size: 12px;
+  font-weight: 700;
+  margin-bottom: 12px;
+}
+.calendar {
+  width: 100%;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 12px;
+  background: transparent;
+  --cell-size: 44px;
+}
+.calendar :global(.rdp-months),
+.calendar :global(.rdp-month) {
+  width: 100%;
+}
+.calendar :global(.rdp-dropdowns) {
+  width: 100%;
+}
+.calendar :global(.rdp-dropdown_root) {
+  flex: 1;
+}
+.calendar :global(.rdp-caption_label) {
+  width: 100%;
+  justify-content: space-between;
+}
+.calendar :global(.rdp-day) {
+  aspect-ratio: auto;
+  height: 44px;
+}
+.calendar :global(.rdp-day) button {
+  height: 44px;
+  width: 44px;
+  min-width: 0;
+  margin: auto;
+  aspect-ratio: auto;
+  border-radius: 50%;
+  color: var(--brand);
+}
+.calendar button[data-selected-single="true"] {
+  background: var(--brand);
+  color: white;
+}
+.calendar :global(.rdp-outside) button,
+.calendar button:disabled {
+  color: var(--ink-3);
+  opacity: 0.5;
+}
+.calendar :global(.rdp-button_next) {
+  background: var(--brand);
+  color: white;
+  border-radius: 50%;
+}
+.calendar :global(.rdp-button_previous) {
+  border-radius: 50%;
+  color: var(--brand);
+  background: var(--wizard-step-soft);
+}
+@media (max-width: 600px) {
+  .header {
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: 20px;
+  }
+  .header > span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .content {
+    padding: 24px 16px;
+  }
+  .step {
+    font-size: 12px;
+  }
+  .steps {
+    margin: 0 -4px 24px;
+  }
+  .footerInner {
+    padding: 12px 16px;
+  }
+  .footerActions {
+    gap: 0;
+  }
+  .calendar {
+    padding: 8px;
+  }
+  .calendar :global(.rdp-day) button {
+    width: 44px;
+    max-width: 100%;
+    height: 44px;
+  }
+}
+
+.body > div:first-child:has(form),
+.body > div:first-child:has(> span) {
+  margin-bottom: 8px;
+}
+.calendar :global(.rdp-month) {
+  gap: 8px;
+}
+.calendar :global(.rdp-week) {
+  margin-top: 0;
+}

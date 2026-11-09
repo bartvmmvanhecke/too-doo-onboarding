@@ -111,7 +111,7 @@ Alle mock-data voor de samenvattingspreview staat achter `digestPreviewData()`.
 - Alle **93 unit tests** slagen, inclusief afsluitgrenzen, geen activiteit,
   navigatie zonder voltooien, laatste open punt midden in de agenda, concepten,
   eigenaarfallback, idempotente overdracht, backlog, KPI en samenvattingsplanning.
-- **12 gerichte browsertests** slagen: acht v3-tests, de bestaande live-captureflow
+- **13 gerichte browsertests** slagen: negen v3-tests, de bestaande live-captureflow
   en drie prototypeflowtests. Ze controleren desktop/mobiel, herladen, bewaren en
   alsnog versturen, native tijdcorrectie, automatisch afsluiten zonder mail,
   laatste open punt 3 en beide standaard uitgeschakelde prototype-opties.
@@ -154,3 +154,21 @@ infrastructuur. De samenvatting gebruikt dezelfde toegestane feitelijke fallback
 in plaats van een externe AI-aanroep. Samenhangende implementatiestappen zijn in
 gezamenlijke commits vastgelegd; elk gecontroleerd met build, lint en typecheck.
 De bovengenoemde bestaande audiofailures blijven buiten scope.
+
+## Visuele uitwerking volgens too-doo-referentie
+
+De drie wizardstappen gebruiken nu de aangeleverde vertrouwde too-doo-stijl:
+blauwe verloopachtergrond, wit logo en vergadernaam in de bovenbalk, een licht
+werkvlak met afgeronde linkerbovenhoek, verbonden stapindicatoren en een vaste
+footer. De inhoud kan zelfstandig scrollen; de navigatie blijft beschikbaar.
+
+Stap 2 toont de bestaande kalendercomponent permanent op volle inhoudsbreedte,
+met zes weken, Nederlandse weekdagen, maand- en jaarkeuze en starttijd/duur.
+Ook bij een vooringevulde volgende afspraak blijft de kalender zichtbaar. Een
+gekozen datum wordt meteen in het bestaande concept bewaard.
+
+Alle nieuwe kleuren zijn lokale CSS-variabelen in
+`components/meeting/meeting-wrap-up.module.css`. Geen wijzigingen aan gedeelde
+tokens, globale CSS, routes of dependencies. De bestaande functionaliteit blijft
+behouden. Een extra browsertest controleert de zichtbare kalender, datumselectie,
+42 dagcellen, mobiele overflow en WCAG A/AA.

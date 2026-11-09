@@ -179,3 +179,23 @@ test("prototype-opties staan uit en verbergen bestaande details alleen na inscha
   await page.reload();
   await expect(page.getByRole("tab", { name: /Agenda/ })).toHaveCount(0);
 });
+
+test("wizardstijl met verbonden stappen en volledige kalender, ook bij bekende volgende datum", async ({ page }) => {
+  await seedWrapUp(page, { automatic: true });
+  await page.getByRole("button", { name: "Afronden →", exact: true }).click();
+  await page.getByRole("button", { name: "2. Volgende vergadering", exact: true }).click();
+  const calendar = page.locator('[data-slot="calendar"]');
+  await expect(calendar).toBeVisible();
+  await expect(calendar.getByRole("gridcell")).toHaveCount(42);
+  await calendar.getByRole("button").filter({ hasText: /^18$/ }).click();
+  expect((await storedMeetings(page))[0].wrapUpDraft.nextDate).toBe("2026-11-18");
+  await page.screenshot({ path: "/tmp/wrap-up-calendar-desktop.png" });
+  await page.setViewportSize({ width: 390, height: 844 });
+  await expect(calendar).toBeVisible();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  await page.screenshot({ path: "/tmp/wrap-up-calendar-mobile.png" });
+  const result = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa"]).analyze();
+  expect(result.violations).toEqual([]);
+  await page.getByRole("button", { name: "Opvolging →", exact: true }).click();
+  await expect(page.getByRole("heading", { name: "Opvolging", exact: true })).toBeVisible();
+});

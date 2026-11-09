@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import styles from "./meeting-wrap-up.module.css";
 import { Check, ArrowRight, Trash2 } from "lucide-react";
 import { Logo } from "@/components/brand";
 import { Button } from "@/components/ui/button";
@@ -77,64 +78,89 @@ export function MeetingWrapUp({ meeting }: { meeting: Meeting }) {
   };
   const labels = ["Agenda & acties", "Volgende vergadering", "Opvolging"];
   return (
-    <div className="app-theme min-h-dvh bg-app p-4 sm:p-8">
-      <header className="mx-auto mb-8 flex max-w-[1060px] flex-wrap items-center gap-6">
-        <Logo href="/app" />
-        <span className="text-lg font-semibold">{meeting.name}</span>
+    <div className={`app-theme ${styles.shell}`}>
+      <header className={styles.header}>
+        <Logo href="/app" tone="white" />
+        <span>{meeting.name}</span>
       </header>
-      <main className="mx-auto max-w-[1060px]">
-        <nav aria-label="Afrondingsstappen" className="mb-8 flex flex-wrap gap-2">
-          {labels.map((label, index) => (
-            <button
-              type="button"
-              key={label}
-              aria-current={step === index ? "step" : undefined}
-              onClick={() => go(index)}
-              className={`min-h-11 rounded-full border px-5 text-sm font-bold ${step === index ? "border-brand bg-brand text-white" : "border-line bg-white text-ink-2"}`}
-            >
-              {index + 1}. {label}
-            </button>
-          ))}
-        </nav>
-        {draft.entry !== "live" && <EndTimeInfo meeting={meeting} />}
-        <h1 ref={heading} tabIndex={-1} className="mb-2 text-3xl font-bold outline-none">
-          {labels[step]}
-        </h1>
-        {step === 0 ? (
-          <>
-            <p className="mb-7 text-ink-2">Kijk na wat er nog openstaat en wie wat doet tegen wanneer.</p>
-            <AgendaReview meeting={meeting} draft={draft} patch={patch} />
-          </>
-        ) : step === 1 ? (
-          <WrapUpPlanning meeting={meeting} draft={draft} patch={patch} />
-        ) : (
-          <WrapUpFollowUp
-            meeting={meeting}
-            draft={draft}
-            patch={patch}
-            finish={(status) => {
-              // TODO(api): send the exact preview payload via the mail provider only on this explicit click.
-              const latest = useStore.getState().meetings.find((m) => m.id === meeting.id)!;
-              useStore.setState({ meetings: finishWrapUp(latest, useStore.getState().meetings, status) });
-              router.push(`/app/overleg/${meeting.id}`);
-            }}
-          />
-        )}
+      <div className={styles.panel}>
+        <main className={styles.scroll}>
+          <div className={styles.content}>
+            <nav aria-label="Afrondingsstappen" className={styles.steps}>
+              {labels.map((label, index) => (
+                <button
+                  type="button"
+                  key={label}
+                  aria-label={`${index + 1}. ${label}`}
+                  aria-current={step === index ? "step" : undefined}
+                  onClick={() => go(index)}
+                  className={styles.step}
+                  data-reached={index <= step}
+                  data-complete={index < step}
+                >
+                  <span className={styles.dot} aria-hidden>
+                    {index < step && <Check className="size-3" />}
+                  </span>
+                  <span>{label}</span>
+                </button>
+              ))}
+            </nav>
+            <div className={styles.body}>
+              {draft.entry !== "live" && <EndTimeInfo meeting={meeting} />}
+              <h1
+                ref={heading}
+                tabIndex={-1}
+                className={step === 1 ? "sr-only" : "mb-2 text-3xl font-bold outline-none"}
+              >
+                {labels[step]}
+              </h1>
+              {step === 0 ? (
+                <>
+                  <p className="mb-7 text-ink-2">Kijk na wat er nog openstaat en wie wat doet tegen wanneer.</p>
+                  <AgendaReview meeting={meeting} draft={draft} patch={patch} />
+                </>
+              ) : step === 1 ? (
+                <WrapUpPlanning meeting={meeting} draft={draft} patch={patch} />
+              ) : (
+                <WrapUpFollowUp
+                  meeting={meeting}
+                  draft={draft}
+                  patch={patch}
+                  finish={(status) => {
+                    // TODO(api): send the exact preview payload via the mail provider only on this explicit click.
+                    const latest = useStore.getState().meetings.find((m) => m.id === meeting.id)!;
+                    useStore.setState({ meetings: finishWrapUp(latest, useStore.getState().meetings, status) });
+                    router.push(`/app/overleg/${meeting.id}`);
+                  }}
+                />
+              )}
 
-        {notice && (
-          <p role="status" className="my-5 rounded-xl bg-[var(--wrap-amber-bg)] p-4 text-[var(--wrap-amber-ink)]">
-            {notice}
-          </p>
-        )}
-        <footer className="mt-8 flex flex-wrap items-center justify-between gap-3 border-t border-line py-6">
-          <Button variant="ghost" onClick={leave}>
-            {draft.entry === "live" && meeting.run ? "Terug naar de vergadering" : "Later afronden"}
-          </Button>
-          {step < 2 && (
-            <Button onClick={() => go(step + 1)}>{step === 0 ? "Volgende vergadering →" : "Opvolging →"}</Button>
-          )}
+              {notice && (
+                <p role="status" className="my-5 rounded-xl bg-[var(--wrap-amber-bg)] p-4 text-[var(--wrap-amber-ink)]">
+                  {notice}
+                </p>
+              )}
+            </div>
+          </div>
+        </main>
+        <footer className={styles.footer}>
+          <div className={styles.footerInner}>
+            <Button variant="ghost" onClick={leave}>
+              {draft.entry === "live" && meeting.run ? "Terug naar de vergadering" : "Later afronden"}
+            </Button>
+            <div className={styles.footerActions}>
+              {step > 0 && (
+                <Button variant="ghost" onClick={() => go(step - 1)}>
+                  ← Terug
+                </Button>
+              )}
+              {step < 2 && (
+                <Button onClick={() => go(step + 1)}>{step === 0 ? "Volgende vergadering →" : "Opvolging →"}</Button>
+              )}
+            </div>
+          </div>
         </footer>
-      </main>
+      </div>
     </div>
   );
 }

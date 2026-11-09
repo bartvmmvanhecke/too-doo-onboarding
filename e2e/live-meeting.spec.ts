@@ -94,7 +94,7 @@ test("aanwezigheid naar vergadermodus, verslag opslaan en vergadering beëindige
   await page.getByRole("button", { name: "Afronden", exact: true }).first().click();
   await page.getByRole("button", { name: "Vergadering afronden", exact: true }).click();
   await page.getByRole("button", { name: "Volgende vergadering →", exact: true }).click();
-  await page.getByLabel("Datum", { exact: true }).fill("2026-11-16");
+  await page.locator('[data-slot="calendar"]').getByRole("button").filter({ hasText: /^16$/ }).click();
   await page.getByRole("button", { name: "Opvolging →", exact: true }).click();
   const reviewing = await page.evaluate(
     () => JSON.parse(localStorage.getItem("too-doo-onboarding")!).state.meetings[0],

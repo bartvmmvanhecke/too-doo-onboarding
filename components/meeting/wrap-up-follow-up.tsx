@@ -134,6 +134,12 @@ export function FollowUpPreview({ meeting }: { meeting: Meeting }) {
           </>
         )}
       </section>
+      {content.askScore && (
+        <section>
+          <h2 className="mb-2 font-bold">Hoe liep deze vergadering?</h2>
+          <p>Geef een score van 1 tot 5.</p>
+        </section>
+      )}
     </div>
   );
 }

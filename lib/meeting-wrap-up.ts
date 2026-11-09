@@ -116,7 +116,13 @@ export function nextInSeries(m: Meeting, meetings: Meeting[]) {
   if (!m.seriesId || !m.date) return null;
   return (
     meetings
-      .filter((n) => n.id !== m.id && n.seriesId === m.seriesId && n.date && n.date > m.date!)
+      .filter(
+        (n) =>
+          n.id !== m.id &&
+          n.seriesId === m.seriesId &&
+          n.date &&
+          (n.date > m.date! || (n.date === m.date && (n.time ?? 0) > (m.time ?? 0))),
+      )
       .sort((a, b) => a.date!.localeCompare(b.date!) || (a.time ?? 0) - (b.time ?? 0))[0] ?? null
   );
 }

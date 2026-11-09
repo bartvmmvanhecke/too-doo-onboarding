@@ -1,5 +1,5 @@
 import { expect, it } from "vitest";
-import { meetingKpi } from "./meeting-kpi";
+import { closureStatus, meetingKpi } from "./meeting-kpi";
 import type { Meeting } from "./store";
 import { newBlock, newItem } from "./agenda";
 it("corrigeert 75 en 146 uur, sluit ontbrekende historie uit en telt automatisch", () => {
@@ -25,4 +25,6 @@ it("corrigeert 75 en 146 uur, sluit ontbrekende historie uit en telt automatisch
   ];
   expect(meetingKpi(data)).toMatchObject({ actual: 6, automatic: 1, total: 3 });
   expect(meetingKpi(data).rows[0]).toMatchObject({ outliers: 0, manual: false });
+  expect(closureStatus(data[2])).toBe("geen activiteit");
+  expect(closureStatus(data[0])).toBe("automatisch");
 });

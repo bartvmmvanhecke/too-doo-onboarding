@@ -74,7 +74,7 @@ test("aanwezigheid naar vergadermodus, verslag opslaan en vergadering beëindige
   await expect(page.getByText("Iedereen is akkoord", { exact: true })).toBeVisible();
   await expect(page.getByText("Mijn eigen bedenking", { exact: true })).toBeVisible();
   await expect(page.getByRole("link", { name: "headset.txt" })).toHaveAttribute("href", /data:/);
-  await page.getByRole("button", { name: "Verplaats agendapunt", exact: true }).click();
+  await page.getByRole("button", { name: "Verplaats", exact: true }).click();
   await page.getByRole("dialog").getByRole("button", { name: "Varia", exact: true }).click();
   await page.setViewportSize({ width: 390, height: 844 });
   await page.waitForTimeout(300);
@@ -83,28 +83,27 @@ test("aanwezigheid naar vergadermodus, verslag opslaan en vergadering beëindige
   await page.getByRole("button", { name: /Wie gaat testen\?/ }).click();
   await expect(page.getByRole("button", { name: /Wie gaat testen\?/ })).toHaveAttribute("aria-current", "step");
   await page.getByRole("button", { name: "Afronden", exact: true }).first().click();
-  await expect(page.getByRole("dialog", { name: "Vergadering beëindigen" })).toBeVisible();
-  await page.getByRole("button", { name: "Vergadering voortzetten", exact: true }).click();
+  await expect(page.getByRole("dialog", { name: "Vergadering afronden?" })).toBeVisible();
+  await page.getByRole("button", { name: "Verder vergaderen", exact: true }).click();
   await expect(page.getByRole("complementary", { name: "Vergaderagenda" })).toBeVisible();
   await page.getByRole("button", { name: "Afronden", exact: true }).first().click();
   await page.getByRole("button", { name: "Vergadering afronden", exact: true }).click();
-  await expect(page.getByRole("heading", { name: "Volgende vergadering", exact: true })).toBeFocused();
-  await expect(page.getByRole("button", { name: "Opslaan & sluiten", exact: true })).toBeDisabled();
+  await expect(page.getByRole("heading", { name: "Agenda & acties", exact: true })).toBeFocused();
   await page.getByRole("button", { name: "Terug naar de vergadering", exact: true }).click();
   await expect(page.getByRole("complementary", { name: "Vergaderagenda" })).toBeVisible();
   await page.getByRole("button", { name: "Afronden", exact: true }).first().click();
   await page.getByRole("button", { name: "Vergadering afronden", exact: true }).click();
-  await page.getByLabel("Vergadertitel", { exact: true }).fill("Volgende headsetbespreking");
-  await page.getByRole("button", { name: "Opslaan & sluiten", exact: true }).click();
-  await expect(page.getByRole("heading", { name: "Vergadering afronden", exact: true })).toBeFocused();
-  await expect(page.getByRole("heading", { name: "Beslissingen (1)", exact: true })).toBeVisible();
-  const reviewing = await page.evaluate(() => JSON.parse(localStorage.getItem("too-doo-onboarding")!).state.meetings[0]);
+  await page.getByRole("button", { name: "Volgende vergadering →", exact: true }).click();
+  await page.getByLabel("Datum", { exact: true }).fill("2026-11-16");
+  await page.getByRole("button", { name: "Opvolging →", exact: true }).click();
+  const reviewing = await page.evaluate(
+    () => JSON.parse(localStorage.getItem("too-doo-onboarding")!).state.meetings[0],
+  );
   expect(reviewing.wrapUpOpen).toBe(true);
   expect(reviewing.followUpStatus).toBe("pending");
   expect(reviewing.run).not.toBeNull();
-  await page.getByRole("button", { name: "Rond af & verstuur opvolging", exact: true }).click();
-  await expect(page.getByRole("heading", { name: "Vergadering afgerond", exact: true })).toBeVisible();
-  await page.getByRole("button", { name: "Naar vergadering", exact: true }).click();
+  await page.getByRole("button", { name: "Verstuur opvolging", exact: true }).click();
+  await expect(page.getByRole("status")).toContainText("Opvolging verstuurd naar");
   await expect(page.getByRole("complementary", { name: "Vergaderagenda" })).toHaveCount(0);
   const meeting = await page.evaluate(() => JSON.parse(localStorage.getItem("too-doo-onboarding")!).state.meetings[0]);
   expect(meeting.run).toBeNull();
@@ -113,7 +112,11 @@ test("aanwezigheid naar vergadermodus, verslag opslaan en vergadering beëindige
   const headset = meeting.blocks.find((b: { id: string }) => b.id === "varia").items[0];
   expect(headset.entries.map((e: { kind: string }) => e.kind)).toEqual(["decision", "action", "note", "document"]);
   expect(meeting.privateNotes).toHaveLength(1);
-  const next = await page.evaluate(() => JSON.parse(localStorage.getItem("too-doo-onboarding")!).state.meetings.find((m: { name: string }) => m.name === "Volgende headsetbespreking"));
+  const next = await page.evaluate(() =>
+    JSON.parse(localStorage.getItem("too-doo-onboarding")!).state.meetings.find(
+      (m: { id: string }) => m.id !== "live-test",
+    ),
+  );
   expect(next).toBeTruthy();
   expect(next.seriesId).toBe(meeting.seriesId);
 });

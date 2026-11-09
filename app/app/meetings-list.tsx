@@ -1,5 +1,6 @@
 "use client";
 
+import { isDemoEnvironment } from "@/lib/demo-environment";
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -213,6 +214,7 @@ function MeetingGroup({
 
 function MeetingRow({ meeting: m, status }: { meeting: Meeting; status: Status }) {
   const people = usePeople();
+  const primary = useStore((s) => s.demo.wrapUpPrimary) && isDemoEnvironment();
   const markHeld = useStore((s) => s.markHeld);
   const [open, setOpen] = useState(false);
   const attendees = m.participants
@@ -275,7 +277,10 @@ function MeetingRow({ meeting: m, status }: { meeting: Meeting; status: Status }
           href={href}
           onClick={openDetail}
           aria-label={`Afronden: ${m.name}`}
-          className="inline-flex min-h-11 shrink-0 items-center justify-center rounded-full bg-danger px-4 text-sm font-bold text-white no-underline hover:bg-danger/90 hover:text-white"
+          className={cn(
+            "inline-flex min-h-11 shrink-0 items-center justify-center rounded-full px-4 text-sm font-bold text-white no-underline hover:text-white",
+            primary ? "bg-brand hover:bg-brand/90" : "bg-danger hover:bg-danger/90",
+          )}
         >
           Afronden →
         </Link>

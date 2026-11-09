@@ -15,9 +15,9 @@ export function PreviousFollowUp({ meeting }: { meeting: Meeting }) {
         m.seriesId === meeting.seriesId &&
         m.date &&
         meeting.date &&
-        m.date < meeting.date,
+        (m.date < meeting.date || (m.date === meeting.date && (m.time ?? 0) < (meeting.time ?? 0))),
     )
-    .sort((a, b) => b.date!.localeCompare(a.date!))[0];
+    .sort((a, b) => b.date!.localeCompare(a.date!) || (b.time ?? 0) - (a.time ?? 0))[0];
   if (skipped || previous?.followUpStatus !== "pending" || !previous.endedAt) return null;
   return (
     <section

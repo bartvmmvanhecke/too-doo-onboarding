@@ -38,16 +38,20 @@ import { cn } from "@/lib/utils";
 const pill =
   "inline-flex min-h-11 items-center justify-center gap-2 rounded-full border border-[#2255ff] bg-[#e5f3ff] px-4 text-sm font-bold text-[#2055e5] hover:bg-[#d4eaff] disabled:cursor-not-allowed disabled:opacity-50";
 
-export function LiveMeeting({ meeting }: { meeting: Meeting }) {
+export function LiveMeeting({ meeting, confirmFinish = false }: { meeting: Meeting; confirmFinish?: boolean }) {
   return (
     <div className="app-theme fixed inset-0 z-40 flex flex-col overflow-hidden bg-[linear-gradient(180deg,transparent,#08042e),linear-gradient(110deg,#2e6090,#73c8fb_75%)] text-[#1f2b3b]">
       <MeetingPrototypeBar meetingId={meeting.id} />
-      <LiveMeetingContent key={meeting.demoScenarioRevision ?? 0} meeting={meeting} />
+      <LiveMeetingContent
+        key={`${meeting.demoScenarioRevision ?? 0}-${confirmFinish}`}
+        meeting={meeting}
+        confirmFinish={confirmFinish}
+      />
     </div>
   );
 }
 
-function LiveMeetingContent({ meeting }: { meeting: Meeting }) {
+function LiveMeetingContent({ meeting, confirmFinish }: { meeting: Meeting; confirmFinish: boolean }) {
   const ops = useStore();
   const router = useRouter();
   const primary = isDemoEnvironment() && ops.demo.wrapUpPrimary;
@@ -75,7 +79,7 @@ function LiveMeetingContent({ meeting }: { meeting: Meeting }) {
   const item = items.find((i) => i.id === run.currentId);
   const block = meeting.blocks.find((b) => b.id === run.currentId || b.items.some((i) => i.id === run.currentId));
   const [minimizePrompt, setMinimizePrompt] = useState(false);
-  const [finishPrompt, setFinishPrompt] = useState(false);
+  const [finishPrompt, setFinishPrompt] = useState(confirmFinish);
   const undoStart = () => {
     if (note.trim()) saveNote();
     const latest = useStore.getState().meetings.find((m) => m.id === meeting.id)!;
@@ -322,9 +326,6 @@ function LiveMeetingContent({ meeting }: { meeting: Meeting }) {
                     </div>
                     {active && (
                       <>
-                        {completingLast && (
-                          <p className="mt-2 text-xs">Laatste open punt · voltooi het om de vergadering af te ronden</p>
-                        )}
                         <div className="mt-2 flex flex-wrap gap-1">
                           <button
                             type="button"
@@ -453,7 +454,7 @@ function LiveMeetingContent({ meeting }: { meeting: Meeting }) {
                   >
                     {minimizePrompt ? "Minimaliseren" : "+15 min"}
                   </Button>
-                  <Button size="sm" onClick={finish}>
+                  <Button size="sm" onClick={() => setFinishPrompt(true)}>
                     Afronden
                   </Button>
                 </div>
@@ -461,7 +462,7 @@ function LiveMeetingContent({ meeting }: { meeting: Meeting }) {
             )}
             {item && otherOpen.length === 0 && (
               <p className="mb-5 rounded-xl bg-brand-soft p-4 font-bold text-brand">
-                → Laatste open punt · daarna versturen we de opvolging
+                Laatste open punt · voltooi het om de vergadering af te ronden
               </p>
             )}
             {!run.currentId && (
@@ -729,7 +730,13 @@ function LiveMeetingContent({ meeting }: { meeting: Meeting }) {
           </section>
         </main>
       </div>
-      <Dialog open={finishPrompt} onOpenChange={setFinishPrompt}>
+      <Dialog
+        open={finishPrompt}
+        onOpenChange={(open) => {
+          setFinishPrompt(open);
+          if (!open && confirmFinish) router.replace(`/app/overleg/${meeting.id}`);
+        }}
+      >
         <DialogContent className="app-theme max-w-[450px] gap-5 rounded-2xl p-6 sm:p-7">
           <div className="mb-1 flex size-16 items-center justify-center rounded-full bg-brand-soft">
             <div className="flex size-11 items-center justify-center rounded-full bg-brand-soft text-brand">

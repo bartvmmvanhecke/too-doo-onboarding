@@ -2,7 +2,6 @@
 import { elapsedClock, remainingLabel, timerEnd, meetingNow } from "@/lib/meeting-clock";
 import Link from "next/link";
 import { useStore } from "@/lib/store";
-import { closeManually } from "@/lib/meeting-wrap-up";
 import { useNow } from "./meeting-context";
 import { Button } from "@/components/ui/button";
 export function RunningMeetingPill() {
@@ -25,8 +24,8 @@ export function RunningMeetingPill() {
       </span>
       <Button variant="outline" size="sm" asChild>
         <Link
-          href={`/app/overleg/${meeting.id}?afronden=1`}
-          onClick={() => useStore.getState().putMeeting(closeManually(meeting, now))}
+          href={`/app/overleg/${meeting.id}?bevestigAfronden=1`}
+          onClick={() => useStore.getState().putMeeting({ ...meeting, minimized: false })}
         >
           Afronden
         </Link>

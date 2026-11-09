@@ -130,3 +130,9 @@ describe("vergadering afronden v3", () => {
     expect(plannedEnd(m)).toBe(start + 60 * min);
   });
 });
+
+it("vindt de volgende vergadering ook op dezelfde dag", async () => {
+  const { nextInSeries } = await import("./meeting-wrap-up");
+  const m = fixture();
+  expect(nextInSeries(m, [m, { ...m, id: "next", time: 660 }])?.id).toBe("next");
+});

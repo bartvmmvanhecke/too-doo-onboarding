@@ -73,7 +73,7 @@ export function runDigestJob({
   if (frequency === "off") return null;
   const local = localParts(now);
   const [hour, minute] = DIGEST_TIME.split(":").map(Number);
-  if (new Date(local.day).getUTCDay() !== { monday: 1 }[DIGEST_DAY] || local.minute < hour * 60 + minute) return null;
+  if (new Date(local.day).getUTCDay() !== { monday: 1 }[DIGEST_DAY] || local.minute !== hour * 60 + minute) return null;
   if (
     lastSentAt !== undefined &&
     local.day - localParts(lastSentAt).day < (frequency === "biweekly" ? 14 : 7) * 86_400_000

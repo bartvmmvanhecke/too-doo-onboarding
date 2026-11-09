@@ -1,9 +1,7 @@
 "use client";
 
-import { meetingNow } from "@/lib/meeting-clock";
 import { DigestPreview } from "@/components/meeting/digest-preview";
 import { NotificationSettings } from "@/components/meeting/notification-settings";
-import { closeManually } from "@/lib/meeting-wrap-up";
 import { CompletedMeetingDetail } from "@/components/meeting/completed-meeting-detail";
 import { PreviousFollowUp } from "@/components/meeting/previous-follow-up";
 import { MeetingStartGate } from "@/components/meeting/meeting-start-gate";
@@ -31,7 +29,7 @@ export function MeetingScreen() {
     if (meeting.endedAt) {
       // Pending links always land on detail. The banner is the explicit wizard entry.
       useStore.getState().putMeeting({ ...meeting, wrapUpOpen: false, minimized: true });
-    } else useStore.getState().putMeeting(closeManually(meeting, meetingNow(meeting)));
+    } else useStore.getState().putMeeting({ ...meeting, minimized: false });
     router.replace(`/app/overleg/${meeting.id}`);
   }, [meeting, params, router]);
 
@@ -48,7 +46,10 @@ export function MeetingScreen() {
         ) : params.get("variant") === "b" && !meeting.run ? (
           <MeetingDetailB meeting={meeting} />
         ) : meeting.run && !meeting.endedAt && !meeting.minimized ? (
-          <LiveMeeting meeting={meeting} />
+          <LiveMeeting
+            meeting={meeting}
+            confirmFinish={params.get("bevestigAfronden") === "1" || params.get("afronden") === "1"}
+          />
         ) : (
           <MeetingOverviewDetail meeting={meeting} />
         )}

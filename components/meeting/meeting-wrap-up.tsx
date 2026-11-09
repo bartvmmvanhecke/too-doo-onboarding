@@ -14,8 +14,11 @@ import { EntryPanel } from "./entries";
 import { MeetingProvider } from "./meeting-context";
 import { agendaMoves } from "./meeting-detail";
 import { ownerOptions } from "@/lib/owners";
-import type { AgendaItem, EntryKind } from "@/lib/agenda";
+import { deadlineDate, type AgendaItem, type EntryKind } from "@/lib/agenda";
+import { toISO } from "@/lib/date";
 
+const dateValue = (value: string) =>
+  /^\d{4}-\d{2}-\d{2}$/.test(value) ? value : deadlineDate(value) ? toISO(deadlineDate(value)!) : "";
 const field = "min-h-11 rounded-lg border border-line bg-white px-3 text-sm";
 export function MeetingWrapUp({ meeting }: { meeting: Meeting }) {
   const ops = useStore();
@@ -35,13 +38,11 @@ export function MeetingWrapUp({ meeting }: { meeting: Meeting }) {
   useEffect(() => {
     const latest = useStore.getState().meetings.find((m) => m.id === meeting.id);
     if (latest && (!latest.wrapUpDraft?.decisions || !latest.endTimeConfirmed)) {
-      useStore
-        .getState()
-        .putMeeting({
-          ...latest,
-          endTimeConfirmed: true,
-          wrapUpDraft: initialWrapUpDraft(latest, useStore.getState().meetings),
-        });
+      useStore.getState().putMeeting({
+        ...latest,
+        endTimeConfirmed: true,
+        wrapUpDraft: initialWrapUpDraft(latest, useStore.getState().meetings),
+      });
     }
   }, [meeting.id]);
   useEffect(() => {
@@ -262,75 +263,80 @@ function AgendaReview({
       value={{ meeting, people, owners: ownerOptions(people, meeting.participants, meeting.name, []), now: 0 }}
     >
       <TooltipProvider>
-        <section className="rounded-2xl border border-line bg-white p-4 sm:p-6">
-          <h2 className="text-lg font-bold">Open punten ({open.length})</h2>
-          <p className="mt-2 mb-3 text-sm text-ink-2">
-            {open.length ? "Deze punten zijn nog niet voltooid. Kies wat ermee gebeurt." : "Alle punten zijn voltooid."}
-          </p>
-          {open.map(renderItem)}
-        </section>
-        <section className="my-5 rounded-2xl border border-line bg-white p-4 sm:p-6">
-          <h2 className="mb-4 text-lg font-bold">Acties ({meeting.actions.length})</h2>
-          {!meeting.actions.length && <p className="text-sm text-ink-3">Geen acties vastgelegd.</p>}
-          {meeting.actions.map((a) => (
-            <div key={a.id} className="flex flex-wrap items-center gap-3 border-t border-line py-3">
-              <span className="min-w-40 flex-1 text-sm">{a.what}</span>
-              <label className="text-sm">
-                Eigenaar{" "}
-                <select
-                  className={field}
-                  value={a.ownerId ?? ""}
-                  onChange={(e) => {
-                    ops.assignOwner(meeting.id, a.id, e.target.value);
-                    const item = items.find((i) => i.entries.some((entry) => entry.actionId === a.id));
-                    const entry = item?.entries.find((entry) => entry.actionId === a.id);
-                    if (item && entry)
-                      ops.updateEntry(meeting.id, item.id, entry.id, { ownerId: e.target.value || null });
-                  }}
-                >
-                  <option value="">Kiezen…</option>
-                  {people
-                    .filter((p) => meeting.participants.includes(p.id) || p.id === meeting.startedBy)
-                    .map((p) => (
-                      <option key={p.id} value={p.id}>
-                        {p.name}
-                      </option>
-                    ))}
-                </select>
-              </label>
-              <label className="text-sm">
-                Datum{" "}
-                <input
-                  aria-label={`Datum voor ${a.what}`}
-                  className={field}
-                  value={a.deadline}
-                  onChange={(e) => {
-                    const latest = useStore.getState().meetings.find((m) => m.id === meeting.id)!;
-                    ops.putMeeting({
-                      ...latest,
-                      actions: latest.actions.map((action) =>
-                        action.id === a.id ? { ...action, deadline: e.target.value } : action,
-                      ),
-                      blocks: latest.blocks.map((b) => ({
-                        ...b,
-                        items: b.items.map((i) => ({
-                          ...i,
-                          entries: i.entries.map((entry) =>
-                            entry.actionId === a.id ? { ...entry, date: e.target.value } : entry,
-                          ),
+        <div className="[&_button]:min-h-11 [&_button]:min-w-11 [&_input]:min-h-11 [&_select]:min-h-11">
+          <section className="rounded-2xl border border-line bg-white p-4 sm:p-6">
+            <h2 className="text-lg font-bold">Open punten ({open.length})</h2>
+            <p className="mt-2 mb-3 text-sm text-ink-2">
+              {open.length
+                ? "Deze punten zijn nog niet voltooid. Kies wat ermee gebeurt."
+                : "Alle punten zijn voltooid."}
+            </p>
+            {open.map(renderItem)}
+          </section>
+          <section className="my-5 rounded-2xl border border-line bg-white p-4 sm:p-6">
+            <h2 className="mb-4 text-lg font-bold">Acties ({meeting.actions.length})</h2>
+            {!meeting.actions.length && <p className="text-sm text-ink-3">Geen acties vastgelegd.</p>}
+            {meeting.actions.map((a) => (
+              <div key={a.id} className="flex flex-wrap items-center gap-3 border-t border-line py-3">
+                <span className="min-w-40 flex-1 text-sm">{a.what}</span>
+                <label className="text-sm">
+                  Eigenaar{" "}
+                  <select
+                    className={field}
+                    value={a.ownerId ?? ""}
+                    onChange={(e) => {
+                      ops.assignOwner(meeting.id, a.id, e.target.value);
+                      const item = items.find((i) => i.entries.some((entry) => entry.actionId === a.id));
+                      const entry = item?.entries.find((entry) => entry.actionId === a.id);
+                      if (item && entry)
+                        ops.updateEntry(meeting.id, item.id, entry.id, { ownerId: e.target.value || null });
+                    }}
+                  >
+                    <option value="">Kiezen…</option>
+                    {people
+                      .filter((p) => meeting.participants.includes(p.id) || p.id === meeting.startedBy)
+                      .map((p) => (
+                        <option key={p.id} value={p.id}>
+                          {p.name}
+                        </option>
+                      ))}
+                  </select>
+                </label>
+                <label className="text-sm">
+                  Datum{" "}
+                  <input
+                    aria-label={`Datum voor ${a.what}`}
+                    className={field}
+                    type="date"
+                    value={dateValue(a.deadline)}
+                    onChange={(e) => {
+                      const latest = useStore.getState().meetings.find((m) => m.id === meeting.id)!;
+                      ops.putMeeting({
+                        ...latest,
+                        actions: latest.actions.map((action) =>
+                          action.id === a.id ? { ...action, deadline: e.target.value } : action,
+                        ),
+                        blocks: latest.blocks.map((b) => ({
+                          ...b,
+                          items: b.items.map((i) => ({
+                            ...i,
+                            entries: i.entries.map((entry) =>
+                              entry.actionId === a.id ? { ...entry, date: e.target.value } : entry,
+                            ),
+                          })),
                         })),
-                      })),
-                    });
-                  }}
-                />
-              </label>
-            </div>
-          ))}
-        </section>
-        <details className="rounded-2xl border border-line bg-white p-4 sm:p-6">
-          <summary className="min-h-11 cursor-pointer font-bold">Voltooide punten ({done.length})</summary>
-          {done.map(renderItem)}
-        </details>
+                      });
+                    }}
+                  />
+                </label>
+              </div>
+            ))}
+          </section>
+          <details className="rounded-2xl border border-line bg-white p-4 sm:p-6">
+            <summary className="min-h-11 cursor-pointer font-bold">Voltooide punten ({done.length})</summary>
+            {done.map(renderItem)}
+          </details>
+        </div>
       </TooltipProvider>
     </MeetingProvider>
   );

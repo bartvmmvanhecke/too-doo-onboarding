@@ -17,6 +17,7 @@ const run = (patch = {}) => runDigestJob({ meetings: [m], userId: "chair", now, 
 it("verstuuurt alleen op maandag vanaf 08:30 Brussel en maximaal eenmaal per periode", () => {
   expect(run()).not.toBeNull();
   expect(run({ now: now - 1 })).toBeNull();
+  expect(run({ now: now + 60_000 })).toBeNull();
   expect(run({ now: now + 86400000 })).toBeNull();
   expect(run({ frequency: "off" })).toBeNull();
   expect(run({ lastSentAt: now })).toBeNull();

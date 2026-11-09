@@ -7,7 +7,6 @@ import {
   ArrowDown,
   Bold,
   Check,
-  CircleStop,
   Ellipsis,
   Italic,
   Link2,
@@ -20,6 +19,8 @@ import {
   Underline,
 } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { isDemoEnvironment } from "@/lib/demo-environment";
 import { nextInSeries } from "@/lib/meeting-wrap-up";
 import { Avatar } from "@/components/avatar";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
@@ -47,6 +48,8 @@ export function LiveMeeting({ meeting }: { meeting: Meeting }) {
 
 function LiveMeetingContent({ meeting }: { meeting: Meeting }) {
   const ops = useStore();
+  const router = useRouter();
+  const primary = isDemoEnvironment() && ops.demo.wrapUpPrimary;
   const people = usePeople();
   const run = meeting.run!;
   const items = allItems(meeting.blocks);
@@ -66,6 +69,7 @@ function LiveMeetingContent({ meeting }: { meeting: Meeting }) {
         now,
       ),
     );
+    router.push(`/vergaderingen/${meeting.id}/afronden`);
   };
   const item = items.find((i) => i.id === run.currentId);
   const block = meeting.blocks.find((b) => b.id === run.currentId || b.items.some((i) => i.id === run.currentId));
@@ -219,11 +223,14 @@ function LiveMeetingContent({ meeting }: { meeting: Meeting }) {
         <button
           type="button"
           onClick={() => setFinishPrompt(true)}
-          aria-label="Rond vergadering af"
-          className="ml-auto flex min-h-11 items-center gap-2 rounded-full bg-danger px-4 text-sm font-semibold text-white hover:bg-danger/90"
+          aria-label="Afronden"
+          className={cn(
+            "ml-auto flex min-h-11 items-center gap-2 rounded-full px-4 text-sm font-semibold text-white",
+            primary ? "bg-brand hover:bg-brand/90" : "bg-danger hover:bg-danger/90",
+          )}
         >
           <Check aria-hidden className="size-4" />
-          <span>Rond vergadering af</span>
+          <span>Afronden</span>
         </button>
         <button
           type="button"
@@ -314,7 +321,10 @@ function LiveMeetingContent({ meeting }: { meeting: Meeting }) {
                     </div>
                     {active && (
                       <>
-                        <div className="mt-2 flex flex-nowrap gap-1">
+                        {completingLast && (
+                          <p className="mt-2 text-xs">Laatste open punt · voltooi het om de vergadering af te ronden</p>
+                        )}
+                        <div className="mt-2 flex flex-wrap gap-1">
                           <button
                             type="button"
                             onClick={() => {
@@ -326,12 +336,16 @@ function LiveMeetingContent({ meeting }: { meeting: Meeting }) {
                             className={cn(
                               "inline-flex min-h-11 flex-1 items-center justify-center gap-2 whitespace-nowrap rounded-full border px-3 text-sm font-bold",
                               completingLast
-                                ? "border-danger bg-danger text-white hover:bg-danger/90"
-                                : "border-[#b3d4f3] bg-[#e5f3ff] text-[#2055e5] hover:bg-[#d4eaff]",
+                                ? primary
+                                  ? "border-brand bg-brand text-white hover:bg-brand/90"
+                                  : "border-danger bg-danger text-white hover:bg-danger/90"
+                                : "border-[#b3d4f3] bg-brand-soft text-brand hover:bg-[#d4eaff]",
                             )}
                           >
                             <Check aria-hidden className="size-4 shrink-0" />
-                            {completingLast ? "Voltooi & rond af →" : "Voltooi"}
+                            {completingLast
+                              ? "Voltooi & rond af →"
+                              : `Voltooi · volgend open punt (${otherOpen.length})`}
                           </button>
                           <button
                             type="button"
@@ -393,7 +407,7 @@ function LiveMeetingContent({ meeting }: { meeting: Meeting }) {
             )}
           </div>
           <p className="px-3 py-2 text-xs text-white/80">
-            Een punt telt als voltooid zodra je naar een ander punt gaat. Klik erop om het te heropenen.
+            Alleen Voltooi voltooit een punt. Je kunt vrij naar andere punten springen.
           </p>
           <div className="border-t border-white/15 p-2 lg:pt-4">
             <button
@@ -715,15 +729,16 @@ function LiveMeetingContent({ meeting }: { meeting: Meeting }) {
       </div>
       <Dialog open={finishPrompt} onOpenChange={setFinishPrompt}>
         <DialogContent className="app-theme max-w-[450px] gap-5 rounded-2xl p-6 sm:p-7">
-          <div className="mb-1 flex size-16 items-center justify-center rounded-full bg-[#f4faff]">
-            <div className="flex size-11 items-center justify-center rounded-full bg-[#e5f3ff] text-[#2055e5]">
-              <CircleStop aria-hidden className="size-6" />
+          <div className="mb-1 flex size-16 items-center justify-center rounded-full bg-brand-soft">
+            <div className="flex size-11 items-center justify-center rounded-full bg-brand-soft text-brand">
+              <Check aria-hidden className="size-6" />
             </div>
           </div>
-          <DialogTitle className="text-xl font-bold">Vergadering beëindigen</DialogTitle>
+          <DialogTitle className="text-xl font-bold">Vergadering afronden?</DialogTitle>
           <DialogDescription className="text-base leading-relaxed">
-            Klaar om af te ronden? Je gaat naar de samenvatting waar je openstaande agendapunten, beslissingen en nieuwe
-            acties kunt nakijken voordat je afsluit.
+            {items.filter((i) => !isHandled(meeting, i.id)).length > 0
+              ? `${items.filter((i) => !isHandled(meeting, i.id)).length} agendapunten zijn nog open. In de volgende stap kies je wat ermee gebeurt.`
+              : "Alle punten zijn voltooid. Kijk de opvolging na en verstuur ze."}
           </DialogDescription>
           <div className="mt-5 flex flex-col gap-3">
             <button
@@ -732,7 +747,7 @@ function LiveMeetingContent({ meeting }: { meeting: Meeting }) {
                 setFinishPrompt(false);
                 finish();
               }}
-              className="min-h-11 rounded-full bg-[#2055e5] px-4 text-base font-bold text-white hover:bg-[#1948c9]"
+              className="min-h-11 rounded-full bg-brand px-4 text-base font-bold text-white hover:bg-brand/90"
             >
               Vergadering afronden
             </button>
@@ -741,15 +756,20 @@ function LiveMeetingContent({ meeting }: { meeting: Meeting }) {
               onClick={() => setFinishPrompt(false)}
               className="min-h-11 rounded-full border border-[#b3d4f3] bg-[#e5f3ff] px-4 text-base font-bold text-[#2055e5] hover:bg-[#d4eaff]"
             >
-              Vergadering voortzetten
+              Verder vergaderen
             </button>
-            <button
-              type="button"
-              onClick={undoStart}
-              className="mt-3 min-h-11 font-bold text-ink-2 underline underline-offset-4"
-            >
-              Start ongedaan maken
-            </button>
+            {meeting.actions.length === 0 &&
+              items.every((i) => !i.entries.some((e) => ["action", "decision", "note"].includes(e.kind))) &&
+              !meeting.privateNotes?.length &&
+              !note.trim() && (
+                <button
+                  type="button"
+                  onClick={undoStart}
+                  className="mt-3 min-h-11 font-bold text-ink-2 underline underline-offset-4"
+                >
+                  Start ongedaan maken
+                </button>
+              )}
           </div>
         </DialogContent>
       </Dialog>

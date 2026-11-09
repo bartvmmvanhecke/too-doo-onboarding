@@ -68,7 +68,8 @@ export interface AgendaItem {
   entries: Entry[];
   /** Voorbeeldpunt uit de demo. */
   sample?: boolean;
-  runStatus?: "open" | "handled";
+  runStatus?: "open" | "done";
+  visitedAt?: number;
   handledAt?: number;
   updatedAt?: number;
   carry?: "next" | "drop";

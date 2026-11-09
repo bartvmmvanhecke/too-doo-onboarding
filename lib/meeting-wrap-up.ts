@@ -1,10 +1,10 @@
-import { allItems, newBlock, newItem } from "./agenda";
+import { allItems, newBlock, newItem, type AgendaItem } from "./agenda";
 import type { Meeting } from "./store";
-import { AUTO_CLOSE_AFTER_HOURS, IDLE_BUFFER_MIN, OUTLIER_FACTOR, REMINDER_AFTER_MIN } from "./meetingWrapUp.config";
+import { AUTO_CLOSE_IDLE_MIN, IDLE_BUFFER_MIN, OUTLIER_FACTOR, PENDING_TO_PAST_DAYS } from "./meetingWrapUp.config";
 
 export const agendaItems = (m: Meeting) => allItems(m.blocks);
 export const isHandled = (m: Meeting, id: string) =>
-  agendaItems(m).find((i) => i.id === id)?.runStatus === "handled" || !!m.run?.doneIds.includes(id);
+  agendaItems(m).find((i) => i.id === id)?.runStatus === "done" || !!m.run?.doneIds.includes(id);
 export const othersOpen = (m: Meeting, currentId: string | null) =>
   agendaItems(m).filter((i) => i.id !== currentId && !isHandled(m, i.id));
 export function nextOpenItem(m: Meeting, currentId: string | null) {
@@ -13,11 +13,35 @@ export function nextOpenItem(m: Meeting, currentId: string | null) {
   return [...items.slice(index + 1), ...items.slice(0, Math.max(0, index))].find((i) => !isHandled(m, i.id)) ?? null;
 }
 export function plannedEnd(m: Meeting) {
-  const start = m.run?.startedAt ?? m.startedAt;
-  if (start !== undefined) return start + m.duration * 60_000;
   if (m.date && m.time !== null) return new Date(`${m.date}T00:00:00`).getTime() + (m.time + m.duration) * 60_000;
   return (m.startedAt ?? m.run?.startedAt ?? 0) + m.duration * 60_000;
 }
+export const activityStamp = (m: Meeting, now: number) =>
+  m.lastActivityAt === undefined || now - m.lastActivityAt >= 30_000 ? now : m.lastActivityAt;
+export const isLastOpen = (m: Meeting, currentId: string) => othersOpen(m, currentId).length === 0;
+export const suggestDecision = (item: AgendaItem): "done" | "next" =>
+  item.visitedAt !== undefined &&
+  item.entries.some((e) => ["decision", "action", "note"].includes(e.kind) && e.text.trim())
+    ? "done"
+    : "next";
+export const isChair = (m: Meeting, userId: string) =>
+  m.attendance?.some((p) => p.personId === userId && p.role === "Voorzitter") ??
+  (!m.startedBy || m.startedBy === userId);
+export const isPending = (m: Meeting, now = Date.now()) =>
+  m.endedAt !== undefined && m.followUpStatus === "pending" && now - m.endedAt < PENDING_TO_PAST_DAYS * 86_400_000;
+export function computeEnd(m: Meeting): { endedAt: number; noActivity: boolean } {
+  const start = m.startedAt ?? m.run?.startedAt ?? 0;
+  const activity = lastActivity(m);
+  const noActivity = activity === undefined || activity <= start;
+  return {
+    endedAt: noActivity ? plannedEnd(m) : Math.max(plannedEnd(m), activity + IDLE_BUFFER_MIN * 60_000),
+    noActivity,
+  };
+}
+export const autoCloseDueAt = (m: Meeting) =>
+  Math.max(plannedEnd(m), lastActivity(m) ?? m.startedAt ?? m.run?.startedAt ?? plannedEnd(m)) +
+  AUTO_CLOSE_IDLE_MIN * 60_000;
+
 export function lastActivity(m: Meeting) {
   if (m.lastActivityAt !== undefined) return m.lastActivityAt;
   const stamps = [
@@ -29,14 +53,13 @@ export function lastActivity(m: Meeting) {
 }
 export function effectiveEnd(m: Meeting, now = Date.now()): number | null {
   if (m.endReason === "manual" || m.endTimeConfirmed) return m.endedAt ?? null;
+  if (m.endReason === "auto") return computeEnd(m).endedAt;
   const activity = lastActivity(m);
-  if (activity === undefined) {
-    const start = m.startedAt ?? m.run?.startedAt;
-    if (start === undefined || m.endedAt === undefined || m.endedAt - start > OUTLIER_FACTOR * m.duration * 60_000)
-      return null;
-    return m.endedAt;
-  }
-  return Math.min(m.endedAt ?? now, activity + IDLE_BUFFER_MIN * 60_000);
+  const start = m.startedAt ?? m.run?.startedAt;
+  if (start === undefined) return null;
+  if (activity !== undefined || (m.endedAt ?? now) - start > OUTLIER_FACTOR * m.duration * 60_000)
+    return computeEnd(m).endedAt;
+  return m.endedAt ?? null;
 }
 /** Milliseconds; null means historical outlier / insufficient data. */
 export function actualDuration(m: Meeting, now = Date.now()) {
@@ -46,26 +69,14 @@ export function actualDuration(m: Meeting, now = Date.now()) {
 }
 export function navigateTo(m: Meeting, id: string, now = Date.now()): Meeting {
   if (!m.run || m.run.currentId === id) return m;
-  const current = m.run.currentId;
   return {
     ...m,
-    lastActivityAt: now,
+    lastActivityAt: activityStamp(m, now),
     blocks: m.blocks.map((b) => ({
       ...b,
-      items: b.items.map((i) =>
-        i.id === id
-          ? { ...i, runStatus: "open", handledAt: undefined }
-          : i.id === current
-            ? { ...i, runStatus: "handled", handledAt: now }
-            : i,
-      ),
+      items: b.items.map((i) => (i.id === id ? { ...i, visitedAt: i.visitedAt ?? now } : i)),
     })),
-    run: {
-      ...m.run,
-      currentId: id,
-      stepStartedAt: now,
-      doneIds: [...new Set([...m.run.doneIds, ...(current ? [current] : [])])].filter((v) => v !== id),
-    },
+    run: { ...m.run, currentId: id, stepStartedAt: now },
   };
 }
 export function closeManually(m: Meeting, now = Date.now()): Meeting {
@@ -74,47 +85,32 @@ export function closeManually(m: Meeting, now = Date.now()): Meeting {
     startedAt: m.startedAt ?? m.run?.startedAt,
     endedAt: now,
     endReason: "manual",
+    endTimeConfirmed: true,
     followUpStatus: "pending",
     wrapUpOpen: true,
-    blocks: m.blocks.map((b) => ({
-      ...b,
-      items: b.items.map((i) =>
-        i.id === m.run?.currentId
-          ? { ...i, runStatus: "handled", handledAt: now }
-          : isHandled(m, i.id)
-            ? { ...i, runStatus: "handled" }
-            : { ...i, carry: i.carry ?? "next" },
-      ),
-    })),
+    wrapUpDraft: { ...m.wrapUpDraft, entry: "live" },
   };
 }
-/** Pure scheduler transition; actual delivery belongs to a server worker. */
+/** Pure scheduler transition; no mail or agenda transfers before the chair finishes. */
 export function unattended(m: Meeting, now: number): Meeting {
-  if (!m.run || m.endedAt || m.followUpStatus === "sent") return m;
-  const activity = lastActivity(m) ?? m.run.startedAt;
-  const idle = now - activity;
-  if (now > plannedEnd(m) + AUTO_CLOSE_AFTER_HOURS * 3_600_000 && idle > AUTO_CLOSE_AFTER_HOURS * 3_600_000) {
-    return {
-      ...m,
-      startedAt: m.startedAt ?? m.run.startedAt,
-      endedAt: activity + IDLE_BUFFER_MIN * 60_000,
-      autoClosedAt: now,
-      lastActivityAt: activity,
-      endReason: "auto",
-      followUpStatus: "pending",
-      run: null,
-      minimized: false,
-      wrapUpOpen: false,
-      held: true,
-      blocks: m.blocks.map((b) => ({
-        ...b,
-        items: b.items.map((i) => (isHandled(m, i.id) ? { ...i, runStatus: "handled" } : { ...i, carry: "next" })),
-      })),
-    };
-  }
-  if (!m.reminderQueuedAt && now > plannedEnd(m) + REMINDER_AFTER_MIN * 60_000 && idle > REMINDER_AFTER_MIN * 60_000)
-    return { ...m, reminderQueuedAt: now };
-  return m;
+  if (!m.run || m.endedAt !== undefined || now < autoCloseDueAt(m)) return m;
+  return {
+    ...m,
+    ...computeEnd(m),
+    startedAt: m.startedAt ?? m.run.startedAt,
+    autoClosedAt: now,
+    endReason: "auto",
+    endTimeConfirmed: false,
+    followUpStatus: "pending",
+    run: null,
+    minimized: false,
+    wrapUpOpen: false,
+    held: true,
+    blocks: m.blocks.map((b) => ({
+      ...b,
+      items: b.items.map((i) => (isHandled(m, i.id) ? { ...i, runStatus: "done" } : i)),
+    })),
+  };
 }
 export function nextInSeries(m: Meeting, meetings: Meeting[]) {
   if (!m.seriesId || !m.date) return null;
@@ -127,7 +123,7 @@ export function nextInSeries(m: Meeting, meetings: Meeting[]) {
 /** Idempotent transfer; originals remain available in the report. */
 export function carryForward(m: Meeting, meetings: Meeting[]): Meeting[] {
   const next = nextInSeries(m, meetings);
-  if (!next) return meetings; // TODO(api): persist carry=next in the unassigned "Bewaren voor later" list.
+  if (!next) return meetings; // TODO(api): persist carry=next in the unassigned "Bewaard voor later" list.
   const dropped = new Set(
     agendaItems(m)
       .filter((i) => i.carry === "drop")
@@ -147,10 +143,10 @@ export function carryForward(m: Meeting, meetings: Meeting[]): Meeting[] {
       )
         continue;
       let target =
-        blocks.find((b) => b.kind === "topics" && b.title === block.title) ??
+        blocks.find((b) => b.kind === block.kind && b.title === block.title) ??
         blocks.find((b) => b.kind === "topics" && b.title === "Lopende zaken");
       if (!target) {
-        target = newBlock("topics", { title: "Lopende zaken" });
+        target = newBlock(block.kind, { title: block.title });
         blocks.push(target);
       }
       target.items.push(

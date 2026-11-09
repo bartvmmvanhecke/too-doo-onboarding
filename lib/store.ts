@@ -37,7 +37,7 @@ import {
 } from "@/lib/mock-data";
 import { createPerson, initialsFrom, isEmail } from "@/lib/people";
 import { meetingNow } from "@/lib/meeting-clock";
-import { closeManually } from "@/lib/meeting-wrap-up";
+import { activityStamp, closeManually } from "@/lib/meeting-wrap-up";
 import { uid } from "@/lib/utils";
 
 export type LoginOutcome = "success" | "blocked";
@@ -84,6 +84,20 @@ export interface Action {
 
 export type { AgendaBlock, AgendaItem, Entry, MeetingRun };
 
+export interface WrapUpDraft {
+  decisions?: Record<string, "done" | "next" | "drop">;
+  step?: number;
+  nextDate?: string;
+  nextTime?: string;
+  noNext?: boolean;
+  summary?: string;
+  recipientIds?: string[];
+  score?: number;
+  feedback?: string;
+  askScore?: boolean;
+  entry?: "live" | "later";
+}
+
 export interface Meeting extends MeetingSchedule {
   /** Voorstellen blijven ook na bewaren open tot expliciet akkoord. */
   reviewSuggestions?: import("@/lib/assistant/types").GuestAction[];
@@ -96,7 +110,10 @@ export interface Meeting extends MeetingSchedule {
   demoScenarioRevision?: number;
   lastActivityAt?: number;
   endReason?: "manual" | "auto";
-  followUpStatus?: "pending" | "sent";
+  followUpStatus?: "pending" | "sent" | "saved";
+  noActivity?: boolean;
+  wrapUpDraft?: WrapUpDraft;
+  followUpSentAt?: number;
   endTimeConfirmed?: boolean;
   reminderQueuedAt?: number;
   startedBy?: string;
@@ -168,7 +185,11 @@ interface Data {
     /** Prototype: het oude eerste scherm "Zet je eerste vaste overleg klaar" op een lege Vergaderingen. */
     altEmpty?: boolean;
     wrapUpToolbar?: boolean;
+    wrapUpPrimary?: boolean;
+    wrapUpCompact?: boolean;
   };
+  digestFrequency?: "weekly" | "biweekly" | "off";
+  digestLastSentAt?: number;
   user: User | null;
   calendar: CalendarState;
   calendarNotice: "cancelled" | null;
@@ -361,7 +382,7 @@ const storeInitializer: StateCreator<Store> = (set, get) => {
       meetings: s.meetings.map((m) => {
         if (m.id !== id) return m;
         const updated = fn(m);
-        return m.run && !m.endedAt ? { ...updated, lastActivityAt: meetingNow(m) } : updated;
+        return m.run && !m.endedAt ? { ...updated, lastActivityAt: activityStamp(m, meetingNow(m)) } : updated;
       }),
     }));
 
@@ -613,7 +634,12 @@ const storeInitializer: StateCreator<Store> = (set, get) => {
           minimized: false,
           blocks: m.blocks.map((b) => ({
             ...b,
-            items: b.items.map((i) => ({ ...i, runStatus: "open", handledAt: undefined })),
+            items: b.items.map((i) => ({
+              ...i,
+              runStatus: "open",
+              handledAt: undefined,
+              visitedAt: i.id === runSteps(m.blocks)[0] ? now : undefined,
+            })),
           })),
           run: {
             startedAt: now,
@@ -637,6 +663,17 @@ const storeInitializer: StateCreator<Store> = (set, get) => {
         const next = [...steps.slice(from + 1), ...steps.slice(0, from)].find((id) => !handled.has(id)) ?? null;
         return {
           ...m,
+          lastActivityAt: activityStamp(m, now),
+          blocks: m.blocks.map((b) => ({
+            ...b,
+            items: b.items.map((i) =>
+              i.id === current && how === "done"
+                ? { ...i, runStatus: "done", handledAt: now }
+                : i.id === next
+                  ? { ...i, visitedAt: i.visitedAt ?? now }
+                  : i,
+            ),
+          })),
           run: {
             ...run,
             stepStartedAt: now,
@@ -834,7 +871,7 @@ const storeInitializer: StateCreator<Store> = (set, get) => {
           ? s.meetings.map((m) =>
               m.id === meeting.id
                 ? m.run && !m.endedAt && !meeting.endedAt
-                  ? { ...meeting, lastActivityAt: meetingNow(m) }
+                  ? { ...meeting, lastActivityAt: activityStamp(m, meetingNow(m)) }
                   : meeting
                 : m,
             )
@@ -854,6 +891,23 @@ export const useStore = create<Store>()(
     // Oudere opgeslagen state mist velden (flows, variant B, agendablokken): begin opnieuw.
     migrate: () => initialData(),
     storage: createJSONStorage(() => (typeof window === "undefined" ? noopStorage : window.localStorage)),
+    merge: (persisted, current) => {
+      const saved = persisted as Partial<Store>;
+      return {
+        ...current,
+        ...saved,
+        meetings: (saved.meetings ?? []).map((m) => ({
+          ...m,
+          blocks: m.blocks.map((b) => ({
+            ...b,
+            items: b.items.map((i) => ({
+              ...i,
+              runStatus: (i.runStatus as string) === "handled" ? ("done" as const) : i.runStatus,
+            })),
+          })),
+        })),
+      };
+    },
     // De voorbeeldvergadering leeft enkel zolang /voorbeeld open is.
     partialize: (s) => ({ ...s, meetings: s.meetings.filter((m) => !m.example) }),
   }),

@@ -4,9 +4,9 @@ export function meetingNow(meeting: { demoTimeOffsetMs?: number }, now = Date.no
   return now + (isDemoEnvironment() ? (meeting.demoTimeOffsetMs ?? 0) : 0);
 }
 
-import { plannedEnd } from "./meeting-wrap-up";
 import type { Meeting } from "./store";
-export const timerEnd = (meeting: Meeting) => Math.max(plannedEnd(meeting), meeting.overtimeUntil ?? 0);
+export const timerEnd = (meeting: Meeting) =>
+  Math.max((meeting.run?.startedAt ?? meeting.startedAt ?? 0) + meeting.duration * 60_000, meeting.overtimeUntil ?? 0);
 export function elapsedClock(milliseconds: number) {
   const seconds = Math.max(0, Math.floor(milliseconds / 1000));
   if (seconds <= 3600)

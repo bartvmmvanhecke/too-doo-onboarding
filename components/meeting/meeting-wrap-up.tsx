@@ -55,7 +55,7 @@ export function MeetingWrapUp({ meeting }: { meeting: Meeting }) {
               ...latest,
               blocks: latest.blocks.map((b) => ({
                 ...b,
-                items: b.items.map((i) => (isHandled(latest, i.id) ? { ...i, runStatus: "handled" as const } : i)),
+                items: b.items.map((i) => (isHandled(latest, i.id) ? { ...i, runStatus: "done" as const } : i)),
               })),
               followUpStatus: "sent",
               held: true,
@@ -75,7 +75,7 @@ export function MeetingWrapUp({ meeting }: { meeting: Meeting }) {
       const block = meeting.blocks.find((b) => b.kind === "topics")?.id ?? ops.addBlock(meeting.id, "topics");
       const id = ops.addAgendaItem(meeting.id, block, "Aanvullingen");
       ops.addEntry(meeting.id, id, { kind, text: text.trim(), ownerId: null, date: "" });
-      ops.updateItem(meeting.id, id, { runStatus: "handled" });
+      ops.updateItem(meeting.id, id, { runStatus: "done" });
     }
     setText("");
   };

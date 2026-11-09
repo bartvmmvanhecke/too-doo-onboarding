@@ -23,6 +23,6 @@ it("corrigeert 75 en 146 uur, sluit ontbrekende historie uit en telt automatisch
     },
     { ...base, id: "c", endedAt: 75 * 3600000 },
   ];
-  expect(meetingKpi(data)).toMatchObject({ actual: 4, automatic: 1, total: 3 });
-  expect(meetingKpi(data).rows[0]).toMatchObject({ outliers: 1, manual: false });
+  expect(meetingKpi(data)).toMatchObject({ actual: 6, automatic: 1, total: 3 });
+  expect(meetingKpi(data).rows[0]).toMatchObject({ outliers: 0, manual: false });
 });

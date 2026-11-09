@@ -25,12 +25,13 @@ export function MeetingScreen() {
   }, [meeting, router]);
 
   useEffect(() => {
-    if (params.get("afronden") !== "1" || !meeting || meeting.wrapUpOpen || meeting.followUpStatus === "sent") return;
+    if ((params.get("afronden") !== "1" && params.get("bevestigAfronden") !== "1") || !meeting) return;
     if (meeting.endedAt) {
       // Pending links always land on detail. The banner is the explicit wizard entry.
-      useStore.getState().putMeeting({ ...meeting, wrapUpOpen: false, minimized: true });
-    } else useStore.getState().putMeeting({ ...meeting, minimized: false });
-    router.replace(`/app/overleg/${meeting.id}`);
+      if (meeting.wrapUpOpen || !meeting.minimized)
+        useStore.getState().putMeeting({ ...meeting, wrapUpOpen: false, minimized: true });
+      router.replace(`/app/overleg/${meeting.id}`);
+    } else if (meeting.minimized) useStore.getState().putMeeting({ ...meeting, minimized: false });
   }, [meeting, params, router]);
 
   if (!meeting) return null;

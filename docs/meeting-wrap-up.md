@@ -108,7 +108,7 @@ Alle mock-data voor de samenvattingspreview staat achter `digestPreviewData()`.
 
 - Build, typecheck en lint slagen. Lint heeft één al bestaande waarschuwing in
   `components/probeer/microsoft-authorization.tsx` (ref in effect-cleanup).
-- Alle **92 unit tests** slagen, inclusief afsluitgrenzen, geen activiteit,
+- Alle **93 unit tests** slagen, inclusief afsluitgrenzen, geen activiteit,
   navigatie zonder voltooien, laatste open punt midden in de agenda, concepten,
   eigenaarfallback, idempotente overdracht, backlog, KPI en samenvattingsplanning.
 - **12 gerichte browsertests** slagen: acht v3-tests, de bestaande live-captureflow

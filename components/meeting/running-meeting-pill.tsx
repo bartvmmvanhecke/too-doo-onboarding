@@ -23,12 +23,7 @@ export function RunningMeetingPill() {
           : remainingLabel(timerEnd(meeting) - now)}
       </span>
       <Button variant="outline" size="sm" asChild>
-        <Link
-          href={`/app/overleg/${meeting.id}?bevestigAfronden=1`}
-          onClick={() => useStore.getState().putMeeting({ ...meeting, minimized: false })}
-        >
-          Afronden
-        </Link>
+        <Link href={`/app/overleg/${meeting.id}?bevestigAfronden=1`}>Afronden</Link>
       </Button>
       <Button size="sm" asChild>
         <Link

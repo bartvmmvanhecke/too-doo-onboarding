@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { newBlock, newItem } from "./agenda";
 import type { Meeting } from "./store";
 import {
+  activityStamp,
   actualDuration,
   autoCloseDueAt,
   carryForward,
@@ -135,4 +136,12 @@ it("vindt de volgende vergadering ook op dezelfde dag", async () => {
   const { nextInSeries } = await import("./meeting-wrap-up");
   const m = fixture();
   expect(nextInSeries(m, [m, { ...m, id: "next", time: 660 }])?.id).toBe("next");
+});
+
+it("registreert de eerste activiteit na de start meteen en begrenst daarna tot eens per 30 s", () => {
+  const m = fixture();
+  const first = activityStamp(m, start + 5_000);
+  expect(first).toBe(start + 5_000);
+  expect(activityStamp({ ...m, lastActivityAt: first }, start + 10_000)).toBe(first);
+  expect(activityStamp({ ...m, lastActivityAt: first }, start + 35_000)).toBe(start + 35_000);
 });

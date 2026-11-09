@@ -17,7 +17,11 @@ export function plannedEnd(m: Meeting) {
   return (m.startedAt ?? m.run?.startedAt ?? 0) + m.duration * 60_000;
 }
 export const activityStamp = (m: Meeting, now: number) =>
-  m.lastActivityAt === undefined || now - m.lastActivityAt >= 30_000 ? now : m.lastActivityAt;
+  m.lastActivityAt === undefined ||
+  m.lastActivityAt <= (m.startedAt ?? m.run?.startedAt ?? -Infinity) ||
+  now - m.lastActivityAt >= 30_000
+    ? now
+    : m.lastActivityAt;
 export const isLastOpen = (m: Meeting, currentId: string) => othersOpen(m, currentId).length === 0;
 export const suggestDecision = (item: AgendaItem): "done" | "next" =>
   item.visitedAt !== undefined &&

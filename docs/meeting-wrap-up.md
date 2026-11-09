@@ -184,3 +184,31 @@ De fixture gebruikt de echte pure afsluitregels en behoudt de overige
 vergaderingen. Opnieuw klikken zet alleen dit voorbeeld terug in de onbevestigde
 staat. Een browsertest controleert de directe navigatie, tijdstippen, zichtbare
 knoppen, behoud van andere data en het bevestigen van de eindtijd.
+
+## Verbeteringen na de Loom-analyse
+
+De drie stappen blijven behouden. Stap 2 heeft weer een zichtbare H1:
+**Plan de volgende vergadering** zonder bestaande afspraak, of **Bevestig de
+volgende vergadering** wanneer die al bestaat. De volledige kalender blijft open
+in de planningsstand. De naam is vooraf ingevuld en bewerkbaar, net als de duur
+(in minuten). Zonder volgende afspraak is expliciet kiezen om niets te plannen
+mogelijk; er wordt dan geen nieuwe afspraak aangemaakt.
+
+De kaart bij een bestaande afspraak toont de werkelijk opgeslagen datum. De
+formuliervelden zijn een concept: naam, datum, starttijd en duur worden pas bij
+het definitieve afronden op dezelfde afspraak toegepast. Zonder bestaande
+volgende afspraak wordt één nieuwe afspraak gemaakt. Ongeldige naam, starttijd
+of duur krijgen uitleg; ook de laatste verzend-/opslagklik controleert die velden.
+
+De optionele gezamenlijke vergaderscore staat vóór de eindacties. De score kan
+worden overgeslagen of gewist. De aanvullende deelnemersvraag blijft een keuze
+en gaat mee in de opvolgingsmail; er wordt geen afzonderlijke scoremail verstuurd.
+De laatste vaste footer bevat **Opslaan zonder versturen** en **Verstuur opvolging**.
+**Later afronden** bewaart alleen het concept; terugkeren naar een pas gestopte
+vergadering hervat de vergadermodus. De uitleg onder de knoppen benoemt dat verschil.
+
+Gedeeld gewijzigd: uitsluitend twee toegevoegde velden in `WrapUpDraft` in
+`lib/store.ts`. Geen globale stijlen, routes, dependencies of bestanden verwijderd.
+Validatie: 96 unit tests en 16 gerichte browserscenario’s; build, lint en typecheck.
+De bestaande lintwaarschuwing en de eerder beschreven audiotests blijven buiten
+scope. De vergadertijd en automatische afsluitregels zijn niet gewijzigd.

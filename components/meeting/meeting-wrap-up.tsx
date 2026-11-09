@@ -7,8 +7,8 @@ import { Logo } from "@/components/brand";
 import { Button } from "@/components/ui/button";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { useStore, usePeople, type Meeting, type WrapUpDraft } from "@/lib/store";
-import { agendaItems, clockTime, isHandled } from "@/lib/meeting-wrap-up";
-import { initialWrapUpDraft, assignMissingOwners, finishWrapUp } from "@/lib/wrap-up-flow";
+import { agendaItems, clockTime, isHandled, nextInSeries } from "@/lib/meeting-wrap-up";
+import { initialWrapUpDraft, assignMissingOwners, finishWrapUp, planningError } from "@/lib/wrap-up-flow";
 import { WrapUpPlanning, WrapUpFollowUp } from "./wrap-up-follow-up";
 import { AgendaItemRow } from "./agenda";
 import { EntryPanel } from "./entries";
@@ -49,7 +49,28 @@ export function MeetingWrapUp({ meeting }: { meeting: Meeting }) {
   useEffect(() => {
     heading.current?.focus();
   }, [step]);
+  const finish = (status: "sent" | "saved") => {
+    const state = useStore.getState();
+    const latest = state.meetings.find((m) => m.id === meeting.id)!;
+    const error = planningError(initialWrapUpDraft(latest, state.meetings));
+    if (error) {
+      setNotice(error);
+      patch({ step: 1 });
+      return;
+    }
+    // TODO(api): explicit delivery of the preview payload; score questions travel in the same follow-up mail.
+    useStore.setState({ meetings: finishWrapUp(latest, state.meetings, status) });
+    router.push(`/app/overleg/${meeting.id}`);
+  };
   const go = (next: number) => {
+    if (step === 1 && next > step) {
+      const error = planningError(draft);
+      if (error) {
+        setNotice(error);
+        return;
+      }
+    }
+    setNotice("");
     const latest = useStore.getState().meetings.find((m) => m.id === meeting.id)!;
     const count = latest.actions.filter((a) => !a.ownerId).length;
     if (count && next > 0) {
@@ -107,12 +128,12 @@ export function MeetingWrapUp({ meeting }: { meeting: Meeting }) {
             </nav>
             <div className={styles.body}>
               {draft.entry !== "live" && <EndTimeInfo meeting={meeting} />}
-              <h1
-                ref={heading}
-                tabIndex={-1}
-                className={step === 1 ? "sr-only" : "mb-2 text-3xl font-bold outline-none"}
-              >
-                {labels[step]}
+              <h1 ref={heading} tabIndex={-1} className="mb-2 text-3xl font-bold outline-none">
+                {step === 1
+                  ? nextInSeries(meeting, ops.meetings)
+                    ? "Bevestig de volgende vergadering"
+                    : "Plan de volgende vergadering"
+                  : labels[step]}
               </h1>
               {step === 0 ? (
                 <>
@@ -122,17 +143,7 @@ export function MeetingWrapUp({ meeting }: { meeting: Meeting }) {
               ) : step === 1 ? (
                 <WrapUpPlanning meeting={meeting} draft={draft} patch={patch} />
               ) : (
-                <WrapUpFollowUp
-                  meeting={meeting}
-                  draft={draft}
-                  patch={patch}
-                  finish={(status) => {
-                    // TODO(api): send the exact preview payload via the mail provider only on this explicit click.
-                    const latest = useStore.getState().meetings.find((m) => m.id === meeting.id)!;
-                    useStore.setState({ meetings: finishWrapUp(latest, useStore.getState().meetings, status) });
-                    router.push(`/app/overleg/${meeting.id}`);
-                  }}
-                />
+                <WrapUpFollowUp meeting={meeting} draft={draft} patch={patch} />
               )}
 
               {notice && (
@@ -154,10 +165,27 @@ export function MeetingWrapUp({ meeting }: { meeting: Meeting }) {
                   ← Terug
                 </Button>
               )}
+              {step === 2 && (
+                <>
+                  <Button variant="outline" onClick={() => finish("saved")}>
+                    Opslaan zonder versturen
+                  </Button>
+                  <Button onClick={() => finish("sent")}>Verstuur opvolging</Button>
+                </>
+              )}
               {step < 2 && (
                 <Button onClick={() => go(step + 1)}>{step === 0 ? "Volgende vergadering →" : "Opvolging →"}</Button>
               )}
             </div>
+            <p className="w-full text-xs text-ink-3">
+              {step === 2
+                ? draft.entry === "live" && meeting.run
+                  ? "Versturen en opslaan ronden de vergadering af. Terug naar de vergadering hervat de vergadermodus."
+                  : "Versturen en opslaan ronden de vergadering af. Later afronden bewaart alleen je concept."
+                : draft.entry === "live" && meeting.run
+                  ? "Terug naar de vergadering hervat de vergadermodus."
+                  : "Later afronden bewaart je keuzes. De opvolging wordt nog niet verstuurd."}
+            </p>
           </div>
         </footer>
       </div>

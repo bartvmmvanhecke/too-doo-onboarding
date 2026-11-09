@@ -258,3 +258,9 @@
 .calendar :global(.rdp-week) {
   margin-top: 0;
 }
+
+.footerInner > button,
+.footerActions > button {
+  padding-inline: 12px;
+  font-size: 14px;
+}

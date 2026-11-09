@@ -658,7 +658,13 @@ const storeInitializer: StateCreator<Store> = (set, get) => {
         if (!run?.currentId) return m;
         const now = meetingNow(m);
         const current = run.currentId;
-        const handled = new Set([...run.doneIds, ...run.postponedIds, current]);
+        const handled = new Set([
+          ...run.doneIds,
+          ...allItems(m.blocks)
+            .filter((i) => i.runStatus === "done")
+            .map((i) => i.id),
+          current,
+        ]);
         const steps = runSteps(m.blocks);
         const from = steps.indexOf(current);
         const next = [...steps.slice(from + 1), ...steps.slice(0, from)].find((id) => !handled.has(id)) ?? null;

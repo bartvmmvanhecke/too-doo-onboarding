@@ -34,8 +34,8 @@ describe("prototypebediening", () => {
     const m = current();
     expect(m.name).toBe("Directieoverleg");
     expect(m.time).toBe(540);
-    expect(m.blocks[0].items.filter((i) => isHandled(m, i.id))).toHaveLength(3);
-    expect(othersOpen(m, m.run!.currentId).map((i) => i.id)).toEqual(["wrap-demo-3", "wrap-demo-6"]);
+    expect(m.blocks[0].items.filter((i) => isHandled(m, i.id))).toHaveLength(2);
+    expect(othersOpen(m, m.run!.currentId).map((i) => i.id)).toEqual(["wrap-demo-2", "wrap-demo-3", "wrap-demo-6"]);
     expect(nextOpenItem(m, m.run!.currentId)?.id).toBe("wrap-demo-6");
     expect(meetingNow(m, now) - m.startedAt!).toBe(52 * 60000);
     expect(m.actions).toHaveLength(4);
@@ -55,15 +55,15 @@ describe("prototypebediening", () => {
     expect(othersOpen(m, m.run!.currentId)).toHaveLength(0);
     expect(actualDuration(closeManually(m, shifted))).toBe(60 * 60000);
   });
-  it("spoort automatisch af, stuurt geen opvolging en draagt 3 en 6 over", () => {
+  it("sluit automatisch af zonder punten te voltooien of over te dragen", () => {
     loadWrapUpScenario("jumps", id, now);
     loadWrapUpScenario("unattended", id, now);
     const m = current();
     expect(m).toMatchObject({ run: null, endReason: "auto", followUpStatus: "pending", minimized: false });
     expect(m.endedAt! - m.lastActivityAt!).toBe(15 * 60000);
     const next = useStore.getState().meetings.find((n) => n.id !== id)!;
-    expect(next.blocks[0].items.map((i) => i.carriedSourceId)).toEqual([`${id}:wrap-demo-3`, `${id}:wrap-demo-6`]);
-    // The demo departure ends the discussion of the current point.
+    expect(next.blocks[0].items).toHaveLength(0);
+    expect(m.blocks[0].items[4].runStatus).toBe("open");
   });
   it("reset carry en tijd bij herladen en weigert productie", () => {
     loadWrapUpScenario("jumps", id, now);
@@ -88,4 +88,10 @@ describe("prototypebediening", () => {
     expect(current().demoScenarioRevision).toBe(revision + 1);
     expect(timerEnd(current()) - meetingNow(current(), now + 10000)).toBe(5000);
   });
+});
+
+it("herkent punt 3 als het laatste open punt", () => {
+  loadWrapUpScenario("last-middle", id, now);
+  expect(current().run?.currentId).toBe("wrap-demo-3");
+  expect(othersOpen(current(), "wrap-demo-3")).toHaveLength(0);
 });

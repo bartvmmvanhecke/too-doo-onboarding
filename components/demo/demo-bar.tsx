@@ -111,6 +111,22 @@ export function DemoBar() {
           />
           Prototypebalk in vergadermodus
         </label>
+        {(
+          [
+            { key: "wrapUpPrimary", label: "Afronden: knoppen in primaire kleur" },
+            { key: "wrapUpCompact", label: "Afronden: compacte detailpagina" },
+          ] as const
+        ).map(({ key, label }) => (
+          <label key={key} className="mb-3 flex min-h-11 cursor-pointer items-center gap-3 text-[13px] font-bold">
+            <input
+              className="size-4"
+              type="checkbox"
+              checked={demo[key] ?? false}
+              onChange={(e) => setDemo({ [key]: e.target.checked })}
+            />
+            {label}
+          </label>
+        ))}
         <button
           type="button"
           onClick={resetDemo}

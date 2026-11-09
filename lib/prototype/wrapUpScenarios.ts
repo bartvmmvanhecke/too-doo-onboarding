@@ -1,12 +1,12 @@
 import { newBlock, newItem, type Entry } from "../agenda";
-import { carryForward, plannedEnd, unattended } from "../meeting-wrap-up";
+import { autoCloseDueAt, unattended } from "../meeting-wrap-up";
 import { chimeEnabled, setChimeEnabled } from "../audio/chime-state";
 import { timerEnd, meetingNow } from "../meeting-clock";
 import { isDemoEnvironment } from "../demo-environment";
 import { AVATAR_COLORS, USER_PERSON_ID, type Person } from "../mock-data";
 import { useStore, type Meeting, type Action } from "../store";
 
-export type WrapUpScenario = "start" | "jumps" | "last" | "advance" | "last-five" | "unattended";
+export type WrapUpScenario = "start" | "jumps" | "last" | "last-middle" | "advance" | "last-five" | "unattended";
 /** All prototype mutations and fixture data live here. No API or backend calls. */
 export function loadWrapUpScenario(kind: WrapUpScenario, meetingId: string, realNow = Date.now()) {
   if (!isDemoEnvironment()) return null;
@@ -31,26 +31,11 @@ export function loadWrapUpScenario(kind: WrapUpScenario, meetingId: string, real
   }
   if (kind === "unattended") {
     const now = meetingNow(current, realNow);
-    // Exercise the same idle transition, immediately, without waiting eight hours.
-    const activity: Meeting = {
-      ...current,
-      lastActivityAt: now,
-      blocks: current.blocks.map((b) => ({
-        ...b,
-        items: b.items.map((i) =>
-          i.id === current.run?.currentId ? { ...i, runStatus: "done", handledAt: now } : i,
-        ),
-      })),
-    };
-    const closed = unattended(activity, Math.max(plannedEnd(activity), now) + 9 * 3600000);
-    const meeting: Meeting = { ...closed, autoClosedAt: now, reminderQueuedAt: now };
-    useStore.setState({
-      meetings: carryForward(
-        meeting,
-        state.meetings.map((m) => (m.id === meetingId ? meeting : m)),
-      ),
-    });
-    return { announcement: "Gebruiker vertrokken: vergadering automatisch afgesloten", preview: true };
+    const activity: Meeting = { ...current, lastActivityAt: now };
+    const closed = unattended(activity, autoCloseDueAt(activity));
+    const meeting: Meeting = { ...closed, demoTimeOffsetMs: current.demoTimeOffsetMs ?? 0 };
+    useStore.setState({ meetings: state.meetings.map((m) => (m.id === meetingId ? meeting : m)) });
+    return { announcement: "Gebruiker vertrokken: vergadering automatisch afgesloten", preview: false };
   }
   const elapsed = kind === "start" ? 0 : kind === "jumps" ? 52 : 55;
   const day = new Date(realNow);
@@ -72,25 +57,28 @@ export function loadWrapUpScenario(kind: WrapUpScenario, meetingId: string, real
     createdAt: start + elapsed * 60000,
     ...(kind === "action" ? { actionId: `action-${id}` } : {}),
   });
-  const entries: Record<number, Entry[]> = kind === "start" ? {} : {
-    2: [entry("budget", "action", "Budgetvoorstel Q1 bijwerken", fixturePeople[0].id, "18 nov")],
-    4: [
-      entry("audit", "decision", "Veiligheidsaudit uitbesteden aan externe partner", null, "15 dec"),
-      entry("offertes", "action", "Offertes externe auditors opvragen", fixturePeople[1].id, "20 nov"),
-    ],
-    5: [
-      entry("opleiding", "decision", "Opleidingsbudget Q4 vrijgeven", null, "30 nov"),
-      entry(
-        "inschrijvingen",
-        "action",
-        "Inschrijvingen opleiding verzamelen per afdeling",
-        fixturePeople[2].id,
-        "20 nov",
-      ),
-      entry("communicatie", "action", "Communicatie naar teams over audit", null, "25 nov"),
-    ],
-    6: [entry("kerst", "note", "Kerstdrink valt in week 51", null, "")],
-  };
+  const entries: Record<number, Entry[]> =
+    kind === "start"
+      ? {}
+      : {
+          2: [entry("budget", "action", "Budgetvoorstel Q1 bijwerken", fixturePeople[0].id, "18 nov")],
+          4: [
+            entry("audit", "decision", "Veiligheidsaudit uitbesteden aan externe partner", null, "15 dec"),
+            entry("offertes", "action", "Offertes externe auditors opvragen", fixturePeople[1].id, "20 nov"),
+          ],
+          5: [
+            entry("opleiding", "decision", "Opleidingsbudget Q4 vrijgeven", null, "30 nov"),
+            entry(
+              "inschrijvingen",
+              "action",
+              "Inschrijvingen opleiding verzamelen per afdeling",
+              fixturePeople[2].id,
+              "20 nov",
+            ),
+            entry("communicatie", "action", "Communicatie naar teams over audit", null, "25 nov"),
+          ],
+          6: [entry("kerst", "note", "Kerstdrink valt in week 51", null, "")],
+        };
   const titles = [
     "Opening en vorige besluiten",
     "Budgetvoorstel Q1",
@@ -99,7 +87,8 @@ export function loadWrapUpScenario(kind: WrapUpScenario, meetingId: string, real
     "Opleidingsbudget Q4",
     "Varia",
   ];
-  const handled = kind === "start" ? [] : kind === "jumps" ? [1, 2, 4] : [1, 2, 3, 4, 5];
+  const handled =
+    kind === "start" ? [] : kind === "jumps" ? [1, 4] : kind === "last-middle" ? [1, 2, 4, 5, 6] : [1, 2, 3, 4, 5];
   const actions: Action[] = Object.values(entries)
     .flat()
     .filter((e) => e.kind === "action")
@@ -127,6 +116,8 @@ export function loadWrapUpScenario(kind: WrapUpScenario, meetingId: string, real
     minimized: false,
     held: false,
     privateNotes: [],
+    wrapUpDraft: undefined,
+    noActivity: undefined,
     startedBy: USER_PERSON_ID,
     participants: [USER_PERSON_ID, ...fixturePeople.map((p) => p.id)],
     attendance: undefined,
@@ -141,6 +132,13 @@ export function loadWrapUpScenario(kind: WrapUpScenario, meetingId: string, real
             duration: 10,
             ownerIds: [],
             runStatus: handled.includes(i + 1) ? "done" : "open",
+            visitedAt:
+              handled.includes(i + 1) ||
+              (kind === "jumps" && [2, 5].includes(i + 1)) ||
+              (kind === "last-middle" && i === 2) ||
+              (kind === "last" && i === 5)
+                ? start + elapsed * 60000
+                : undefined,
             handledAt: handled.includes(i + 1) ? start + elapsed * 60000 : undefined,
             entries: entries[i + 1] ?? [],
           }),
@@ -150,7 +148,7 @@ export function loadWrapUpScenario(kind: WrapUpScenario, meetingId: string, real
     run: {
       startedAt: start,
       stepStartedAt: start + elapsed * 60000,
-      currentId: `wrap-demo-${kind === "start" ? 1 : kind === "jumps" ? 5 : 6}`,
+      currentId: `wrap-demo-${kind === "start" ? 1 : kind === "jumps" ? 5 : kind === "last-middle" ? 3 : 6}`,
       doneIds: handled.map((n) => `wrap-demo-${n}`),
       postponedIds: [],
       actuals: {},

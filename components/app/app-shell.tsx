@@ -106,6 +106,9 @@ function Sidebar({ onMeetingsClick }: { onMeetingsClick: () => void }) {
         {comingSoon("Notities")}
       </div>
       <div className="flex flex-col gap-1 lg:mt-auto">
+        <Link href="/app/meldingen" className={item}>
+          Meldingen
+        </Link>
         <HelpMenu className={cn(item, "w-full gap-2.5 lg:mt-4")} />
         <p className="hidden border-t border-white/15 p-3 text-[13px] text-nav-muted lg:block">
           {/* Variant A: na bewaren staat je naam erbij (SPEC-LAZY.md §7). */}

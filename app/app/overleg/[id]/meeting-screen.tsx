@@ -1,7 +1,8 @@
 "use client";
 
 import { meetingNow } from "@/lib/meeting-clock";
-import { MeetingReminderPreview } from "@/components/b/meeting-reminder-preview";
+import { DigestPreview } from "@/components/meeting/digest-preview";
+import { NotificationSettings } from "@/components/meeting/notification-settings";
 import { closeManually } from "@/lib/meeting-wrap-up";
 import { CompletedMeetingDetail } from "@/components/meeting/completed-meeting-detail";
 import { PreviousFollowUp } from "@/components/meeting/previous-follow-up";
@@ -35,14 +36,8 @@ export function MeetingScreen() {
   }, [meeting, params, router]);
 
   if (!meeting) return null;
-  if (params.get("herinnering") === "1") return <MeetingReminderPreview meeting={meeting} />;
-  if (params.get("meldingen") === "1")
-    return (
-      <section className="rounded-xl border border-line bg-white p-5">
-        <h1 className="text-2xl font-bold">Meldingen beheren</h1>
-        <p className="mt-3">Meldingsvoorkeuren zijn nog niet beschikbaar in dit prototype.</p>
-      </section>
-    );
+  if (params.get("herinnering") === "1") return <DigestPreview />;
+  if (params.get("meldingen") === "1") return <NotificationSettings />;
   return (
     <MeetingStartGate meeting={meeting}>
       <div data-meeting-detail className="contents">

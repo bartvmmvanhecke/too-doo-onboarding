@@ -2,6 +2,8 @@
 import { meetingNow } from "@/lib/meeting-clock";
 import { useEffect } from "react";
 import { useStore } from "@/lib/store";
+import { runDigestJob } from "@/lib/meeting-digest";
+import { USER_PERSON_ID } from "@/lib/mock-data";
 import { reconcileBacklog } from "@/lib/wrap-up-flow";
 import { unattended } from "@/lib/meeting-wrap-up";
 /** Local sync fallback, also reconciles when returning after closing the tab.
@@ -21,8 +23,19 @@ export function UnattendedSync() {
       const attached = reconcileBacklog(meetings);
       changed ||= attached !== meetings;
       meetings = attached;
-      if (!changed) return;
-      useStore.setState({ meetings });
+      const state = useStore.getState();
+      // TODO(api): a server worker owns the actual digest delivery. This outbox only simulates the schedule locally.
+      const digest = state.user
+        ? runDigestJob({
+            meetings,
+            userId: USER_PERSON_ID,
+            now: Date.now(),
+            frequency: state.digestFrequency,
+            lastSentAt: state.digestLastSentAt,
+          })
+        : null;
+      if (!changed && !digest) return;
+      useStore.setState({ meetings, ...(digest ? { digestLastSentAt: digest.sentAt, digestOutbox: digest } : {}) });
     };
     sync();
     const interval = window.setInterval(sync, 30000);

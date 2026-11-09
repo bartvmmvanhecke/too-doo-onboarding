@@ -190,6 +190,7 @@ interface Data {
   };
   digestFrequency?: "weekly" | "biweekly" | "off";
   digestLastSentAt?: number;
+  digestOutbox?: { content: import("./meeting-digest").DigestContent; sentAt: number };
   user: User | null;
   calendar: CalendarState;
   calendarNotice: "cancelled" | null;

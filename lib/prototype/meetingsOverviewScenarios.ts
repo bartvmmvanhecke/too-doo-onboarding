@@ -1,3 +1,4 @@
+import { autoCloseDueAt, unattended } from "@/lib/meeting-wrap-up";
 import { newBlock, newItem } from "@/lib/agenda";
 import { toISO } from "@/lib/date";
 import { isDemoEnvironment } from "@/lib/demo-environment";
@@ -59,4 +60,45 @@ export function loadMeetingsOverviewScenario(scenario: MeetingsOverviewScenario,
     });
   }
   useStore.setState({ meetings });
+}
+
+/** Direct preview without replacing the user's other demo meetings. */
+export function loadAutoClosedPreview(now = new Date()): string | null {
+  if (!isDemoEnvironment()) return null;
+  const start = new Date(now);
+  start.setHours(9, 0, 0, 0);
+  const startedAt = start.getTime();
+  const id = "prototype-auto-closed";
+  const running: Meeting = {
+    id,
+    name: "Directievergadering · automatisch afgesloten",
+    type: "Management",
+    recurrence: "weekly",
+    date: toISO(start),
+    time: 540,
+    duration: 60,
+    participants: [USER_PERSON_ID, "sd"],
+    startedBy: USER_PERSON_ID,
+    startedAt,
+    lastActivityAt: startedAt + 50 * 60_000,
+    showWelcome: false,
+    invited: true,
+    held: false,
+    actions: [],
+    blocks: [
+      newBlock("topics", {
+        title: "Lopende zaken",
+        items: [
+          newItem("Voortgang en besluiten", { runStatus: "done" }),
+          newItem("Planning volgende week", { runStatus: "open" }),
+          newItem("Vragen van het team", { runStatus: "open" }),
+        ],
+      }),
+    ],
+    run: { startedAt, stepStartedAt: startedAt, currentId: null, doneIds: [], postponedIds: [], actuals: {} },
+  };
+  const closed = unattended(running, autoCloseDueAt(running));
+  const state = useStore.getState();
+  useStore.setState({ meetings: [...state.meetings.filter((m) => m.id !== id), closed] });
+  return id;
 }

@@ -199,3 +199,18 @@ test("wizardstijl met verbonden stappen en volledige kalender, ook bij bekende v
   await page.getByRole("button", { name: "Opvolging →", exact: true }).click();
   await expect(page.getByRole("heading", { name: "Opvolging", exact: true })).toBeVisible();
 });
+
+test("prototypebalk opent direct de voorgestelde automatische eindtijd en bevestiging", async ({ page }) => {
+  await seedWrapUp(page, { automatic: true });
+  await page.goto("/app");
+  await page.getByRole("button", { name: "Automatisch afgesloten · eindtijd bevestigen", exact: true }).click();
+  await expect(page).toHaveURL(/\/app\/overleg\/prototype-auto-closed$/);
+  const banner = page.getByRole("status", { name: "Nog af te ronden", exact: true });
+  await expect(banner).toContainText("eindtijd 10:05 (laatste activiteit 09:50 + 15 min)");
+  await expect(banner.getByRole("button", { name: "Klopt", exact: true })).toBeVisible();
+  await expect(banner.getByRole("button", { name: "Aanpassen", exact: true })).toBeVisible();
+  expect((await storedMeetings(page)).length).toBe(3);
+  await banner.getByRole("button", { name: "Klopt", exact: true }).click();
+  const preview = (await storedMeetings(page)).find((m: { id: string }) => m.id === "prototype-auto-closed");
+  expect(preview.endTimeConfirmed).toBe(true);
+});

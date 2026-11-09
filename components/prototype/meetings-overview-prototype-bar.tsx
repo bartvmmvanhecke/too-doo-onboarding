@@ -1,10 +1,12 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useStore } from "@/lib/store";
 import { isDemoEnvironment } from "@/lib/demo-environment";
-import { loadMeetingsOverviewScenario } from "@/lib/prototype/meetingsOverviewScenarios";
+import { loadAutoClosedPreview, loadMeetingsOverviewScenario } from "@/lib/prototype/meetingsOverviewScenarios";
 
 export function MeetingsOverviewPrototypeBar({ onLoad }: { onLoad: () => void }) {
+  const router = useRouter();
   const meetings = useStore((s) => s.meetings);
   const selected = meetings.some((m) => m.id === "overview-demo-pending")
     ? "pending"
@@ -40,6 +42,16 @@ export function MeetingsOverviewPrototypeBar({ onLoad }: { onLoad: () => void })
           {label}
         </button>
       ))}
+      <button
+        type="button"
+        onClick={() => {
+          const id = loadAutoClosedPreview();
+          if (id) router.push(`/app/overleg/${id}`);
+        }}
+        className="min-h-11 rounded-lg border border-[var(--prototype-bar-border)] bg-[var(--prototype-bar-button)] px-3 text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--prototype-bar-focus)]"
+      >
+        Automatisch afgesloten · eindtijd bevestigen
+      </button>
       <span aria-live="polite" className="ml-auto text-[var(--prototype-bar-muted)]">
         {selected
           ? `2 afgeronde · 2 aankomende${selected === "pending" ? " · 1 nog af te ronden" : ""}`

@@ -172,3 +172,15 @@ Alle nieuwe kleuren zijn lokale CSS-variabelen in
 tokens, globale CSS, routes of dependencies. De bestaande functionaliteit blijft
 behouden. Een extra browsertest controleert de zichtbare kalender, datumselectie,
 42 dagcellen, mobiele overflow en WCAG A/AA.
+
+## Direct voorbeeld: automatische eindtijd bevestigen
+
+Op http://localhost:3000/app staat in de prototypebalk de snelkoppeling
+**Automatisch afgesloten · eindtijd bevestigen**. Die opent meteen de detailpagina
+van een herhaalbaar voorbeeld: gepland 09:00–10:00, laatste activiteit 09:50,
+voorgestelde eindtijd 10:05. De banner toont **Klopt** en **Aanpassen**.
+
+De fixture gebruikt de echte pure afsluitregels en behoudt de overige
+vergaderingen. Opnieuw klikken zet alleen dit voorbeeld terug in de onbevestigde
+staat. Een browsertest controleert de directe navigatie, tijdstippen, zichtbare
+knoppen, behoud van andere data en het bevestigen van de eindtijd.

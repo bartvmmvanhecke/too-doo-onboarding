@@ -1,149 +1,156 @@
-# Vergadering afronden
+# Vergadering afronden — v3
 
-Uitgevoerd in `/Users/bartvanhecke/Developer/too-doo-onboarding`, op
-`codex/close-meeting-unattended`, vanaf de huidige HEAD zoals de aangeleverde
-opdracht voorschrijft. Geen nieuwe worktree, PR of merge.
+Uitgevoerd op `codex/close-meeting`, vanaf de bestaande afrondingscode op
+`origin/main`. De genoemde branch/worktree `meeting-wrap-up` bestaat hier niet;
+de gebruiker heeft expliciet bevestigd om op `codex/close-meeting` verder te gaan.
+Geen nieuwe worktree, branchwissel, PR of merge. De bestaande devserver blijft op
+poort 3000 draaien.
 
-## Gebouwd
+## Verandering tegenover de bestaande flow
 
-- Status per agendapunt, heropenen, volgend open punt en voortgang op status.
-- Amber timer, overtime met 15 minuten uitstel, minimaliseerprompt, zwevende pill en live-indicator.
-- Afzonderlijke eindtijd en opvolgstatus, afrondingsscherm, eigenaarselectie,
-  inline aanvulling bij lege opvolging, bevestiging en terugkeren met focusherstel.
-- Idempotent doorschuiven naar de eerstvolgende **ingeplande** vergadering met
-  dezelfde seriesId. Metadata en herkomst blijven bewaard. Laten vallen verwijdert
-  ook een al automatisch doorgeschoven kopie.
-- Activiteitregistratie bij schrijven/navigeren en maximaal eenmaal per 30 seconden
-  bij typen. Alleen openstaan telt niet.
-- Pure herinnerings- en afsluitregels, lokale synchronisatie bij terugkomst,
-  herinneringsmailpreview en deeplink naar de afrondingsstap.
-- Eindtijd bevestigen/aanpassen na automatisch afsluiten en voorrang in de lijst.
-- Nieuw KPI-scherm (het bestond niet op deze basisbranch), met effectieve duur,
-  uitschieterfilter, automatische afsluitingen en ruwe openstandduur.
+- Navigatie voltooit of heropent geen punten meer. `runStatus` gebruikt `open` en
+  `done`; oude opgeslagen `handled`-waarden worden bij inlezen behouden als `done`.
+  Bezoek wordt apart geregistreerd. Alleen expliciet voltooien of de bevestigde
+  wizardkeuze voltooit een punt.
+- De Voltooi-knop zoekt het volgende open punt, ook wanneer het laatste open punt
+  midden in de lijst staat. Alle afrondingsknoppen openen de bevestigingsdialog.
+  Start ongedaan maken is beperkt tot vergaderingen zonder vastgelegde inhoud.
+- De oude combinatie van overzicht en apart planningsscherm is vervangen door
+  `/vergaderingen/[id]/afronden`: drie vrij aanklikbare stappen, bestaande
+  agendarijen/tellers/inline bewerking, expliciete open-puntkeuzes, eigenaar en
+  datum, optionele planning, Nederlandse opvolging, ontvangerselectie en score.
+- Keuzes, samenvatting, ontvangers, planning en feedback worden direct in
+  `wrapUpDraft` bewaard. Een latere ingang start bij stap 1 met de bewaarde keuzes.
+  Terug naar een pas afgesloten vergadering maakt het einde ongedaan.
+- Versturen en opslaan zonder versturen passen de keuzes atomair toe. Overdracht
+  is idempotent, blijft in hetzelfde agendablok en bewaart de herkomst. Zonder
+  volgende afspraak blijven punten op de bronvergadering bewaard als de lokale
+  lijst “Bewaard voor later”; een volgende afspraak krijgt ze automatisch.
+- Automatisch afsluiten gebruikt `max(gepland einde, laatste activiteit) + 120 min`
+  als jobdeadline en `max(gepland einde, laatste activiteit + 15 min)` als eindtijd.
+  Zonder activiteit na de start geldt het geplande einde. Automatisch afsluiten
+  verstuurt geen opvolging en past geen agendakeuzes toe.
+- De detailpagina heeft een amber statusbanner met eindtijdbevestiging en een
+  expliciete wizardingang. Pending links landen op detail. Na afronden volgt een
+  groene bevestiging; na opslaan kan de voorzitter alsnog expliciet versturen.
+- De lijst en sidebar tellen alleen de eigen, nog geen veertien dagen oude pending
+  vergaderingen. Daarna staan ze onder Afgelopen met “Opvolging niet verstuurd”.
+  Het dashboard en de volgende vergadering in een reeks kregen een toevoeging.
+- De herinneringsmail per vergadering is vervangen door één periodieke
+  samenvatting. De instelling staat standaard op Wekelijks; Om de twee weken en
+  Uit zijn beschikbaar. De geteste planning gebruikt maandag 08:30 in Brussel,
+  inclusief zomer-/wintertijd, deduplicatie en het overslaan van lege mails.
+- De KPI gebruikt de gecorrigeerde eindtijd, herstelt historische uitschieters met
+  gepland einde als ondergrens en onderscheidt afgerond, automatisch en geen
+  activiteit. De bestaande timer behoudt zijn berekening vanaf de echte start.
 
-## API-aansluitingen en grenzen
+## Prototype-opties en scenario’s
 
-Dit is een localStorage-prototype zonder serverjobs of mailprovider.
+In Demo-instellingen, beide standaard **uit**:
 
-- `components/meeting/unattended-sync.tsx`: TODO(api) voor een serverjob, echte
-  reminderbezorging en atomair één herinnering per vergadering. Lokaal wordt alleen
-  de herinneringsintentie geregistreerd. Met gesloten tab draait er geen job;
-  synchronisatie herstelt de toestand bij de volgende terugkeer.
-- `components/meeting/meeting-wrap-up.tsx`: TODO(api) voor echte opvolgmails per
-  deelnemer. De lokale bevestiging simuleert verzenden; er vertrekken geen mails.
-- `components/b/meeting-reminder-preview.tsx`: TODO(api) voor meldingsvoorkeuren
-  en bezorging uitsluitend aan voorzitter/startende gebruiker.
-- `lib/meeting-wrap-up.ts`: TODO(api) voor het ophalen van ontbrekende historische
-  updatedAt-records. Beschikbare actie-, agendapunt- en entrytimestamps worden al gebruikt; ontbrekende
-  historie boven 3× gepland telt niet mee in Werkelijk.
-- `lib/meeting-wrap-up.ts`: TODO(api) voor een zelfstandige lijst Bewaren voor later.
-  Zonder ingeplande volgende vergadering blijven de punten in het originele verslag
-  bewaard. Er wordt geen volgende serieafspraak verzonnen.
+- **Afronden: knoppen in primaire kleur**: rode afrondingsknoppen worden blauw/wit
+  met het bestaande brand-token (`#2747D6`), ook op de lijst en detailpagina.
+- **Afronden: compacte detailpagina**: verbergt alleen in de pending staat de
+  infokaart, voorbereidingsscore, tabs en timer. Met de optie uit blijven die staan.
 
-## Schermen
+De bestaande prototypebalk bevat nu:
 
-- Vergaderingen: http://localhost:3000/app
-- KPI: http://localhost:3000/app/vergaderingen-kpi
-- Vergadering: `/app/overleg/{id}`
-- Mailpreview: `/app/overleg/{id}?herinnering=1`
-- Deeplink afronden: `/app/overleg/{id}?afronden=1`
+- Sprongen 1 → 4 → 2 → 5: alleen 1 en 4 voltooid; 2 bezocht en open, 5 huidig.
+- Nog één punt open: 1–5 voltooid, 6 huidig.
+- Punt 3 is het laatste open punt: alle andere punten voltooid.
+- Gebruiker loopt weg → automatisch afsluiten: gebruikt dezelfde pure jobregel,
+  opent direct de detailbanner en verstuurt of verplaatst niets.
 
-De bestaande devserver op poort 3000 wordt hergebruikt.
+## Bestaande schermen en gedeelde bestanden
 
-## Gedeelde bestanden en verwijderingen
+Toevoegingen aan detail, lijst Vergaderingen, sidebar, dashboard, volgende
+vergadering, meldingsinstellingen en KPI. De afrondingsflow zelf is herwerkt.
 
-`app/globals.css` kreeg uitsluitend zes kleurvariabelen. De bestaande
-`app/app/overleg/[id]/meeting-screen.tsx` koppelt de nieuwe toestanden en
-queryparameters. De route `app/app/vergaderingen-kpi/page.tsx` is toegevoegd.
-De app-shell kreeg de live-indicator, pill en lokale synchronisatie.
-Geen dependencies, wijzigingen aan packagebestanden of prototypemenu.
-Geen bestanden verwijderd. De oude beëindigingsdialoog is uit de UI gehaald.
+Gedeeld aangepast: `lib/store.ts` (velden, activiteit en compatibel inlezen),
+`lib/agenda.ts` (status/bezoek), `lib/meeting-clock.ts` (bestaande timer behouden
+terwijl de job het geplande einde gebruikt), de app-shell en de bestaande
+route-ingang `app/app/overleg/[id]/meeting-screen.tsx`. Nieuwe routes voor wizard,
+meldingen en samenvattingspreview. Demo-instellingen en de prototypebalk zijn
+uitgebreid; het prototypemenu zelf bleef ongewijzigd.
+
+Geen wijzigingen aan tokens, `globals.css`, `package.json` of `package-lock.json`.
+Geen nieuwe dependencies.
+
+## TODO(api) en grenzen
+
+Het project is een localStorage-prototype zonder backendjobs of mailprovider.
+De pure functies en lokale opslag zijn echt geïmplementeerd en getest; UI-status
+“verstuurd” simuleert bezorging, er vertrekken geen e-mails.
+
+- **Jobs:** `unattended()` moet in een serverworker atomair worden uitgevoerd.
+  Lokaal synchroniseert de app bij openen, focus en iedere 30 seconden. Een
+  gesloten browser voert geen achtergrondjob uit.
+- **Mail:** de expliciete verzendklik moet de opgeslagen samenvatting,
+  ontvangers, acties, beslissingen, verplaatste punten en optionele scorevraag via
+  de mailprovider bezorgen. De preview gebruikt dezelfde inhoudsfunctie.
+- **Periodieke samenvatting:** `runDigestJob()` levert alleen op de ingestelde
+  maandag om 08:30 een niet-lege lokale outbox op, maximaal eenmaal per periode.
+  Een serverplanner, bezorging, atomair outboxbeheer en serveropslag van de
+  meldingsvoorkeur ontbreken. De lokale simulatie vereist een geopende app op dat
+  tijdstip; er is geen inhaalmail bij automatisch afsluiten later op de dag.
+- **Samenvatting:** zonder AI-service wordt een feitelijke tekst van drie zinnen
+  uit de vastgelegde inhoud opgebouwd. Een gegronde AI-generator is een API-taak;
+  de gebruiker kan de tekst nu al volledig aanpassen.
+- **Bewaard voor later:** lokaal blijven de gekozen punten persistent op de
+  bronvergadering en worden ze bij een volgende afspraak gekoppeld. Een aparte
+  backendcollectie voor deze lijst ontbreekt.
+- **Historie:** beschikbare item-/entry-/actietimestamps worden gebruikt;
+  ontbrekende historische records moeten later via de API worden opgehaald.
+
+Alle mock-data voor de samenvattingspreview staat achter `digestPreviewData()`.
 
 ## Validatie
 
-- Alle 70 unit tests slagen, inclusief agendasprongen, heropenen, wrap-around,
-  effectieve eindtijden, herinneringsdeduplicatie, activiteit na gepland einde,
-  doorschuiven, laten vallen na automatische overdracht en historische uitschieters.
-- Build, typecheck en lint slagen. Lint meldt één al bestaande waarschuwing in
-  `components/probeer/microsoft-authorization.tsx`.
-- Alle zes gerichte Playwright-scenario's slagen. Ze dekken vastlegging, afronding, focusherstel,
-  de sprong 1 → 4 → 2 → 5, snooze, minimaliseren/pill, automatische terugkeer,
-  tijdcorrectie, maildeeplink, KPI, laatste open punt midden in de agenda,
-  ontbrekende eigenaar, mobiel en WCAG A/AA.
-- De brede bestaande browsersuite is gestopt na 22 geslaagde tests en 5 failures
-  in oude onboardingselectoren en screenshots; 2 tests waren onderbroken.
-  Voorbeelden: `Naam` op de lege app en `Je andere vaste vergaderingen toevoegen`
-  op het detail. Die tests zijn buiten scope niet aangepast. De volledige
-  browsersuite is dus niet groen.
-- Desktop- en mobiele schermafbeeldingen zijn visueel gecontroleerd.
+- Build, typecheck en lint slagen. Lint heeft één al bestaande waarschuwing in
+  `components/probeer/microsoft-authorization.tsx` (ref in effect-cleanup).
+- Alle **92 unit tests** slagen, inclusief afsluitgrenzen, geen activiteit,
+  navigatie zonder voltooien, laatste open punt midden in de agenda, concepten,
+  eigenaarfallback, idempotente overdracht, backlog, KPI en samenvattingsplanning.
+- **12 gerichte browsertests** slagen: acht v3-tests, de bestaande live-captureflow
+  en drie prototypeflowtests. Ze controleren desktop/mobiel, herladen, bewaren en
+  alsnog versturen, native tijdcorrectie, automatisch afsluiten zonder mail,
+  laatste open punt 3 en beide standaard uitgeschakelde prototype-opties.
+- WCAG A/AA-controles van de mobiele agenda- en opvolgingsstap slagen; geen
+  horizontale overflow. Desktop- en mobiele schermafbeeldingen zijn bekeken.
+- De volledige bestaande browsersuite is **niet groen verklaard**. De twee
+  bestaande audiotests in `e2e/prototype-wrap-up.spec.ts` falen doordat ze een
+  geluidsknop in de vergadermodus verwachten die ook op `origin/main` niet
+  gerenderd wordt. Die knop ontbreekt daar al: de component en tests bestaan, maar
+  `LiveMeeting` importeert/renderde hem niet. Het toevoegen van audiobediening
+  valt buiten deze v3-opdracht. De tests blijven behouden; ze zijn niet uitgezet
+  in de configuratie. De overige brede onboardingsuite is niet opnieuw gedraaid.
 
-## Vervolg: prototypebediening
+## Verwijderingen (aparte laatste commit)
 
-De donkere prototypebalk staat boven de bovenbalk in de gestarte vergadermodus.
-Hij verdwijnt bij minimaliseren, afronden en op detail/lijst/mail. De instelling
-`demo.wrapUpToolbar` gebruikt de bestaande localStorage-store en staat standaard aan.
+Deze drie bestanden hebben geen gebruikers meer na de nieuwe wizard en digest:
 
-- `lib/prototype/wrapUpScenarios.ts` bevat alle lokale fixtures en mutations voor
-  sprongen, laatste open punt, +5 minuten en spoor B. De fixture maakt ook een
-  lokale volgende vergadering, zodat doorschuiven direct zichtbaar is.
-- `Meeting.demoTimeOffsetMs` bewaart de tijdsverschuiving per vergadering;
-  `lib/meeting-clock.ts` past hem via `meetingNow()` toe. Timer, schrijfacties,
-  synchronisatie, pill en handmatig afsluiten gebruiken dezelfde klok.
-- Een scenariorevisie herstart alleen de inhoud van de vergadermodus, waardoor
-  lokale prompts, snooze, invoer en minimaliseermelding worden gereset en het
-  huidige agendapunt focus krijgt. De balk bewaart de aria-live-aankondiging.
-- Spoor B beëindigt in deze demonstratie de bespreking van het huidige punt en
-  draagt de onbehandelde punten 3 en 6 over. Er worden geen mails of API-aanroepen gedaan.
-- De mailpreview heeft een demo-link naar het detail na automatisch afsluiten.
-- Er was geen bestaande omgevingscheck voor het prototypemenu. De gedeelde check
-  `lib/demo-environment.ts` beschermt nu menu, instellingen, balk, fixtures en klok.
-  Development/test is demo; een afzonderlijke demodeployment kan expliciet
-  `NEXT_PUBLIC_APP_ENV=demo` gebruiken. Een gewone productiebuild toont geen
-  prototypebediening en negeert opgeslagen demo-offsets.
+- `components/meeting/next-meeting-screen.tsx`
+- `components/b/meeting-reminder-preview.tsx`
+- `components/prototype/reminder-mail-modal.tsx`
 
-Gedeeld aangepast: uitsluitend vijf toegevoegde kleurtokens in `app/globals.css`,
-plus de omgevingscheck in het bestaande prototypemenu. Geen dependencies of bestanden
-verwijderd. De verouderde menutest verwacht nu ook het al bestaande menu-item
-“Overzicht met vergaderingen”. Verder is gewerkt op de bestaande branch
-`codex/close-meeting-unattended`, zonder branchwissel, PR of merge.
+Geen andere bestanden verwijderd. De oude `?herinnering=1`-previewingang blijft
+compatibel en toont de periodieke samenvatting; er is geen herinnering per
+vergadering meer.
 
-Validatie vervolg: 74 unit tests, build, lint en typecheck slagen. De zes bestaande
-gerichte vergaderbrowsertests en de drie nieuwe prototypebrowsertests slagen.
+## Lokale schermen
 
-## Vervolg: secondentimer en optionele chime
+- Vergaderingen: http://localhost:3000/app
+- Wizard: http://localhost:3000/vergaderingen/{id}/afronden
+- Detail: http://localhost:3000/app/overleg/{id}
+- Meldingen: http://localhost:3000/app/meldingen
+- Samenvattingsmailpreview: http://localhost:3000/app/samenvatting-preview
+- KPI: http://localhost:3000/app/vergaderingen-kpi
 
-De timer toont mm:ss, vanaf meer dan een uur h:mm:ss, en in de laatste minuut
-“nog N s”. Op precies één uur staat 60:00, zoals in de demo. De pill gebruikt
-dezelfde klok. `Meeting.overtimeUntil` bewaart +15 minuten voor timer, pill en audio;
-de gedeelde planning blijft intact. De UI-ticks zijn uitgelijnd op dit eindmoment.
+## Afwijkingen van de spec
 
-`lib/audio/chime.ts` synthetiseert twee zachte sinustonen met Web Audio (880 en
-1318,5 Hz, 120 ms uit elkaar, gain 0,2). `chime-state.ts` beheert één AudioContext,
-het ontgrendelen via klikken en de opt-in per e-mailadres in localStorage.
-TODO(api): de voorkeur later in de gebruikersinstellingen bewaren.
-
-`components/meeting/chime-scheduler.tsx` leeft in de app-shell en blijft daarom
-actief bij minimaliseren en navigeren binnen de app. Binnen tien minuten vóór het
-einde plant hij de chime met `ctx.currentTime + resterendeSeconden`. Een minuutinterval
-wacht alleen op dat venster; het geluid zelf wordt niet door JS-timers getriggerd.
-Bij aan/uit, uitstel, demo-offset, scenario-revisie en visibilitychange wordt de
-vorige planning geannuleerd en zo nodig vervangen. Voorbije eindmomenten worden
-niet ingehaald. Afronden of afsluiten verwijdert de planner en annuleert de tonen.
-
-“Laatste 5 seconden” gebruikt de bestaande lokale scenariofunctie. De knop zet de
-offset exact vijf seconden vóór het actuele eindmoment, activeert geluid zonder
-voorbeeldchime, kondigt dit aan en reset via een revisie de planningsstatus.
-De gewone geluidsknop speelt bij aanzetten wél één voorbeeld; bij een geblokkeerde
-context activeert de eerste klik uitsluitend de bestaande ingeschakelde voorkeur.
-
-Nieuwe bestanden: `lib/audio/chime.ts`, `lib/audio/chime-state.ts`,
-`lib/audio/chime.test.ts`, `lib/meeting-clock.test.ts`,
-`components/meeting/chime-control.tsx`, `components/meeting/chime-scheduler.tsx`.
-Aangepast: klok/context, store, constanten, vergadermodus, start-gate, pill,
-app-shell, prototypebalk/scenariofunctie en bijbehorende tests. Geen dependencies,
-nieuwe kleurtokens, gewijzigde routes of verwijderde bestanden.
-
-Validatie: 78 unit tests; build, lint en typecheck; elf gerichte browsertests.
-De browsercontrole inspecteert de echte Web Audio-scheduling, voorbeeldgedrag,
-herplanning, annulering, de timer/pill en refresh na het einde. Audio wordt niet
-als enig signaal gebruikt. De bestaande lintwaarschuwing buiten deze opdracht blijft.
+De werkbranch is met toestemming `codex/close-meeting`. Serverfuncties en mails
+gebruiken de toegestane pure-functie/lokale fallback vanwege ontbrekende
+infrastructuur. De samenvatting gebruikt dezelfde toegestane feitelijke fallback
+in plaats van een externe AI-aanroep. Samenhangende implementatiestappen zijn in
+gezamenlijke commits vastgelegd; elk gecontroleerd met build, lint en typecheck.
+De bovengenoemde bestaande audiofailures blijven buiten scope.

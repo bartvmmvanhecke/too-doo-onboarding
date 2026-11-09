@@ -1,5 +1,6 @@
 "use client";
 
+import { PreviousFollowUp } from "./previous-follow-up";
 import { MeetingPrototypeBar } from "@/components/prototype/meeting-prototype-bar";
 import { elapsedClock, remainingLabel, timerEnd, meetingNow } from "@/lib/meeting-clock";
 import { useEffect, useRef, useState } from "react";
@@ -422,6 +423,7 @@ function LiveMeetingContent({ meeting }: { meeting: Meeting }) {
         </aside>
         <main className="flex min-h-0 min-w-0 flex-1 flex-col gap-7 overflow-y-auto rounded-tl-2xl bg-[#f9f9fc] p-5 xl:flex-row xl:p-6">
           <div className="min-w-0 flex-1">
+            <PreviousFollowUp meeting={meeting} />
             {(minimizePrompt || overtime) && (
               <section
                 role="status"

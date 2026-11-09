@@ -4,6 +4,7 @@ import { useEffect, useSyncExternalStore } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAppUi } from "@/components/app/app-ui";
+import { isChair, isPending } from "@/lib/meeting-wrap-up";
 import { Avatar } from "@/components/avatar";
 import { OwnerPicker } from "@/components/b/owner-picker";
 import { StatTile } from "@/components/b/stat-tile";
@@ -82,6 +83,13 @@ export function OverviewScreen() {
         <h1 className="mt-1 text-[30px] font-extrabold">Dit volgt too-doo nu voor je op</h1>
       </div>
 
+      {meetings.some((m) => isPending(m) && isChair(m, USER_PERSON_ID)) && (
+        <section role="status" className="rounded-xl bg-[var(--wrap-amber-bg)] p-5 text-[var(--wrap-amber-ink)]">
+          <Link className="inline-flex min-h-11 items-center font-bold" href="/app#afronden">
+            {meetings.filter((m) => isPending(m) && isChair(m, USER_PERSON_ID)).length} vergaderingen nog af te ronden →
+          </Link>
+        </section>
+      )}
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
         <StatTile value={all.length} label="open acties" />
         <StatTile value={unowned.length} label="zonder eigenaar" tone={unowned.length ? "warning" : "plain"} />

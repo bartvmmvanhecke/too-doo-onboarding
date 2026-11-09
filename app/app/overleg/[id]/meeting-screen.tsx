@@ -4,6 +4,7 @@ import { meetingNow } from "@/lib/meeting-clock";
 import { MeetingReminderPreview } from "@/components/b/meeting-reminder-preview";
 import { closeManually } from "@/lib/meeting-wrap-up";
 import { CompletedMeetingDetail } from "@/components/meeting/completed-meeting-detail";
+import { PreviousFollowUp } from "@/components/meeting/previous-follow-up";
 import { MeetingStartGate } from "@/components/meeting/meeting-start-gate";
 import { useEffect } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
@@ -46,6 +47,7 @@ export function MeetingScreen() {
     <MeetingStartGate meeting={meeting}>
       <div data-meeting-detail className="contents">
         <SavedBanner meeting={meeting} />
+        {(!meeting.run || meeting.minimized || meeting.endedAt) && <PreviousFollowUp meeting={meeting} />}
         {meeting.followUpStatus === "sent" || meeting.followUpStatus === "saved" ? (
           <CompletedMeetingDetail meeting={meeting} />
         ) : params.get("variant") === "b" && !meeting.run ? (

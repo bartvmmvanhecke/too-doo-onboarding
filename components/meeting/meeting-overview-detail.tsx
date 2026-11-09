@@ -2,9 +2,12 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { initialWrapUpDraft } from "@/lib/wrap-up-flow";
 import { ArrowLeft, CalendarCheck, Check, ChevronUp, Ellipsis, Clock, Coffee, Play, Plus } from "lucide-react";
 import { PendingFollowUp } from "./pending-follow-up";
-import { isHandled } from "@/lib/meeting-wrap-up";
+import { isDemoEnvironment } from "@/lib/demo-environment";
+import { isPending, isHandled } from "@/lib/meeting-wrap-up";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Avatar } from "@/components/avatar";
 import { BreakBlock, TopicsBlock } from "@/components/meeting/agenda";
@@ -31,12 +34,16 @@ const addButton = "rounded-full border-brand-tint bg-brand-soft text-brand hover
 
 /** Detail vanuit het vergaderoverzicht, met de bestaande agenda- en opslagfuncties. */
 export function MeetingOverviewDetail({ meeting }: { meeting: Meeting }) {
+  const router = useRouter();
+  const meetings = useStore((s) => s.meetings);
   const people = usePeople();
   const user = useStore((s) => s.user);
   const ops = useMeetingOps();
   const [tab, setTab] = useState<Tab>("agenda");
   const pending = !!meeting.endedAt && meeting.followUpStatus === "pending";
-  const [infoOpen, setInfoOpen] = useState(!pending);
+  const demo = useStore((s) => s.demo);
+  const compact = pending && isDemoEnvironment() && demo.wrapUpCompact;
+  const [infoOpen, setInfoOpen] = useState(true);
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
   const [detailsId, setDetailsId] = useState<string | null>(null);
   const [adding, setAdding] = useState<"theme" | "item" | null>(null);
@@ -93,11 +100,12 @@ export function MeetingOverviewDetail({ meeting }: { meeting: Meeting }) {
             <ArrowLeft className="size-4" aria-hidden />
             Terug naar overzicht
           </Link>
+          {pending && <PendingFollowUp meeting={meeting} />}
           <header className="flex flex-wrap items-center justify-between gap-5 py-2">
             <div className="flex min-w-0 flex-col items-start gap-2">
               {pending ? (
                 <span className="rounded-full bg-[var(--wrap-amber-bg)] px-3 py-1 text-sm font-bold text-[var(--wrap-amber-ink)]">
-                  Nog af te ronden
+                  {isPending(meeting) ? "Nog af te ronden" : "Opvolging niet verstuurd"}
                 </span>
               ) : (
                 <span className={pill}>
@@ -140,7 +148,7 @@ export function MeetingOverviewDetail({ meeting }: { meeting: Meeting }) {
                 )}
               </div>
             </div>
-            {pending ? (
+            {compact ? (
               <Popover>
                 <PopoverTrigger asChild>
                   <Button variant="outline" size="icon" aria-label="Meer opties voor vergadering">
@@ -177,8 +185,21 @@ export function MeetingOverviewDetail({ meeting }: { meeting: Meeting }) {
                 {meeting.endedAt && meeting.followUpStatus === "pending" ? (
                   <button
                     type="button"
-                    onClick={() => ops.putMeeting({ ...meeting, wrapUpOpen: true })}
-                    className="flex min-h-11 items-center gap-2 rounded-full bg-danger px-4 text-sm font-bold text-white hover:bg-danger/90"
+                    onClick={() => {
+                      ops.putMeeting({
+                        ...meeting,
+                        endTimeConfirmed: true,
+                        wrapUpOpen: false,
+                        wrapUpDraft: { ...initialWrapUpDraft(meeting, meetings), entry: "later", step: 0 },
+                      });
+                      router.push(`/vergaderingen/${meeting.id}/afronden`);
+                    }}
+                    className={cn(
+                      "flex min-h-11 items-center gap-2 rounded-full px-4 text-sm font-bold text-white",
+                      isDemoEnvironment() && demo.wrapUpPrimary
+                        ? "bg-brand hover:bg-brand/90"
+                        : "bg-danger hover:bg-danger/90",
+                    )}
                   >
                     <Check className="size-4" aria-hidden />
                     Afronden
@@ -193,7 +214,7 @@ export function MeetingOverviewDetail({ meeting }: { meeting: Meeting }) {
             )}
           </header>
 
-          {infoOpen && (
+          {infoOpen && !compact && (
             <section aria-label="Vergaderinformatie" className="rounded-2xl border border-line bg-line-soft/30 p-5">
               <h2 className={cn(pill, "mb-4")}>Vergaderinformatie</h2>
               <dl className="grid min-w-0 grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-[1fr_1.2fr_1.5fr_1.5fr_2fr_auto]">
@@ -252,8 +273,7 @@ export function MeetingOverviewDetail({ meeting }: { meeting: Meeting }) {
             </section>
           )}
 
-          {pending && <PendingFollowUp meeting={meeting} />}
-          {!pending && (
+          {!compact && (
             <div className="flex min-w-0 items-center gap-2 border-b border-line pb-2">
               <div role="tablist" aria-label="Vergadering" className="flex min-w-0 flex-1 overflow-x-auto">
                 {tabs.map((t) => (

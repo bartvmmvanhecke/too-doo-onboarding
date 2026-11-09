@@ -14,6 +14,8 @@ import { Logo } from "@/components/brand";
 import { Hydrated } from "@/components/hydrated";
 import { AfterSaveAssistant } from "@/components/probeer/after-save";
 import { notAvailable } from "@/lib/not-available";
+import { isChair, isPending } from "@/lib/meeting-wrap-up";
+import { USER_PERSON_ID } from "@/lib/mock-data";
 import { useStore } from "@/lib/store";
 import { cn } from "@/lib/utils";
 import { isDemoEnvironment } from "@/lib/demo-environment";
@@ -43,6 +45,7 @@ function Sidebar({ onMeetingsClick }: { onMeetingsClick: () => void }) {
     (n, m) => n + (m.reviewSuggestions ?? []).filter((a) => a.reviewStatus === "open").length,
     0,
   );
+  const pendingCount = meetings.filter((m) => isPending(m) && isChair(m, USER_PERSON_ID)).length;
   const openActions = meetings.reduce((n, m) => n + m.actions.filter((a) => !a.done).length, 0);
 
   const comingSoon = (label: string, badge?: ReactNode) => (
@@ -84,6 +87,7 @@ function Sidebar({ onMeetingsClick }: { onMeetingsClick: () => void }) {
           className={cn(item, inMeetings && active)}
         >
           Vergaderingen
+          {pendingCount > 0 && <Badge>{pendingCount}</Badge>}
           {meetings.some((m) => m.run && !m.endedAt) && (
             <span aria-label="Vergadering bezig" className="size-2 rounded-full bg-[var(--wrap-handled)]" />
           )}
@@ -125,7 +129,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           <Hydrated fallback={<div className="lg:min-h-dvh lg:w-60 lg:shrink-0" />}>
             <Sidebar
               onMeetingsClick={() => {
-                if (!isDemoEnvironment()) return;
+                if (!isDemoEnvironment() || useStore.getState().meetings.some((m) => m.followUpStatus)) return;
                 loadMeetingsOverviewScenario("default");
                 setOverviewRevision((value) => value + 1);
               }}

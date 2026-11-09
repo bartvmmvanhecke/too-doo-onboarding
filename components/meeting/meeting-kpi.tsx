@@ -63,11 +63,17 @@ export function MeetingKpi() {
                   )}
                 </td>
                 <td className="p-4">
-                  <span
-                    className={`rounded-full px-3 py-1 text-xs font-bold ${row.manual ? "bg-[var(--wrap-success-bg)] text-[var(--wrap-success-ink)]" : "bg-line-soft text-ink-2"}`}
-                  >
-                    {row.manual ? "afgerond" : "automatisch"}
-                  </span>
+                  <div className="flex flex-wrap gap-2">
+                    {row.closures.map(({ label, count }) => (
+                      <span
+                        key={label}
+                        className={`rounded-full px-3 py-1 text-xs font-bold ${label === "afgerond" ? "bg-[var(--wrap-success-bg)] text-[var(--wrap-success-ink)]" : "bg-[var(--wrap-amber-bg)] text-[var(--wrap-amber-ink)]"}`}
+                      >
+                        {row.count > 1 ? `${count} ` : ""}
+                        {label}
+                      </span>
+                    ))}
+                  </div>
                   {!row.manual && <span className="mt-2 block text-xs text-ink-3">stond {hours(row.raw)} open</span>}
                 </td>
               </tr>
@@ -77,7 +83,8 @@ export function MeetingKpi() {
         {!kpi.rows.length && <p className="p-4 text-sm text-ink-3">Nog geen afgesloten vergaderingen.</p>}
       </div>
       <p className="text-sm text-ink-3">
-        Werkelijke duur = afsluiten of laatste activiteit + buffer, wat het eerst komt.
+        Werkelijke duur = eindtijd − starttijd. Bij automatisch afsluiten is de eindtijd de laatste activiteit + 15 min,
+        met het geplande einde als ondergrens.
       </p>
     </div>
   );

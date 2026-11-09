@@ -33,6 +33,18 @@ export function MeetingWrapUp({ meeting }: { meeting: Meeting }) {
     });
   };
   useEffect(() => {
+    const latest = useStore.getState().meetings.find((m) => m.id === meeting.id);
+    if (latest && (!latest.wrapUpDraft?.decisions || !latest.endTimeConfirmed)) {
+      useStore
+        .getState()
+        .putMeeting({
+          ...latest,
+          endTimeConfirmed: true,
+          wrapUpDraft: initialWrapUpDraft(latest, useStore.getState().meetings),
+        });
+    }
+  }, [meeting.id]);
+  useEffect(() => {
     heading.current?.focus();
   }, [step]);
   const go = (next: number) => {

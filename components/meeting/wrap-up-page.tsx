@@ -20,5 +20,12 @@ export function WrapUpPage() {
         <Link href={`/app/overleg/${id}`}>Terug naar de vergadering</Link>
       </div>
     );
+  if (meeting.followUpStatus === "sent" || meeting.followUpStatus === "saved")
+    return (
+      <div className="app-theme p-8">
+        <p>Deze vergadering is afgerond.</p>
+        <Link href={`/app/overleg/${id}`}>Naar de vergadering</Link>
+      </div>
+    );
   return <MeetingWrapUp meeting={meeting} />;
 }

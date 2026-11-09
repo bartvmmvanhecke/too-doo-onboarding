@@ -3,6 +3,8 @@
 import Link from "next/link";
 import { ArrowLeft, CheckCircle2 } from "lucide-react";
 import { usePeople, useStore, type Meeting } from "@/lib/store";
+import { Button } from "@/components/ui/button";
+import { finishWrapUp } from "@/lib/wrap-up-flow";
 import { actualDuration, agendaItems, isHandled, nextInSeries } from "@/lib/meeting-wrap-up";
 import { formatShortDate } from "@/lib/date";
 import { formatTime } from "@/lib/time";
@@ -12,7 +14,10 @@ export function CompletedMeetingDetail({ meeting }: { meeting: Meeting }) {
   const people = usePeople();
   const next = nextInSeries(meeting, meetings);
   const items = agendaItems(meeting);
-  const participants = meeting.attendance?.filter((p) => p.present).length ?? meeting.participants.length;
+  const participants =
+    meeting.wrapUpDraft?.recipientIds?.length ??
+    meeting.attendance?.filter((p) => p.present).length ??
+    meeting.participants.length;
   const minutes = Math.round((actualDuration(meeting) ?? 0) / 60000);
   return (
     <div data-meeting-detail className="flex flex-col gap-6">
@@ -39,7 +44,24 @@ export function CompletedMeetingDetail({ meeting }: { meeting: Meeting }) {
       >
         <CheckCircle2 aria-hidden className="size-6 shrink-0" />
         <div className="flex-1">
-          <p className="font-bold">Opvolging verstuurd naar {participants} deelnemers</p>
+          <p className="font-bold">
+            {meeting.followUpStatus === "saved"
+              ? "Vergadering afgerond · opvolging niet verstuurd"
+              : `Opvolging verstuurd naar ${participants} deelnemers${next?.date ? ` · volgende vergadering ${formatShortDate(next.date)}` : ""}`}
+          </p>
+          {meeting.followUpStatus === "saved" && (
+            <Button
+              className="mt-3"
+              onClick={() => {
+                const state = useStore.getState();
+                const latest = state.meetings.find((m) => m.id === meeting.id)!;
+                // TODO(api): explicit delivery using the stored recipient selection and summary.
+                useStore.setState({ meetings: finishWrapUp(latest, state.meetings, "sent") });
+              }}
+            >
+              Nu versturen
+            </Button>
+          )}
           {next?.date && (
             <p className="mt-1">
               Volgende vergadering: {formatShortDate(next.date)}

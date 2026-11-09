@@ -2,6 +2,7 @@
 import { meetingNow } from "@/lib/meeting-clock";
 import { useEffect } from "react";
 import { useStore } from "@/lib/store";
+import { reconcileBacklog } from "@/lib/wrap-up-flow";
 import { unattended } from "@/lib/meeting-wrap-up";
 /** Local sync fallback, also reconciles when returning after closing the tab.
  * TODO(api): run unattended() in a server job with atomic automatic closure.
@@ -12,11 +13,14 @@ export function UnattendedSync() {
     const sync = () => {
       const previous = useStore.getState().meetings;
       let changed = false;
-      const meetings = previous.map((m) => {
+      let meetings = previous.map((m) => {
         const updated = unattended(m, meetingNow(m));
         changed ||= updated !== m;
         return updated;
       });
+      const attached = reconcileBacklog(meetings);
+      changed ||= attached !== meetings;
+      meetings = attached;
       if (!changed) return;
       useStore.setState({ meetings });
     };

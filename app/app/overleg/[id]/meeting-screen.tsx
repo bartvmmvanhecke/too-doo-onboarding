@@ -4,7 +4,6 @@ import { meetingNow } from "@/lib/meeting-clock";
 import { MeetingReminderPreview } from "@/components/b/meeting-reminder-preview";
 import { closeManually } from "@/lib/meeting-wrap-up";
 import { CompletedMeetingDetail } from "@/components/meeting/completed-meeting-detail";
-import { MeetingWrapUp } from "@/components/meeting/meeting-wrap-up";
 import { MeetingStartGate } from "@/components/meeting/meeting-start-gate";
 import { useEffect } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
@@ -27,9 +26,10 @@ export function MeetingScreen() {
 
   useEffect(() => {
     if (params.get("afronden") !== "1" || !meeting || meeting.wrapUpOpen || meeting.followUpStatus === "sent") return;
-    useStore
-      .getState()
-      .putMeeting(meeting.endedAt ? { ...meeting, wrapUpOpen: true } : closeManually(meeting, meetingNow(meeting)));
+    if (meeting.endedAt) {
+      // Pending links always land on detail. The banner is the explicit wizard entry.
+      useStore.getState().putMeeting({ ...meeting, wrapUpOpen: false, minimized: true });
+    } else useStore.getState().putMeeting(closeManually(meeting, meetingNow(meeting)));
     router.replace(`/app/overleg/${meeting.id}`);
   }, [meeting, params, router]);
 
@@ -46,13 +46,11 @@ export function MeetingScreen() {
     <MeetingStartGate meeting={meeting}>
       <div data-meeting-detail className="contents">
         <SavedBanner meeting={meeting} />
-        {meeting.wrapUpOpen ? (
-          <MeetingWrapUp meeting={meeting} />
-        ) : meeting.followUpStatus === "sent" ? (
+        {meeting.followUpStatus === "sent" || meeting.followUpStatus === "saved" ? (
           <CompletedMeetingDetail meeting={meeting} />
         ) : params.get("variant") === "b" && !meeting.run ? (
           <MeetingDetailB meeting={meeting} />
-        ) : meeting.run && !meeting.minimized ? (
+        ) : meeting.run && !meeting.endedAt && !meeting.minimized ? (
           <LiveMeeting meeting={meeting} />
         ) : (
           <MeetingOverviewDetail meeting={meeting} />

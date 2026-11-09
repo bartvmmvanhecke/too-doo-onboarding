@@ -14,6 +14,8 @@ export function initialWrapUpDraft(m: Meeting, meetings: Meeting[]): WrapUpDraft
         .filter((i) => !isHandled(m, i.id))
         .map((i) => [i.id, suggestDecision(i)]),
     ),
+    nextName: next?.name ?? m.name,
+    nextDuration: next?.duration ?? m.duration,
     nextDate: next?.date ?? "",
     nextTime: formatTime(next?.time ?? m.time ?? 540),
     noNext: false,
@@ -67,21 +69,39 @@ export function applyDraft(m: Meeting): Meeting {
     })),
   };
 }
+export function planningError(draft: WrapUpDraft): string | null {
+  if (draft.noNext || !draft.nextDate) return null;
+  if (!draft.nextName?.trim()) return "Vul een naam voor de volgende vergadering in.";
+  if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(draft.nextTime ?? "")) return "Kies een geldige starttijd.";
+  if (!Number.isInteger(draft.nextDuration) || draft.nextDuration! < 5 || draft.nextDuration! > 1440)
+    return "Kies een duur tussen 5 en 1440 minuten.";
+  return null;
+}
 /** One pure transaction. TODO(api): persist atomically and enqueue follow-up only for an explicit send click. */
 export function finishWrapUp(m: Meeting, meetings: Meeting[], status: "sent" | "saved", now = Date.now()): Meeting[] {
   const draft = initialWrapUpDraft(m, meetings);
+  const error = planningError(draft);
+  if (error) throw new Error(error);
   let updated = applyDraft({ ...m, wrapUpDraft: draft });
   let result = meetings.map((n) => (n.id === m.id ? updated : n));
   let next = nextInSeries(m, result);
   if (!draft.noNext && draft.nextDate) {
     const [hour, minute] = (draft.nextTime ?? "09:00").split(":").map(Number);
     if (next) {
-      next = { ...next, date: draft.nextDate, time: hour * 60 + minute };
+      next = {
+        ...next,
+        name: draft.nextName!.trim(),
+        duration: draft.nextDuration!,
+        date: draft.nextDate,
+        time: hour * 60 + minute,
+      };
       result = result.map((n) => (n.id === next!.id ? next! : n));
     } else {
       next = {
         ...m,
         id: `${m.id}-volgende-${draft.nextDate}`,
+        name: draft.nextName!.trim(),
+        duration: draft.nextDuration!,
         seriesId: m.seriesId ?? m.id,
         date: draft.nextDate,
         time: hour * 60 + minute,
@@ -143,6 +163,8 @@ export function followUpContent(m: Meeting, meetings: Meeting[], names: Record<s
     ),
     nextDate: draft.noNext ? "" : (draft.nextDate ?? next?.date ?? ""),
     nextTime: draft.nextTime ?? "",
+    nextName: draft.nextName ?? "",
+    nextDuration: draft.nextDuration ?? m.duration,
     carried: agendaItems(m)
       .filter((i) => draft.decisions?.[i.id] === "next" || (!isHandled(m, i.id) && i.carry === "next"))
       .map((i) => i.text),

@@ -86,3 +86,39 @@ it("bouwt samenvatting alleen uit vastgelegde inhoud", () => {
   expect(summary).toContain("geen beslissingen");
   expect(summary).not.toContain("akkoord");
 });
+
+it("bewaart naam en duur als concept en wijzigt de bestaande afspraak pas bij afronden", () => {
+  const m = meeting();
+  const next = {
+    ...meeting(),
+    id: "next",
+    name: "Bestaande vergadering",
+    date: "2026-11-16",
+    duration: 30,
+    endedAt: undefined,
+    followUpStatus: undefined,
+  };
+  const draft = initialWrapUpDraft(m, [m, next]);
+  expect(draft).toMatchObject({ nextName: "Bestaande vergadering", nextDuration: 30 });
+  m.wrapUpDraft = { ...draft, nextName: "Nieuwe naam", nextDuration: 90 };
+  expect(next.name).toBe("Bestaande vergadering");
+  const result = finishWrapUp(m, [m, next], "saved");
+  expect(result).toHaveLength(2);
+  expect(result[1]).toMatchObject({ id: "next", name: "Nieuwe naam", duration: 90 });
+});
+it("gebruikt de bewerkte naam en duur bij een nieuwe afspraak", () => {
+  const m = meeting();
+  m.wrapUpDraft = { nextName: "Vervolg", nextDuration: 45, nextTime: "11:00", nextDate: "2026-11-16" };
+  expect(finishWrapUp(m, [m], "sent")[1]).toMatchObject({ name: "Vervolg", duration: 45, time: 660 });
+});
+it("wijst onvolledige planning af zonder afspraken te muteren", () => {
+  const m = meeting();
+  m.wrapUpDraft = { nextDate: "2026-11-16", nextTime: "", nextDuration: 45, nextName: "Vervolg" };
+  expect(() => finishWrapUp(m, [m], "sent")).toThrow("Kies een geldige starttijd.");
+  m.wrapUpDraft.nextTime = "09:00";
+  m.wrapUpDraft.nextName = " ";
+  expect(() => finishWrapUp(m, [m], "sent")).toThrow("Vul een naam");
+  m.wrapUpDraft.nextName = "Vervolg";
+  m.wrapUpDraft.nextDuration = 0;
+  expect(() => finishWrapUp(m, [m], "sent")).toThrow("Kies een duur");
+});

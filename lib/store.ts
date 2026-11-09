@@ -87,6 +87,8 @@ export type { AgendaBlock, AgendaItem, Entry, MeetingRun };
 export interface WrapUpDraft {
   decisions?: Record<string, "done" | "next" | "drop">;
   step?: number;
+  nextName?: string;
+  nextDuration?: number;
   nextDate?: string;
   nextTime?: string;
   noNext?: boolean;

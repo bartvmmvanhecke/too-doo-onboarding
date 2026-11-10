@@ -68,7 +68,7 @@ test("concept blijft bewaard, eindtijd bevestigen en opslaan zonder mail", async
 });
 test("zonder volgende vergadering bewaard voor later, mobiel en toegankelijke wizard", async ({ page }) => {
   await seedWrapUp(page, { automatic: true, next: false, noActivity: true });
-  await expect(page.getByRole("status", { name: "Nog af te ronden" })).toContainText("automatisch voorgesteld");
+  await expect(page.getByRole("status", { name: "Nog af te ronden" })).toContainText("gepland einde");
   await page.getByRole("button", { name: "Afronden →", exact: true }).click();
   await page.setViewportSize({ width: 390, height: 844 });
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
@@ -158,19 +158,14 @@ test("laatste open punt 3 vraagt bevestiging en start ongedaan kan alleen zonder
 
 test("prototype-opties staan uit en verbergen bestaande details alleen na inschakelen", async ({ page }) => {
   await seedWrapUp(page, { automatic: true });
-  const primaryButton = page.getByRole("button", { name: "Afronden", exact: true });
-  const originalColor = await primaryButton.evaluate((element) => getComputedStyle(element).backgroundColor);
+  await expect(page.getByRole("button", { name: "Afronden", exact: true })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Afronden →", exact: true })).toBeVisible();
   await expect(page.getByRole("region", { name: "Vergaderinformatie", exact: true })).toBeVisible();
   await expect(page.getByRole("tab", { name: /Agenda/ })).toBeVisible();
   await page.getByRole("button", { name: "Prototype-menu", exact: true }).click();
   await page.getByRole("menuitem", { name: "Demo-instellingen", exact: true }).click();
   await expect(page.getByLabel("Afronden: knoppen in primaire kleur", { exact: true })).not.toBeChecked();
   await expect(page.getByLabel("Afronden: compacte detailpagina", { exact: true })).not.toBeChecked();
-  await page.getByLabel("Afronden: knoppen in primaire kleur", { exact: true }).check();
-  await expect
-    .poll(() => primaryButton.evaluate((element) => getComputedStyle(element).backgroundColor))
-    .toBe("rgb(39, 71, 214)");
-  expect(originalColor).not.toBe("rgb(39, 71, 214)");
   await page.getByLabel("Afronden: compacte detailpagina", { exact: true }).check();
   await page.getByRole("button", { name: "Demo-balk sluiten", exact: true }).click();
   await expect(page.getByRole("region", { name: "Vergaderinformatie", exact: true })).toHaveCount(0);

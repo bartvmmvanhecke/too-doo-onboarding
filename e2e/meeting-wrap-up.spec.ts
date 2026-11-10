@@ -28,7 +28,7 @@ test("springen voltooit niets, bevestigen en vrij navigeren in vijf stappen", as
   await page.getByRole("button", { name: "5. Opvolging", exact: true }).click();
   await expect(page.getByRole("status")).toContainText("1 actie heeft geen eigenaar. Ze komt bij jou terecht.");
   await page.getByRole("button", { name: "1. Agenda", exact: true }).click();
-  await page.getByRole("button", { name: "Terug naar de vergadering", exact: true }).click();
+  await page.getByRole("button", { name: "Terug naar vergadering", exact: true }).click();
   await expect(agenda).toBeVisible();
   expect((await storedMeetings(page))[0].endedAt).toBeUndefined();
 });
@@ -56,7 +56,7 @@ test("concept blijft bewaard, eindtijd bevestigen en opslaan zonder mail", async
   await page.reload();
   await expect(page.getByLabel("Samenvatting", { exact: true })).toHaveValue("Onze eigen samenvatting.");
   await expect(page.getByRole("button", { name: "Score 4", exact: true })).toHaveAttribute("aria-pressed", "true");
-  await page.getByRole("button", { name: "Opslaan zonder versturen", exact: true }).click();
+  await page.getByRole("button", { name: "Afronden", exact: true }).click();
   await expect(page.getByRole("status")).toContainText("Vergadering afgerond · opvolging niet verstuurd");
   const meetings = await storedMeetings(page);
   expect(meetings[0].followUpStatus).toBe("saved");
@@ -82,7 +82,7 @@ test("zonder volgende vergadering bewaard voor later, mobiel en toegankelijke wi
   await page.screenshot({ path: "/tmp/wrap-up-v3-follow-up-mobile.png", fullPage: true });
   const followUpAxe = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa"]).analyze();
   expect(followUpAxe.violations).toEqual([]);
-  await page.getByRole("button", { name: "Verstuur opvolging", exact: true }).click();
+  await page.getByRole("button", { name: "Inplannen & Afronden", exact: true }).click();
   const meetings = await storedMeetings(page);
   expect(meetings).toHaveLength(1);
   expect(meetings[0].blocks[0].items.filter((i: { carry: string }) => i.carry === "next")).toHaveLength(3);
@@ -242,12 +242,12 @@ test("bestaande volgende vergadering blijft concept tot afronden en score staat 
   await page.getByLabel("Vraag ook de deelnemers om een score", { exact: true }).check();
   const order = await page.evaluate(() => {
     const score = document.querySelector('[aria-label="Vergaderingsscore"]')!;
-    const send = [...document.querySelectorAll("button")].find((b) => b.textContent === "Verstuur opvolging")!;
+    const send = [...document.querySelectorAll("button")].find((b) => b.textContent === "Inplannen & Afronden")!;
     return !!(score.compareDocumentPosition(send) & Node.DOCUMENT_POSITION_FOLLOWING);
   });
   expect(order).toBe(true);
   await page.screenshot({ path: "/tmp/wrap-up-improved-follow-up.png" });
-  await page.getByRole("button", { name: "Opslaan zonder versturen", exact: true }).click();
+  await page.getByRole("button", { name: "Afronden", exact: true }).click();
   meetings = await storedMeetings(page);
   expect(meetings.find((m: { id: string }) => m.id === "next")).toMatchObject({
     name: "Vervolg over het budget",
@@ -272,7 +272,7 @@ test("nieuwe planning heeft een titel, mag overgeslagen worden en ongeldige veld
   await page.getByRole("radio", { name: "Geen volgende vergadering plannen", exact: true }).check();
   await page.getByRole("button", { name: "Opvolging →", exact: true }).click();
   await expect(page.getByRole("heading", { name: "Opvolging", exact: true })).toBeVisible();
-  await page.getByRole("button", { name: "Opslaan zonder versturen", exact: true }).click();
+  await page.getByRole("button", { name: "Afronden", exact: true }).click();
   expect(await storedMeetings(page)).toHaveLength(1);
 });
 
@@ -322,4 +322,31 @@ test("vijf stappen tonen beslissingen en acties, bewaren wijzigingen en houden d
   await page.setViewportSize({ width: 390, height: 844 });
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   await page.screenshot({ path: "/tmp/wrap-up-five-steps-mobile.png" });
+});
+
+test("footer groepeert contextlink rechts en toont de vorige stap links", async ({ page }) => {
+  await seedWrapUp(page, { automatic: true });
+  await page.getByRole("button", { name: "Afronden →", exact: true }).click();
+  const footer = page.getByRole("contentinfo");
+  const later = footer.getByRole("button", { name: "Later afronden", exact: true });
+  const next = footer.getByRole("button", { name: "Beslissingen →", exact: true });
+  await expect(later).toHaveClass(/text-brand/);
+  const laterBox = (await later.boundingBox())!;
+  const nextBox = (await next.boundingBox())!;
+  expect(laterBox.x + laterBox.width).toBeLessThanOrEqual(nextBox.x);
+  expect(Math.abs(laterBox.y - nextBox.y)).toBeLessThan(2);
+  await next.click();
+  const previous = footer.getByRole("button", { name: "← Agenda", exact: true });
+  await expect(previous).toHaveClass(/text-brand/);
+  expect((await previous.boundingBox())!.x).toBeLessThan((await later.boundingBox())!.x);
+  await previous.click();
+  await expect(page.getByRole("heading", { name: "Agenda", exact: true })).toBeFocused();
+  await page.getByRole("button", { name: "5. Opvolging", exact: true }).click();
+  await expect(footer.getByRole("button", { name: "← Volgende vergadering", exact: true })).toBeVisible();
+  await expect(footer.getByRole("button", { name: "Afronden", exact: true })).toBeVisible();
+  await expect(footer.getByRole("button", { name: "Inplannen & Afronden", exact: true })).toBeVisible();
+  await page.screenshot({ path: "/tmp/wrap-up-footer-desktop.png" });
+  await page.setViewportSize({ width: 390, height: 844 });
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  await page.screenshot({ path: "/tmp/wrap-up-footer-mobile.png" });
 });

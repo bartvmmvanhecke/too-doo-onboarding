@@ -132,6 +132,7 @@
   gap: 12px;
 }
 .footerActions {
+  margin-left: auto;
   display: flex;
   flex-wrap: wrap;
   align-items: center;
@@ -276,4 +277,8 @@
   .body :global(li.group) {
     flex-wrap: nowrap;
   }
+}
+
+.previousStep {
+  margin-right: auto;
 }

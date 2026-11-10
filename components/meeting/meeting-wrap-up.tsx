@@ -174,21 +174,21 @@ export function MeetingWrapUp({ meeting }: { meeting: Meeting }) {
         </main>
         <footer className={styles.footer}>
           <div className={styles.footerInner}>
-            <Button variant="ghost" onClick={leave}>
-              {draft.entry === "live" && meeting.run ? "Terug naar de vergadering" : "Later afronden"}
-            </Button>
+            {step > 0 && (
+              <Button variant="link" className={styles.previousStep} onClick={() => go(step - 1)}>
+                ← {steps[step - 1].label}
+              </Button>
+            )}
             <div className={styles.footerActions}>
-              {step > 0 && (
-                <Button variant="ghost" onClick={() => go(step - 1)}>
-                  ← Terug
-                </Button>
-              )}
+              <Button variant="link" onClick={leave}>
+                {draft.entry === "live" && meeting.run ? "Terug naar vergadering" : "Later afronden"}
+              </Button>
               {step === 4 && (
                 <>
                   <Button variant="outline" onClick={() => finish("saved")}>
-                    Opslaan zonder versturen
+                    Afronden
                   </Button>
-                  <Button onClick={() => finish("sent")}>Verstuur opvolging</Button>
+                  <Button onClick={() => finish("sent")}>Inplannen &amp; Afronden</Button>
                 </>
               )}
               {step < 4 && <Button onClick={() => go(step + 1)}>{steps[step + 1].label} →</Button>}
@@ -196,10 +196,10 @@ export function MeetingWrapUp({ meeting }: { meeting: Meeting }) {
             <p className="w-full text-xs text-ink-3">
               {step === 4
                 ? draft.entry === "live" && meeting.run
-                  ? "Versturen en opslaan ronden de vergadering af. Terug naar de vergadering hervat de vergadermodus."
-                  : "Versturen en opslaan ronden de vergadering af. Later afronden bewaart alleen je concept."
+                  ? "Afronden bewaart de opvolging zonder mail. Inplannen & Afronden bewaart de planning en verstuurt de opvolging."
+                  : "Afronden bewaart de opvolging zonder mail. Inplannen & Afronden bewaart de planning en verstuurt de opvolging."
                 : draft.entry === "live" && meeting.run
-                  ? "Terug naar de vergadering hervat de vergadermodus."
+                  ? "Terug naar vergadering hervat de vergadermodus."
                   : "Later afronden bewaart je keuzes. De opvolging wordt nog niet verstuurd."}
             </p>
           </div>

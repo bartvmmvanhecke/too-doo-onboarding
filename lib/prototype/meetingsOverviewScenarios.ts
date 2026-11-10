@@ -128,6 +128,28 @@ export function ensureDirectieExample() {
   if (!isDemoEnvironment()) return;
   const state = useStore.getState();
   const original = state.meetings.find((meeting) => meeting.id === "overview-demo-upcoming-1");
+  if (original?.name === "Directieoverleg" && (original.run || original.followUpStatus === "pending")) {
+    const topic = original.blocks.flatMap((block) => block.items).find((item) => item.id === "wrap-demo-3");
+    if (topic && (topic.runStatus === "done" || original.run?.doneIds.includes(topic.id))) {
+      const updated: Meeting = {
+        ...original,
+        blocks: original.blocks.map((block) => ({
+          ...block,
+          items: block.items.map((item) =>
+            item.id === topic.id ? { ...item, runStatus: "open", handledAt: undefined, visitedAt: undefined } : item,
+          ),
+        })),
+        run: original.run
+          ? { ...original.run, doneIds: original.run.doneIds.filter((id) => id !== topic.id) }
+          : original.run,
+        wrapUpDraft: original.wrapUpDraft
+          ? { ...original.wrapUpDraft, decisions: { ...original.wrapUpDraft.decisions, [topic.id]: "next" } }
+          : undefined,
+      };
+      useStore.setState({ meetings: state.meetings.map((meeting) => (meeting.id === updated.id ? updated : meeting)) });
+      return;
+    }
+  }
   if (!original || original.name !== "Productieoverleg") return;
   const meeting =
     original.startedAt || original.endedAt

@@ -331,6 +331,14 @@ function LiveMeetingContent({ meeting, confirmFinish }: { meeting: Meeting; conf
                         <div className="mt-2 flex flex-wrap gap-1">
                           <button
                             type="button"
+                            disabled={
+                              isDemoEnvironment() && meeting.id === "overview-demo-upcoming-1" && i.id === "wrap-demo-3"
+                            }
+                            title={
+                              isDemoEnvironment() && meeting.id === "overview-demo-upcoming-1" && i.id === "wrap-demo-3"
+                                ? "Prototypevoorbeeld: dit agendapunt blijft open voor de afrondwizard."
+                                : undefined
+                            }
                             onClick={() => {
                               if (note.trim()) saveNote();
                               setNote("");
@@ -338,7 +346,7 @@ function LiveMeetingContent({ meeting, confirmFinish }: { meeting: Meeting; conf
                               if (completingLast) setFinishPrompt(true);
                             }}
                             className={cn(
-                              "inline-flex min-h-11 flex-1 items-center justify-center gap-2 whitespace-nowrap rounded-full border px-3 text-sm font-bold",
+                              "inline-flex min-h-11 flex-1 items-center justify-center gap-2 whitespace-nowrap rounded-full border px-3 text-sm font-bold disabled:cursor-not-allowed disabled:opacity-40",
                               completingLast
                                 ? primary
                                   ? "border-brand bg-brand text-white hover:bg-brand/90"

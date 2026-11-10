@@ -5,6 +5,7 @@ import styles from "./meeting-wrap-up.module.css";
 import { Check, ArrowRight, Trash2, Scale, SquareCheck, Timer, CalendarDays, ListChecks } from "lucide-react";
 import { Avatar } from "@/components/avatar";
 import { formatShortDate } from "@/lib/date";
+import { ensureDirectieExample } from "@/lib/prototype/meetingsOverviewScenarios";
 import { Logo } from "@/components/brand";
 import { Button } from "@/components/ui/button";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -49,6 +50,7 @@ export function MeetingWrapUp({ meeting }: { meeting: Meeting }) {
     });
   };
   useEffect(() => {
+    ensureDirectieExample();
     const latest = useStore.getState().meetings.find((m) => m.id === meeting.id);
     if (latest && (!latest.wrapUpDraft?.decisions || !latest.endTimeConfirmed)) {
       useStore.getState().putMeeting({

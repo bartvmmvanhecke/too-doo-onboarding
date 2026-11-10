@@ -45,8 +45,9 @@ export function loadWrapUpScenario(kind: WrapUpScenario, meetingId: string, real
   const date = `${day.getFullYear()}-${String(day.getMonth() + 1).padStart(2, "0")}-${String(day.getDate()).padStart(2, "0")}`;
   const { blocks, actions } = createDirectieAgenda(start, elapsed);
   const fixturePeople = DIRECTIE_PEOPLE;
-  const handled =
-    kind === "start" ? [] : kind === "jumps" ? [1, 4] : kind === "last-middle" ? [1, 2, 4, 5, 6] : [1, 2, 3, 4, 5];
+  const handled = (
+    kind === "start" ? [] : kind === "jumps" ? [1, 4] : kind === "last-middle" ? [1, 2, 4, 5, 6] : [1, 2, 3, 4, 5]
+  ).filter((number) => current.id !== "overview-demo-upcoming-1" || number !== 3);
   const seriesId = `wrap-demo-series-${meetingId}`;
   const meeting: Meeting = {
     ...current,

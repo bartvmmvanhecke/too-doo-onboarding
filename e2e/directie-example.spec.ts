@@ -38,8 +38,16 @@ test("Directieoverleg houdt zes punten en voorbeeldopvolging van overzicht tot a
   const after = (await storedMeetings(page)).find((m: { id: string }) => m.id === before.id);
   expect(after.blocks[0].items.map((item: { text: string }) => item.text)).toEqual(titles);
   expect(after.actions).toEqual(before.actions);
+  await agenda.getByRole("button", { name: /Strategische prioriteiten/ }).click();
+  await expect(agenda.getByRole("button", { name: /^Voltooi/ })).toBeDisabled();
+  for (const title of titles.filter((title) => title !== "Strategische prioriteiten")) {
+    await agenda.getByRole("button", { name: new RegExp(title) }).click();
+    await agenda.getByRole("button", { name: /^Voltooi/ }).click();
+  }
   await page.getByRole("button", { name: "Afronden", exact: true }).first().click();
   await page.getByRole("button", { name: "Vergadering afronden", exact: true }).click();
+  await expect(page.getByRole("heading", { name: "Open punten (1)", exact: true })).toBeVisible();
+  await expect(page.getByRole("article", { name: "Strategische prioriteiten", exact: true })).toBeVisible();
   await page.getByRole("button", { name: "2. Beslissingen", exact: true }).click();
   await expect(page.getByText("Veiligheidsaudit uitbesteden aan externe partner", { exact: true })).toBeVisible();
   await expect(page.getByText("Opleidingsbudget Q4 vrijgeven", { exact: true })).toBeVisible();

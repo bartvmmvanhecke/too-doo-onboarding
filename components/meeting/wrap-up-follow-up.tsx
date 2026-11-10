@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { nlBE } from "react-day-picker/locale";
-import { ChevronDown, CalendarDays, List } from "lucide-react";
+import { ChevronDown, CalendarDays, List, X } from "lucide-react";
 import { usePeople, useStore, type Meeting, type WrapUpDraft } from "@/lib/store";
 import { agendaItems, nextInSeries } from "@/lib/meeting-wrap-up";
 import { followUpContent } from "@/lib/wrap-up-flow";
@@ -104,60 +104,62 @@ export function WrapUpPlanning({
                   <label id="next-date-label" htmlFor="next-date-trigger">
                     Datum
                   </label>
-                  <Popover open={calendarOpen} onOpenChange={setCalendarOpen}>
-                    <PopoverTrigger asChild>
-                      <button
-                        id="next-date-trigger"
-                        type="button"
-                        aria-labelledby="next-date-label next-date-value"
-                        className={`${field} flex w-full items-center justify-between gap-2 text-left font-normal`}
+                  <div className="relative">
+                    <Popover open={calendarOpen} onOpenChange={setCalendarOpen}>
+                      <PopoverTrigger asChild>
+                        <button
+                          id="next-date-trigger"
+                          type="button"
+                          aria-labelledby="next-date-label next-date-value"
+                          className={`${field} flex w-full items-center justify-between gap-2 pr-10 text-left font-normal`}
+                        >
+                          <span id="next-date-value">
+                            {planningDate
+                              ? new Date(`${planningDate}T12:00:00`).toLocaleDateString("nl-BE", {
+                                  day: "2-digit",
+                                  month: "2-digit",
+                                  year: "numeric",
+                                })
+                              : "dd/mm/yyyy"}
+                          </span>
+                          {!planningDate && <CalendarDays aria-hidden className="absolute right-3 size-4 text-ink-3" />}
+                        </button>
+                      </PopoverTrigger>
+                      <PopoverContent
+                        align="start"
+                        className="app-theme w-[var(--radix-popover-trigger-width)] min-w-60 max-w-[calc(100vw-2rem)] border-line bg-white p-2"
                       >
-                        <span id="next-date-value">
-                          {planningDate
-                            ? new Date(`${planningDate}T12:00:00`).toLocaleDateString("nl-BE", {
-                                day: "2-digit",
-                                month: "2-digit",
-                                year: "numeric",
-                              })
-                            : "dd/mm/yyyy"}
-                        </span>
-                        <CalendarDays aria-hidden className="size-4 shrink-0 text-ink-3" />
-                      </button>
-                    </PopoverTrigger>
-                    <PopoverContent
-                      align="start"
-                      className="app-theme w-[var(--radix-popover-trigger-width)] min-w-60 max-w-[calc(100vw-2rem)] border-line bg-white p-2"
-                    >
-                      <Calendar
-                        className={styles.datePicker}
-                        mode="single"
-                        locale={nlBE}
-                        weekStartsOn={1}
-                        fixedWeeks
-                        selected={planningDate ? new Date(`${planningDate}T12:00:00`) : undefined}
-                        defaultMonth={planningDate ? new Date(`${planningDate}T12:00:00`) : proposedDate}
-                        disabled={meeting.date ? { before: new Date(`${meeting.date}T00:00:00`) } : undefined}
-                        onSelect={(date) => {
-                          if (!date) return;
-                          patch({ nextDate: toISO(date), nextName: planningName, noNext: !planningName.trim() });
-                          setCalendarOpen(false);
-                        }}
-                      />
-                      {planningDate && (
-                        <Button
-                          variant="link"
-                          size="sm"
-                          className="w-full text-brand"
-                          onClick={() => {
-                            patch({ nextDate: "", noNext: true });
+                        <Calendar
+                          className={styles.datePicker}
+                          mode="single"
+                          locale={nlBE}
+                          weekStartsOn={1}
+                          fixedWeeks
+                          selected={planningDate ? new Date(`${planningDate}T12:00:00`) : undefined}
+                          defaultMonth={planningDate ? new Date(`${planningDate}T12:00:00`) : proposedDate}
+                          disabled={meeting.date ? { before: new Date(`${meeting.date}T00:00:00`) } : undefined}
+                          onSelect={(date) => {
+                            if (!date) return;
+                            patch({ nextDate: toISO(date), nextName: planningName, noNext: !planningName.trim() });
                             setCalendarOpen(false);
                           }}
-                        >
-                          Datum wissen
-                        </Button>
-                      )}
-                    </PopoverContent>
-                  </Popover>
+                        />
+                      </PopoverContent>
+                    </Popover>
+                    {planningDate && (
+                      <button
+                        type="button"
+                        aria-label="Datum wissen"
+                        className="absolute inset-y-0 right-0 flex w-10 items-center justify-center rounded-r-lg text-ink-3 hover:text-brand focus-visible:outline-2 focus-visible:outline-brand"
+                        onClick={() => {
+                          patch({ nextDate: "", noNext: true });
+                          setCalendarOpen(false);
+                        }}
+                      >
+                        <X aria-hidden className="size-4" />
+                      </button>
+                    )}
+                  </div>
                 </div>
                 <label className="flex min-w-0 flex-col gap-2 text-sm font-bold">
                   Tijd

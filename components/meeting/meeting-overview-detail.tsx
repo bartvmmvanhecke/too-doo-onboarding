@@ -2,10 +2,10 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { ArrowLeft, CalendarCheck, ChevronUp, Ellipsis, Clock, Coffee, Play, Plus } from "lucide-react";
+import { ArrowLeft, FileText, CalendarCheck, ChevronUp, Ellipsis, Clock, Coffee, Play, Plus } from "lucide-react";
 import { PendingFollowUp } from "./pending-follow-up";
 import { isDemoEnvironment } from "@/lib/demo-environment";
-import { isPending, isHandled } from "@/lib/meeting-wrap-up";
+import { actualDuration, nextInSeries, isPending, isHandled } from "@/lib/meeting-wrap-up";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Avatar } from "@/components/avatar";
 import { BreakBlock, TopicsBlock } from "@/components/meeting/agenda";
@@ -24,6 +24,7 @@ import { formatShortDate } from "@/lib/date";
 import { formatTime } from "@/lib/time";
 import { ownerOptions } from "@/lib/owners";
 import { usePeople, useStore, type Meeting } from "@/lib/store";
+import { factualSummary, finishWrapUp } from "@/lib/wrap-up-flow";
 import { cn } from "@/lib/utils";
 
 type Tab = "agenda" | "decision" | "note" | "action" | "people";
@@ -33,9 +34,13 @@ const addButton = "rounded-full border-brand-tint bg-brand-soft text-brand hover
 /** Detail vanuit het vergaderoverzicht, met de bestaande agenda- en opslagfuncties. */
 export function MeetingOverviewDetail({ meeting }: { meeting: Meeting }) {
   const people = usePeople();
+  const meetings = useStore((state) => state.meetings);
+  const next = nextInSeries(meeting, meetings);
   const user = useStore((s) => s.user);
   const ops = useMeetingOps();
   const [tab, setTab] = useState<Tab>("agenda");
+  const completed = meeting.followUpStatus === "saved" || meeting.followUpStatus === "sent";
+  const [reportOpen, setReportOpen] = useState(false);
   const pending = !!meeting.endedAt && meeting.followUpStatus === "pending";
   const demo = useStore((s) => s.demo);
   const compact = pending && isDemoEnvironment() && demo.wrapUpCompact;
@@ -51,7 +56,12 @@ export function MeetingOverviewDetail({ meeting }: { meeting: Meeting }) {
   const attendees = people.filter((p) => meeting.participants.includes(p.id));
   const entries = items.flatMap((i) => i.entries);
   const planned = plannedMinutes(meeting.blocks) ?? 0;
-  const remaining = meeting.duration - planned;
+  const minutes = Math.round((actualDuration(meeting) ?? meeting.duration * 60000) / 60000);
+  const displayedMinutes = completed ? minutes : planned;
+  const remaining = meeting.duration - displayedMinutes;
+  const present = meeting.attendance?.filter((person) => person.present).length ?? attendees.length;
+  const decisions = entries.filter((entry) => entry.kind === "decision");
+  const notes = entries.filter((entry) => entry.kind === "note");
   const preparation = items.length
     ? Math.round(
         (items.reduce(
@@ -104,9 +114,15 @@ export function MeetingOverviewDetail({ meeting }: { meeting: Meeting }) {
                   {isPending(meeting) ? "Nog af te ronden" : "Opvolging niet verstuurd"}
                 </span>
               ) : (
-                <span className={pill}>
+                <span className={cn(pill, completed && "bg-brand-soft text-brand")}>
                   <CalendarCheck className="size-4" aria-hidden />
-                  {meeting.held ? "Afgerond" : "Ingepland"}
+                  {completed
+                    ? meeting.noActivity && !meeting.held
+                      ? "Niet doorgegaan"
+                      : "Voltooid"
+                    : meeting.held
+                      ? "Afgerond"
+                      : "Ingepland"}
                 </span>
               )}
               <div className="flex flex-wrap items-center gap-3">
@@ -167,7 +183,7 @@ export function MeetingOverviewDetail({ meeting }: { meeting: Meeting }) {
                 >
                   <span className="flex items-center gap-2 text-lg">
                     <Clock className="size-5" aria-hidden />
-                    {planned}min / {meeting.duration}min gepland
+                    {displayedMinutes}min / {meeting.duration}min gepland
                   </span>
                   <span
                     className={cn(
@@ -175,10 +191,20 @@ export function MeetingOverviewDetail({ meeting }: { meeting: Meeting }) {
                       remaining < 0 ? "bg-warning-bg text-warning" : "bg-success-bg text-success-ink",
                     )}
                   >
-                    {Math.abs(remaining)} min {remaining < 0 ? "te veel" : "over"}
+                    {completed
+                      ? remaining < 0
+                        ? `${Math.abs(remaining)} min uitloop`
+                        : "Op tijd"
+                      : `${Math.abs(remaining)} min ${remaining < 0 ? "te veel" : "over"}`}
                   </span>
                 </div>
-                {!pending && (
+                {completed && (
+                  <Button className="rounded-full" onClick={() => setReportOpen(true)}>
+                    <FileText className="size-5" aria-hidden />
+                    Verslag bekijken
+                  </Button>
+                )}
+                {!pending && !completed && (
                   <Button className="rounded-full" onClick={() => ops.startRun(meeting.id)}>
                     <Play className="size-5" aria-hidden />
                     Start vergadering
@@ -187,6 +213,28 @@ export function MeetingOverviewDetail({ meeting }: { meeting: Meeting }) {
               </div>
             )}
           </header>
+          {completed && (
+            <section
+              aria-label="Meeting summary"
+              className="flex flex-wrap items-center justify-between gap-4 rounded-xl border border-brand bg-white px-4 py-3 ring-4 ring-brand-soft"
+            >
+              <button type="button" onClick={() => setReportOpen(true)} className="min-h-8 font-bold text-brand">
+                Meeting summary
+              </button>
+              <div className="flex flex-wrap gap-2">
+                <span className={cn(pill, "bg-brand-soft text-brand")}>{decisions.length} beslissingen</span>
+                <span className={cn(pill, "bg-warning-bg text-warning")}>
+                  {present}/{meeting.participants.length} aanwezig
+                </span>
+                <span className={cn(pill, "bg-success-bg text-success-ink")}>{notes.length} notities</span>
+                <span
+                  className={cn(pill, remaining < 0 ? "bg-warning-bg text-warning" : "bg-success-bg text-success-ink")}
+                >
+                  {Math.max(0, -remaining)} min uitloop
+                </span>
+              </div>
+            </section>
+          )}
 
           {infoOpen && !compact && (
             <section aria-label="Vergaderinformatie" className="rounded-2xl border border-line bg-line-soft/30 p-5">
@@ -319,7 +367,7 @@ export function MeetingOverviewDetail({ meeting }: { meeting: Meeting }) {
                   {items.filter((i) => isHandled(meeting, i.id)).length} van {items.length} voltooid
                 </p>
               )}
-              {!pending && tab === "agenda" && (
+              {!pending && !completed && tab === "agenda" && (
                 <div className="flex flex-wrap gap-2">
                   <Button variant="outline" className={addButton} onClick={() => openAdd("theme")}>
                     <Plus className="size-5" />
@@ -432,6 +480,68 @@ export function MeetingOverviewDetail({ meeting }: { meeting: Meeting }) {
             )}
           </section>
         </div>
+        <Dialog open={reportOpen} onOpenChange={setReportOpen}>
+          <DialogContent className="app-theme max-h-[85dvh] overflow-y-auto sm:max-w-2xl">
+            <DialogTitle>Verslag · {meeting.name}</DialogTitle>
+            <DialogDescription>
+              {meeting.date ? formatShortDate(meeting.date) : ""} · {minutes} min · {present} aanwezigen
+            </DialogDescription>
+            <section className="space-y-2">
+              <h2 className="font-bold">Samenvatting</h2>
+              <p className="whitespace-pre-line text-sm text-ink-2">
+                {meeting.wrapUpDraft?.summary || factualSummary(meeting)}
+              </p>
+            </section>
+            <section className="space-y-2">
+              <h2 className="font-bold">Beslissingen</h2>
+              {decisions.length ? (
+                decisions.map((entry) => (
+                  <p key={entry.id} className="text-sm">
+                    {entry.text}
+                  </p>
+                ))
+              ) : (
+                <p className="text-sm text-ink-3">Geen beslissingen vastgelegd.</p>
+              )}
+            </section>
+            <section className="space-y-2">
+              <h2 className="font-bold">Acties</h2>
+              {meeting.actions.length ? (
+                meeting.actions.map((action) => (
+                  <p key={action.id} className="text-sm">
+                    {action.what}
+                    {action.ownerId && ` · ${people.find((person) => person.id === action.ownerId)?.name ?? ""}`}
+                    {action.deadline && ` · ${action.deadline}`}
+                  </p>
+                ))
+              ) : (
+                <p className="text-sm text-ink-3">Geen acties vastgelegd.</p>
+              )}
+            </section>
+            {next && (
+              <Link href={`/app/overleg/${next.id}`} className="min-h-11 font-bold text-brand underline">
+                Bekijk volgende vergadering{next.date && ` · ${formatShortDate(next.date)}`}
+              </Link>
+            )}
+            {meeting.followUpStatus === "saved" && !(meeting.noActivity && !meeting.held) && (
+              <Button
+                className="rounded-full"
+                onClick={() => {
+                  const state = useStore.getState();
+                  const latest = state.meetings.find((item) => item.id === meeting.id)!;
+                  useStore.setState({ meetings: finishWrapUp(latest, state.meetings, "sent") });
+                }}
+              >
+                Opvolging versturen
+              </Button>
+            )}
+            {meeting.followUpStatus === "sent" && (
+              <p role="status" className="text-sm text-success-ink">
+                Opvolging verstuurd
+              </p>
+            )}
+          </DialogContent>
+        </Dialog>
         <ItemDialog item={items.find((i) => i.id === detailsId) ?? null} onClose={() => setDetailsId(null)} />
         <Dialog open={!!adding} onOpenChange={(open) => !open && setAdding(null)}>
           <DialogContent className="app-theme">

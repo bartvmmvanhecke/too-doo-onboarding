@@ -57,13 +57,14 @@ test("concept blijft bewaard, eindtijd bevestigen en opslaan zonder mail", async
   await expect(page.getByLabel("Samenvatting", { exact: true })).toHaveValue("Onze eigen samenvatting.");
   await expect(page.getByRole("button", { name: "Score 4", exact: true })).toHaveAttribute("aria-pressed", "true");
   await page.getByRole("button", { name: "Afronden", exact: true }).click();
-  await expect(page.getByRole("status")).toContainText("de opvolging is nog niet naar de deelnemers verstuurd");
+  await expect(page.getByRole("region", { name: "Meeting summary", exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Verslag bekijken", exact: true }).click();
   const meetings = await storedMeetings(page);
   expect(meetings[0].followUpStatus).toBe("saved");
   expect(meetings[0].run).toBeNull();
   expect(meetings[1].blocks.flatMap((b: { items: unknown[] }) => b.items)).toHaveLength(2);
   await page.getByRole("button", { name: "Opvolging versturen", exact: true }).click();
-  await expect(page.getByRole("status")).toContainText("Opvolging verstuurd naar 1 deelnemers");
+  await expect(page.getByRole("status")).toContainText("Opvolging verstuurd");
   expect((await storedMeetings(page))[1].blocks.flatMap((b: { items: unknown[] }) => b.items)).toHaveLength(2);
 });
 test("zonder volgende vergadering bewaard voor later, mobiel en toegankelijke wizard", async ({ page }) => {
@@ -403,7 +404,7 @@ test("prototypebalk toont vier afrondbanners en hervat bewaarde keuzes", async (
   await expect(banner).toContainText("Eindtijd 10:00");
   await expect(banner).toContainText("gepland einde");
   await banner.getByRole("button", { name: "Niet doorgegaan", exact: true }).click();
-  await expect(page.getByRole("status")).toContainText("Vergadering niet doorgegaan");
+  await expect(page.locator("header").first()).toContainText("Niet doorgegaan");
   let preview = (await storedMeetings(page)).find((m: { id: string }) => m.id === "prototype-auto-closed");
   expect(preview).toMatchObject({ held: false, followUpStatus: "saved", run: null });
   await bar.getByRole("button", { name: "Halverwege gestopt met afronden", exact: true }).click();
@@ -413,11 +414,14 @@ test("prototypebalk toont vier afrondbanners en hervat bewaarde keuzes", async (
   await page.getByRole("button", { name: "Later afronden", exact: true }).click();
   await expect(banner).toContainText("Je was bezig met afronden");
   await bar.getByRole("button", { name: "Afgerond", exact: true }).click();
-  await expect(page.getByRole("status")).toContainText("Afgerond om 10:05");
+  await expect(page.getByRole("region", { name: "Meeting summary", exact: true })).toBeVisible();
+  await expect(page.locator("header").first()).toContainText("65min / 60min gepland");
+  await page.getByRole("button", { name: "Verslag bekijken", exact: true }).click();
   await expect(page.getByRole("button", { name: "Opvolging versturen", exact: true })).toBeVisible();
   await page.screenshot({ path: "/tmp/banner-completed-preview.png" });
   await page.getByRole("button", { name: "Opvolging versturen", exact: true }).click();
-  await expect(page.getByRole("status")).toContainText("Opvolging verstuurd naar");
+  await expect(page.getByRole("dialog").getByRole("status")).toContainText("Opvolging verstuurd");
+  await page.keyboard.press("Escape");
   await bar.getByRole("button", { name: "Voorgestelde afrondtijd", exact: true }).click();
   await expect(banner).toContainText("Rond deze vergadering af");
   preview = (await storedMeetings(page)).find((m: { id: string }) => m.id === "prototype-auto-closed");

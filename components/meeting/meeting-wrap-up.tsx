@@ -5,6 +5,8 @@ import styles from "./meeting-wrap-up.module.css";
 import { Check, ArrowRight, Trash2, Scale, SquareCheck, Timer, CalendarDays, ListChecks } from "lucide-react";
 import { Avatar } from "@/components/avatar";
 import { formatShortDate } from "@/lib/date";
+import { isDemoEnvironment } from "@/lib/demo-environment";
+import { loadPlanningScenario } from "@/lib/prototype/planningScenarios";
 import { ensureDirectieExample } from "@/lib/prototype/meetingsOverviewScenarios";
 import { Logo } from "@/components/brand";
 import { Button } from "@/components/ui/button";
@@ -24,7 +26,7 @@ const steps = [
   { id: 3, label: "Beslissingen" },
   { id: 4, label: "Acties" },
   { id: 1, label: "Volgende vergadering" },
-  { id: 2, label: "Opvolging" },
+  { id: 2, label: "Afronden" },
 ];
 const field = "min-h-11 rounded-lg border border-line bg-white px-3 text-sm";
 export function MeetingWrapUp({ meeting }: { meeting: Meeting }) {
@@ -115,7 +117,32 @@ export function MeetingWrapUp({ meeting }: { meeting: Meeting }) {
     <div className={`app-theme ${styles.shell}`}>
       <header className={styles.header}>
         <Logo href="/app" tone="white" />
-        <span>{meeting.name}</span>
+        <div className="flex min-w-0 flex-wrap items-center justify-between gap-3 pr-14">
+          <span>{meeting.name}</span>
+          {step === 3 && isDemoEnvironment() && (
+            <div
+              role="region"
+              aria-label="Prototype volgende vergadering"
+              className="flex flex-wrap items-center gap-2 rounded-xl bg-[var(--prototype-bar-bg)] p-2 text-[13px] text-white"
+            >
+              <span className="px-1 text-[11px] font-bold text-[var(--prototype-bar-muted)]">PROTOTYPE</span>
+              {[
+                { scheduled: true, label: "Volgende reeds ingepland" },
+                { scheduled: false, label: "Volgende nog niet ingepland" },
+              ].map(({ scheduled, label }) => (
+                <button
+                  key={label}
+                  type="button"
+                  aria-pressed={!!nextInSeries(meeting, ops.meetings) === scheduled}
+                  onClick={() => loadPlanningScenario(meeting.id, scheduled)}
+                  className="min-h-11 rounded-lg border border-[var(--prototype-bar-border)] bg-[var(--prototype-bar-button)] px-3 aria-pressed:ring-2 aria-pressed:ring-white/60"
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
       </header>
       <div className={styles.panel}>
         <main className={styles.scroll}>
@@ -142,11 +169,7 @@ export function MeetingWrapUp({ meeting }: { meeting: Meeting }) {
             <div className={styles.body}>
               {draft.entry !== "live" && <EndTimeInfo meeting={meeting} />}
               <h1 ref={heading} tabIndex={-1} className="mb-2 text-3xl font-bold outline-none">
-                {step === 3
-                  ? nextInSeries(meeting, ops.meetings)
-                    ? "Bevestig de volgende vergadering"
-                    : "Plan de volgende vergadering"
-                  : steps[step].label}
+                {steps[step].label}
               </h1>
               {step === 0 ? (
                 <>
@@ -160,7 +183,12 @@ export function MeetingWrapUp({ meeting }: { meeting: Meeting }) {
               ) : step === 2 ? (
                 <ActionsReview meeting={meeting} />
               ) : step === 3 ? (
-                <WrapUpPlanning meeting={meeting} draft={draft} patch={patch} />
+                <WrapUpPlanning
+                  key={nextInSeries(meeting, ops.meetings)?.id ?? "unscheduled"}
+                  meeting={meeting}
+                  draft={draft}
+                  patch={patch}
+                />
               ) : (
                 <WrapUpFollowUp meeting={meeting} draft={draft} patch={patch} />
               )}
@@ -184,21 +212,12 @@ export function MeetingWrapUp({ meeting }: { meeting: Meeting }) {
               <Button variant="link" onClick={leave}>
                 {draft.entry === "live" && meeting.run ? "Terug naar vergadering" : "Later afronden"}
               </Button>
-              {step === 4 && (
-                <>
-                  <Button variant="outline" onClick={() => finish("saved")}>
-                    Afronden
-                  </Button>
-                  <Button onClick={() => finish("sent")}>Inplannen &amp; Afronden</Button>
-                </>
-              )}
+              {step === 4 && <Button onClick={() => finish("saved")}>Vergadering afronden</Button>}
               {step < 4 && <Button onClick={() => go(step + 1)}>{steps[step + 1].label} →</Button>}
             </div>
             <p className="w-full text-xs text-ink-3">
               {step === 4
-                ? draft.entry === "live" && meeting.run
-                  ? "Afronden bewaart de opvolging zonder mail. Inplannen & Afronden bewaart de planning en verstuurt de opvolging."
-                  : "Afronden bewaart de opvolging zonder mail. Inplannen & Afronden bewaart de planning en verstuurt de opvolging."
+                ? "Je keuzes en eventuele planning worden bewaard. Je kunt de opvolging daarna versturen."
                 : draft.entry === "live" && meeting.run
                   ? "Terug naar vergadering hervat de vergadermodus."
                   : "Later afronden bewaart je keuzes. De opvolging wordt nog niet verstuurd."}

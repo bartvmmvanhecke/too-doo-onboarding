@@ -425,3 +425,7 @@
     font-size: 14px;
   }
 }
+
+.body .finalCard {
+  background: white;
+}

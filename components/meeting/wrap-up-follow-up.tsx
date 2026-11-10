@@ -1,15 +1,13 @@
 "use client";
 import styles from "./meeting-wrap-up.module.css";
-import { Calendar } from "@/components/ui/calendar";
-import { nlBE } from "react-day-picker/locale";
-import { toISO } from "@/lib/date";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import { ChevronDown, List } from "lucide-react";
 import { usePeople, useStore, type Meeting, type WrapUpDraft } from "@/lib/store";
 import { agendaItems, nextInSeries } from "@/lib/meeting-wrap-up";
 import { followUpContent } from "@/lib/wrap-up-flow";
 import { formatTime } from "@/lib/time";
-import { formatShortDate } from "@/lib/date";
+import { toISO, formatShortDate } from "@/lib/date";
 
 const field = "min-h-11 rounded-lg border border-line bg-white px-3 text-sm";
 export function WrapUpPlanning({
@@ -23,136 +21,127 @@ export function WrapUpPlanning({
 }) {
   const meetings = useStore((s) => s.meetings);
   const next = nextInSeries(meeting, meetings);
-  const selected = draft.nextDate ? new Date(`${draft.nextDate}T12:00:00`) : undefined;
-  const [month, setMonth] = useState(() => selected ?? new Date());
-  const carried = agendaItems(meeting).filter((i) => draft.decisions?.[i.id] === "next");
-  const when = draft.nextDate ? formatShortDate(draft.nextDate) : "Nog niet ingepland";
-  const [h, m] = (draft.nextTime || "09:00").split(":").map(Number);
-  const end = h * 60 + m + (draft.nextDuration ?? meeting.duration);
-  const endTime = `${String(Math.floor(end / 60) % 24).padStart(2, "0")}:${String(end % 60).padStart(2, "0")}`;
+  const [editing, setEditing] = useState(false);
+  const [beforeEdit, setBeforeEdit] = useState<Partial<WrapUpDraft>>({});
+  const carried = agendaItems(meeting).filter((item) => draft.decisions?.[item.id] === "next");
+  const scheduled = !draft.noNext && !!draft.nextDate;
+  const when = scheduled ? formatShortDate(draft.nextDate!) : "";
+  const openEditor = () => {
+    setBeforeEdit({
+      nextName: draft.nextName,
+      nextDate: draft.nextDate,
+      nextTime: draft.nextTime,
+      noNext: draft.noNext,
+    });
+    setEditing(true);
+    if (!scheduled) {
+      const date = new Date(`${meeting.date || new Date().toISOString().slice(0, 10)}T12:00:00`);
+      date.setDate(date.getDate() + 7);
+      patch({ nextDate: toISO(date), nextName: meeting.name, noNext: false });
+    }
+  };
   return (
-    <section className={styles.planning}>
-      <p className="text-sm text-ink-2">Optioneel. Verplaatste agendapunten nemen we mee.</p>
-      <div className={styles.planningSummary}>
-        <span className={styles.summaryLabel}>Volgende vergadering</span>
-        <h2 className="font-bold">
-          {next ? "Al gepland: " : "Voorstel: "}
-          {next
-            ? `${formatShortDate(next.date!)}${next.time !== null ? ` · ${formatTime(next.time)}–${formatTime(next.time + next.duration)}` : ""}`
-            : draft.noNext
-              ? "geen volgende vergadering"
-              : `${when}${draft.nextDate ? ` · ${draft.nextTime}–${endTime}` : ""}`}
-        </h2>
-      </div>
-      <p className="text-sm text-ink-2">
-        {next
-          ? `Je past de bestaande vergadering van ${next.date ? formatShortDate(next.date) : "deze reeks"} aan. We bewaren de wijzigingen zodra je de afronding voltooit.`
-          : draft.noNext
-            ? "Er wordt geen volgende vergadering gepland. Verplaatste punten bewaren we voor later."
-            : "We plannen deze vergadering zodra je de afronding voltooit. Zonder datum plannen we nog geen vergadering."}
-      </p>
-      {!next && (
-        <fieldset className="flex flex-wrap gap-x-6">
-          <legend className="sr-only">Volgende vergadering plannen</legend>
-          <label className="flex min-h-11 items-center gap-2 text-sm">
-            <input
-              type="radio"
-              name="next-planning"
-              checked={!draft.noNext}
-              onChange={() => patch({ noNext: false })}
-            />
-            Volgende vergadering plannen
-          </label>
-          <label className="flex min-h-11 items-center gap-2 text-sm">
-            <input
-              type="radio"
-              name="next-planning"
-              checked={!!draft.noNext}
-              onChange={() => patch({ noNext: true })}
-            />
-            Geen volgende vergadering plannen
-          </label>
-        </fieldset>
-      )}
-      {!draft.noNext && (
-        <>
-          <label className="flex flex-col gap-2 text-sm font-bold">
-            Naam van de volgende vergadering
-            <input
-              className={field}
-              value={draft.nextName ?? ""}
-              onChange={(e) => patch({ nextName: e.target.value })}
-            />
-          </label>
-          <div>
-            <label id="wrap-calendar-label" className="mb-2 block text-sm font-bold">
-              Datum
-            </label>
-            <Calendar
-              className={styles.calendar}
-              mode="single"
-              locale={nlBE}
-              weekStartsOn={1}
-              fixedWeeks
-              captionLayout="dropdown"
-              aria-labelledby="wrap-calendar-label"
-              selected={selected}
-              month={month}
-              onMonthChange={setMonth}
-              startMonth={new Date(new Date().getFullYear() - 1, 0)}
-              endMonth={new Date(new Date().getFullYear() + 10, 11)}
-              disabled={meeting.date ? { before: new Date(`${meeting.date}T00:00:00`) } : undefined}
-              onSelect={(date) => {
-                if (date) patch({ nextDate: toISO(date), noNext: false });
-              }}
-            />
+    <div className="mt-3 space-y-4">
+      <p className="text-sm text-ink-2">Optioneel. Hier komen de verplaatste punten terecht.</p>
+      <section
+        className={`${styles.finalCard} rounded-2xl border p-5 ${scheduled && !editing ? "border-brand" : "border-line"} ${!scheduled && !editing ? "border-dashed" : ""}`}
+      >
+        {editing ? (
+          <>
+            <div className="mb-4 flex items-start justify-between gap-4">
+              <div>
+                <h2 className="font-bold">{next ? "Deze vergadering verplaatsen" : "Volgende vergadering plannen"}</h2>
+                <p className="mt-1 text-sm text-ink-3">
+                  {next
+                    ? "Je wijzigt de bestaande vergadering. Er komt geen tweede bij, en de rest van de reeks blijft zoals ze is."
+                    : "Er komt een nieuwe vergadering bij in je agenda."}
+                </p>
+              </div>
+              <Button
+                variant="link"
+                onClick={() => {
+                  patch(beforeEdit);
+                  setEditing(false);
+                }}
+              >
+                Annuleren
+              </Button>
+            </div>
+            <div className="grid gap-4 sm:grid-cols-3">
+              <label className="flex flex-col gap-2 text-sm font-bold">
+                Naam
+                <input
+                  className={field}
+                  value={draft.nextName ?? ""}
+                  onChange={(event) => patch({ nextName: event.target.value })}
+                />
+              </label>
+              <label className="flex flex-col gap-2 text-sm font-bold">
+                Datum
+                <input
+                  className={field}
+                  type="date"
+                  min={meeting.date || undefined}
+                  value={draft.nextDate ?? ""}
+                  onChange={(event) => patch({ nextDate: event.target.value, noNext: false })}
+                />
+              </label>
+              <label className="flex flex-col gap-2 text-sm font-bold">
+                Tijd
+                <input
+                  className={field}
+                  type="time"
+                  value={draft.nextTime ?? "09:00"}
+                  onChange={(event) => patch({ nextTime: event.target.value })}
+                />
+              </label>
+            </div>
+          </>
+        ) : (
+          <div className="flex flex-wrap items-center gap-4">
+            {scheduled && (
+              <div className="rounded-xl bg-brand-soft px-3 py-2 text-center font-bold text-brand">
+                <span className="block text-xs uppercase">
+                  {new Date(`${draft.nextDate}T12:00:00`).toLocaleDateString("nl-BE", { month: "short" })}
+                </span>
+                <span>{Number(draft.nextDate!.slice(-2))}</span>
+              </div>
+            )}
+            <div className="min-w-0 flex-1 basis-60">
+              <h2 className="font-bold">
+                {scheduled
+                  ? next
+                    ? "Al gepland · uit de reeks"
+                    : "Volgende vergadering gepland"
+                  : "Nog geen volgende vergadering gepland"}
+              </h2>
+              <p className="mt-1 text-sm text-ink-2">
+                {scheduled
+                  ? `${draft.nextName || meeting.name} · ${when} · ${draft.nextTime || "09:00"}–${formatTime(Number((draft.nextTime || "09:00").split(":")[0]) * 60 + Number((draft.nextTime || "09:00").split(":")[1]) + (draft.nextDuration ?? meeting.duration))}`
+                  : "Je kunt gewoon verder. Verplaatste punten gaan dan naar “Bewaard voor later”."}
+              </p>
+            </div>
+            <Button variant="outline" className="rounded-full text-brand" onClick={openEditor}>
+              {scheduled ? "Datum of tijd wijzigen" : "+ Volgende vergadering plannen"}
+            </Button>
           </div>
-          <div className="grid gap-4 sm:grid-cols-2">
-            <label className="flex flex-col gap-2 text-sm font-bold">
-              Starttijd
-              <input
-                className={field}
-                type="time"
-                value={draft.nextTime ?? "09:00"}
-                onChange={(e) => patch({ nextTime: e.target.value })}
-              />
-            </label>
-            <label className="flex flex-col gap-2 text-sm font-bold">
-              Duur (minuten)
-              <input
-                className={field}
-                type="number"
-                min={5}
-                max={1440}
-                step={1}
-                value={draft.nextDuration ?? meeting.duration}
-                onChange={(e) => patch({ nextDuration: Number(e.target.value) })}
-              />
-            </label>
-          </div>
-        </>
-      )}
-      {!draft.noNext && !draft.nextDate && (
-        <p className="text-sm text-ink-3">Geen datum gekozen? Dan plannen we nog geen volgende vergadering.</p>
-      )}
-      <div className="border-t border-line pt-5">
-        <p className="font-semibold">
-          {carried.length} verplaatste punten
-          {draft.noNext || !draft.nextDate ? " worden bewaard voor later" : " komen op deze agenda"}
-        </p>
-        <ul className="mt-3 list-disc space-y-2 pl-5 text-sm">
-          {carried.map((i) => (
-            <li key={i.id}>{i.text}</li>
-          ))}
-        </ul>
-        {(draft.noNext || !draft.nextDate) && carried.length > 0 && (
-          <p role="status" className="mt-5 rounded-xl bg-brand-soft p-4 text-sm text-ink-2">
-            De verplaatste punten gaan naar “Bewaard voor later”. Ze komen automatisch op de agenda zodra er een
-            volgende vergadering in de reeks gepland wordt.
-          </p>
         )}
-      </div>
-    </section>
+      </section>
+      <section className={`${styles.finalCard} rounded-2xl border border-line p-5`}>
+        <h2 className="text-sm font-bold">
+          {scheduled ? `Schuift door naar ${when}` : "Gaat naar “Bewaard voor later”"}
+        </h2>
+        {carried.length ? (
+          <ul className="mt-3 space-y-2 text-sm text-ink-2">
+            {carried.map((item) => (
+              <li key={item.id}>→ {item.text}</li>
+            ))}
+          </ul>
+        ) : (
+          <p className="mt-3 text-sm text-ink-3">Geen verplaatste punten.</p>
+        )}
+      </section>
+    </div>
   );
 }
 export function FollowUpPreview({ meeting }: { meeting: Meeting }) {
@@ -221,65 +210,24 @@ export function WrapUpFollowUp({
   draft: WrapUpDraft;
   patch: (p: Partial<WrapUpDraft>) => void;
 }) {
+  const [overviewOpen, setOverviewOpen] = useState(false);
+  const meetings = useStore((state) => state.meetings);
   const people = usePeople();
-  const [recipientsOpen, setRecipientsOpen] = useState(false);
-  const recipients = draft.recipientIds ?? [];
-  const ids = [...new Set([...(meeting.attendance?.map((p) => p.personId) ?? meeting.participants), ...recipients])];
+  const content = followUpContent(
+    { ...meeting, wrapUpDraft: draft },
+    meetings,
+    Object.fromEntries(people.map((person) => [person.id, person.name])),
+  );
   return (
     <div className="mt-6 space-y-6">
-      <section className="space-y-4 rounded-2xl border border-line bg-white p-5 sm:p-7">
-        <div>
-          <label htmlFor="wrap-summary" className="block text-lg font-bold">
-            Samenvatting
-          </label>
-          <p id="summary-help" className="mt-1 text-sm text-ink-3">
-            Gegenereerd met AI · je kunt alles aanpassen
-          </p>
-        </div>
-        <textarea
-          id="wrap-summary"
-          aria-describedby="summary-help"
-          className="min-h-40 w-full rounded-xl border border-line p-4 text-sm leading-relaxed"
-          value={draft.summary ?? ""}
-          onChange={(e) => patch({ summary: e.target.value })}
-        />
-        <div className="border-t border-line pt-5">
-          <FollowUpPreview meeting={meeting} />
-        </div>
-      </section>
-      <section className="rounded-2xl border border-line bg-white p-5">
-        <div className="flex flex-wrap items-center gap-3">
-          <p>Wordt verstuurd naar {recipients.length} deelnemers</p>
-          <Button variant="ghost" aria-expanded={recipientsOpen} onClick={() => setRecipientsOpen(!recipientsOpen)}>
-            Aanpassen
-          </Button>
-        </div>
-        {recipientsOpen && (
-          <fieldset className="mt-3">
-            <legend className="sr-only">Ontvangers</legend>
-            {ids.map((id) => (
-              <label key={id} className="flex min-h-11 items-center gap-3 text-sm">
-                <input
-                  type="checkbox"
-                  checked={recipients.includes(id)}
-                  onChange={(e) =>
-                    patch({ recipientIds: e.target.checked ? [...recipients, id] : recipients.filter((v) => v !== id) })
-                  }
-                />
-                {people.find((p) => p.id === id)?.name ??
-                  meeting.attendance?.find((p) => p.personId === id)?.name ??
-                  id}
-              </label>
-            ))}
-          </fieldset>
-        )}
-      </section>
-      <section className="border-t border-line py-8 text-ink-2">
-        <h2 className="mb-4 text-3xl font-bold text-ink">Vergaderscore</h2>
-        <p className="mb-6 max-w-3xl text-sm leading-relaxed">
+      <section className={`${styles.finalCard} rounded-2xl border border-line p-6 text-ink-2`}>
+        <h2 className="mb-2 text-xl font-bold text-ink">
+          Vergaderscore <span className="text-base font-normal text-ink-3">(optioneel)</span>
+        </h2>
+        <p className="mb-3 max-w-3xl text-sm leading-relaxed">
           De vergaderscore helpt om de algemene tevredenheid over vergaderingen binnen het bedrijf op te volgen.
         </p>
-        <label className="mb-6 flex min-h-11 cursor-pointer items-center gap-3 text-sm font-bold">
+        <label className="mb-3 flex min-h-11 cursor-pointer items-center gap-3 text-sm font-bold">
           <input
             className="size-5 shrink-0 accent-brand"
             type="checkbox"
@@ -302,16 +250,95 @@ export function WrapUpFollowUp({
             </button>
           ))}
         </div>
-        <label className="mt-7 block text-sm font-bold">
+        <label className="mt-4 block text-sm font-bold">
           Feedback
           <textarea
             placeholder="Aa"
-            className="mt-3 min-h-44 w-full rounded-xl border border-line bg-white p-4 font-normal"
+            className="mt-2 min-h-28 w-full rounded-xl border border-line bg-white p-4 font-normal"
             value={draft.feedback ?? ""}
             onChange={(e) => patch({ feedback: e.target.value })}
           />
         </label>
-        <p className="mt-3 text-xs text-ink-3">Optioneel. De scoreaanvraag gaat mee in de opvolgingsmail.</p>
+        <p className="mt-3 text-xs text-ink-3">Optioneel.</p>
+      </section>
+      <section className={`${styles.finalCard} overflow-hidden rounded-2xl border border-line`}>
+        <div className="flex flex-wrap items-center gap-5 p-6">
+          <List aria-hidden className="size-5 shrink-0 text-ink-2" />
+          <div className="min-w-0 flex-1 basis-80">
+            <h2 className="mb-2 text-lg font-bold">Wat er vastligt</h2>
+            <p className="flex flex-wrap gap-x-3 gap-y-1 text-sm text-ink-2">
+              <span>{content.decisions.length} beslissingen</span>
+              <span aria-hidden>·</span>
+              <span>{content.actions.length} acties</span>
+              <span aria-hidden>·</span>
+              <span className="font-bold text-brand">
+                {content.carried.length} {content.carried.length === 1 ? "punt verplaatst" : "punten verplaatst"}
+              </span>
+              <span aria-hidden>·</span>
+              <span className="font-bold text-brand">
+                {content.nextDate
+                  ? `volgende vergadering ${formatShortDate(content.nextDate)}`
+                  : "geen volgende vergadering gepland"}
+              </span>
+            </p>
+          </div>
+          <Button
+            variant="outline"
+            className="rounded-full text-brand"
+            aria-expanded={overviewOpen}
+            aria-controls="wrap-final-overview"
+            onClick={() => setOverviewOpen(!overviewOpen)}
+          >
+            {overviewOpen ? "Verberg overzicht" : "Bekijk overzicht"}
+            <ChevronDown aria-hidden className={`size-4 ${overviewOpen ? "rotate-180" : ""}`} />
+          </Button>
+        </div>
+        {overviewOpen && (
+          <div id="wrap-final-overview" className="space-y-5 border-t border-line-soft p-6">
+            <div>
+              <label htmlFor="wrap-summary" className="block font-bold">
+                Samenvatting
+              </label>
+              <p id="summary-help" className="mt-1 text-sm text-ink-3">
+                Gegenereerd met AI · 2–3 zinnen, geen opsomming · je kunt alles aanpassen
+              </p>
+              <textarea
+                id="wrap-summary"
+                aria-describedby="summary-help"
+                className="mt-2 min-h-28 w-full rounded-xl border border-line bg-white p-4 text-sm leading-relaxed"
+                value={draft.summary ?? ""}
+                onChange={(event) => patch({ summary: event.target.value })}
+              />
+            </div>
+            <div className="grid gap-6 sm:grid-cols-2">
+              <section>
+                <h3 className="mb-2 font-bold">Beslissingen</h3>
+                {content.decisions.length ? (
+                  <ul className="space-y-2 text-sm text-ink-2">
+                    {content.decisions.map((text, index) => (
+                      <li key={index}>{text}</li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="text-sm text-ink-3">Geen beslissingen vastgelegd.</p>
+                )}
+              </section>
+              <section>
+                <h3 className="mb-2 font-bold">Acties</h3>
+                {content.actions.length ? (
+                  <ul className="space-y-2 text-sm text-ink-2">
+                    {content.actions.map((text, index) => (
+                      <li key={index}>{text}</li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="text-sm text-ink-3">Geen acties vastgelegd.</p>
+                )}
+              </section>
+            </div>
+            <p className="text-sm text-ink-3">Wijzigen doe je in de stap waar het thuishoort.</p>
+          </div>
+        )}
       </section>
     </div>
   );

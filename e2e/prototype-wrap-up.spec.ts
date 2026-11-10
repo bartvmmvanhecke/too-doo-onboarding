@@ -88,7 +88,7 @@ test("automatisch afsluiten opent detail zonder mail of overdracht", async ({ pa
   expect(meetings[0].endedAt - meetings[0].lastActivityAt).toBe(15 * 60000);
   expect(meetings[1].blocks[0].items).toHaveLength(0);
   await page.getByRole("button", { name: "Afronden →", exact: true }).click();
-  await expect(page.getByRole("heading", { name: "Agenda & acties", exact: true })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Agenda", exact: true })).toBeVisible();
 });
 test("instelling blijft bewaard en mobiel loopt de balk door", async ({ page }) => {
   await openRun(page);
@@ -166,7 +166,7 @@ test("laatste vijf seconden plant audio vooruit, loopt live en herplant na uitst
   await page.getByRole("link", { name: "Afronden", exact: true }).click();
   await expect(page.getByRole("dialog", { name: "Vergadering afronden?", exact: true })).toBeVisible();
   await page.getByRole("button", { name: "Vergadering afronden", exact: true }).click();
-  await expect(page.getByRole("heading", { name: "Agenda & acties", exact: true })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Agenda", exact: true })).toBeVisible();
   await expect
     .poll(() =>
       page.evaluate(() => (window as unknown as { chimeStops: number[] }).chimeStops.filter((v) => v === 0).length),

@@ -20,12 +20,23 @@ import { toISO } from "@/lib/date";
 
 const dateValue = (value: string) =>
   /^\d{4}-\d{2}-\d{2}$/.test(value) ? value : deadlineDate(value) ? toISO(deadlineDate(value)!) : "";
+// Keep stored step IDs stable for drafts created with the original three steps.
+const steps = [
+  { id: 0, label: "Agenda" },
+  { id: 3, label: "Beslissingen" },
+  { id: 4, label: "Acties" },
+  { id: 1, label: "Volgende vergadering" },
+  { id: 2, label: "Opvolging" },
+];
 const field = "min-h-11 rounded-lg border border-line bg-white px-3 text-sm";
 export function MeetingWrapUp({ meeting }: { meeting: Meeting }) {
   const ops = useStore();
   const router = useRouter();
   const draft = initialWrapUpDraft(meeting, ops.meetings);
-  const step = draft.step ?? 0;
+  const step = Math.max(
+    0,
+    steps.findIndex((s) => s.id === (draft.step ?? 0)),
+  );
   const [notice, setNotice] = useState("");
   const heading = useRef<HTMLHeadingElement>(null);
   const patch = (update: Partial<WrapUpDraft>) => {
@@ -33,7 +44,11 @@ export function MeetingWrapUp({ meeting }: { meeting: Meeting }) {
     ops.putMeeting({
       ...latest,
       endTimeConfirmed: true,
-      wrapUpDraft: { ...initialWrapUpDraft(latest, useStore.getState().meetings), ...update },
+      wrapUpDraft: {
+        ...initialWrapUpDraft(latest, useStore.getState().meetings),
+        ...update,
+        ...(update.step !== undefined ? { step: steps[update.step].id } : {}),
+      },
     });
   };
   useEffect(() => {
@@ -55,7 +70,7 @@ export function MeetingWrapUp({ meeting }: { meeting: Meeting }) {
     const error = planningError(initialWrapUpDraft(latest, state.meetings));
     if (error) {
       setNotice(error);
-      patch({ step: 1 });
+      patch({ step: 3 });
       return;
     }
     // TODO(api): explicit delivery of the preview payload; score questions travel in the same follow-up mail.
@@ -63,7 +78,7 @@ export function MeetingWrapUp({ meeting }: { meeting: Meeting }) {
     router.push(`/app/overleg/${meeting.id}`);
   };
   const go = (next: number) => {
-    if (step === 1 && next > step) {
+    if (step === 3 && next > step) {
       const error = planningError(draft);
       if (error) {
         setNotice(error);
@@ -73,7 +88,7 @@ export function MeetingWrapUp({ meeting }: { meeting: Meeting }) {
     setNotice("");
     const latest = useStore.getState().meetings.find((m) => m.id === meeting.id)!;
     const count = latest.actions.filter((a) => !a.ownerId).length;
-    if (count && next > 0) {
+    if (count && step <= 2 && next > 2) {
       setNotice(
         count === 1
           ? "1 actie heeft geen eigenaar. Ze komt bij jou terecht."
@@ -97,7 +112,6 @@ export function MeetingWrapUp({ meeting }: { meeting: Meeting }) {
     else ops.putMeeting({ ...latest, wrapUpOpen: false, wrapUpDraft: { ...draft, entry: "later" } });
     router.push(`/app/overleg/${meeting.id}`);
   };
-  const labels = ["Agenda & acties", "Volgende vergadering", "Opvolging"];
   return (
     <div className={`app-theme ${styles.shell}`}>
       <header className={styles.header}>
@@ -108,7 +122,7 @@ export function MeetingWrapUp({ meeting }: { meeting: Meeting }) {
         <main className={styles.scroll}>
           <div className={styles.content}>
             <nav aria-label="Afrondingsstappen" className={styles.steps}>
-              {labels.map((label, index) => (
+              {steps.map(({ label }, index) => (
                 <button
                   type="button"
                   key={label}
@@ -129,18 +143,22 @@ export function MeetingWrapUp({ meeting }: { meeting: Meeting }) {
             <div className={styles.body}>
               {draft.entry !== "live" && <EndTimeInfo meeting={meeting} />}
               <h1 ref={heading} tabIndex={-1} className="mb-2 text-3xl font-bold outline-none">
-                {step === 1
+                {step === 3
                   ? nextInSeries(meeting, ops.meetings)
                     ? "Bevestig de volgende vergadering"
                     : "Plan de volgende vergadering"
-                  : labels[step]}
+                  : steps[step].label}
               </h1>
               {step === 0 ? (
                 <>
-                  <p className="mb-7 text-ink-2">Kijk na wat er nog openstaat en wie wat doet tegen wanneer.</p>
+                  <p className="mb-7 text-ink-2">Kijk na wat er nog openstaat en kies wat ermee gebeurt.</p>
                   <AgendaReview meeting={meeting} draft={draft} patch={patch} />
                 </>
               ) : step === 1 ? (
+                <DecisionsReview meeting={meeting} />
+              ) : step === 2 ? (
+                <ActionsReview meeting={meeting} />
+              ) : step === 3 ? (
                 <WrapUpPlanning meeting={meeting} draft={draft} patch={patch} />
               ) : (
                 <WrapUpFollowUp meeting={meeting} draft={draft} patch={patch} />
@@ -165,7 +183,7 @@ export function MeetingWrapUp({ meeting }: { meeting: Meeting }) {
                   ← Terug
                 </Button>
               )}
-              {step === 2 && (
+              {step === 4 && (
                 <>
                   <Button variant="outline" onClick={() => finish("saved")}>
                     Opslaan zonder versturen
@@ -173,12 +191,10 @@ export function MeetingWrapUp({ meeting }: { meeting: Meeting }) {
                   <Button onClick={() => finish("sent")}>Verstuur opvolging</Button>
                 </>
               )}
-              {step < 2 && (
-                <Button onClick={() => go(step + 1)}>{step === 0 ? "Volgende vergadering →" : "Opvolging →"}</Button>
-              )}
+              {step < 4 && <Button onClick={() => go(step + 1)}>{steps[step + 1].label} →</Button>}
             </div>
             <p className="w-full text-xs text-ink-3">
-              {step === 2
+              {step === 4
                 ? draft.entry === "live" && meeting.run
                   ? "Versturen en opslaan ronden de vergadering af. Terug naar de vergadering hervat de vergadermodus."
                   : "Versturen en opslaan ronden de vergadering af. Later afronden bewaart alleen je concept."
@@ -327,65 +343,6 @@ function AgendaReview({
             </p>
             {open.map(renderItem)}
           </section>
-          <section className="my-5 rounded-2xl border border-line bg-white p-4 sm:p-6">
-            <h2 className="mb-4 text-lg font-bold">Acties ({meeting.actions.length})</h2>
-            {!meeting.actions.length && <p className="text-sm text-ink-3">Geen acties vastgelegd.</p>}
-            {meeting.actions.map((a) => (
-              <div key={a.id} className="flex flex-wrap items-center gap-3 border-t border-line py-3">
-                <span className="min-w-40 flex-1 text-sm">{a.what}</span>
-                <label className="text-sm">
-                  Eigenaar{" "}
-                  <select
-                    className={field}
-                    value={a.ownerId ?? ""}
-                    onChange={(e) => {
-                      ops.assignOwner(meeting.id, a.id, e.target.value);
-                      const item = items.find((i) => i.entries.some((entry) => entry.actionId === a.id));
-                      const entry = item?.entries.find((entry) => entry.actionId === a.id);
-                      if (item && entry)
-                        ops.updateEntry(meeting.id, item.id, entry.id, { ownerId: e.target.value || null });
-                    }}
-                  >
-                    <option value="">Kiezen…</option>
-                    {people
-                      .filter((p) => meeting.participants.includes(p.id) || p.id === meeting.startedBy)
-                      .map((p) => (
-                        <option key={p.id} value={p.id}>
-                          {p.name}
-                        </option>
-                      ))}
-                  </select>
-                </label>
-                <label className="text-sm">
-                  Datum{" "}
-                  <input
-                    aria-label={`Datum voor ${a.what}`}
-                    className={field}
-                    type="date"
-                    value={dateValue(a.deadline)}
-                    onChange={(e) => {
-                      const latest = useStore.getState().meetings.find((m) => m.id === meeting.id)!;
-                      ops.putMeeting({
-                        ...latest,
-                        actions: latest.actions.map((action) =>
-                          action.id === a.id ? { ...action, deadline: e.target.value } : action,
-                        ),
-                        blocks: latest.blocks.map((b) => ({
-                          ...b,
-                          items: b.items.map((i) => ({
-                            ...i,
-                            entries: i.entries.map((entry) =>
-                              entry.actionId === a.id ? { ...entry, date: e.target.value } : entry,
-                            ),
-                          })),
-                        })),
-                      });
-                    }}
-                  />
-                </label>
-              </div>
-            ))}
-          </section>
           <details className="rounded-2xl border border-line bg-white p-4 sm:p-6">
             <summary className="min-h-11 cursor-pointer font-bold">Voltooide punten ({done.length})</summary>
             {done.map(renderItem)}
@@ -393,5 +350,124 @@ function AgendaReview({
         </div>
       </TooltipProvider>
     </MeetingProvider>
+  );
+}
+
+function DecisionsReview({ meeting }: { meeting: Meeting }) {
+  const people = usePeople();
+  const items = agendaItems(meeting).filter((item) => item.entries.some((entry) => entry.kind === "decision"));
+  return (
+    <MeetingProvider
+      value={{ meeting, people, owners: ownerOptions(people, meeting.participants, meeting.name, []), now: 0 }}
+    >
+      <TooltipProvider>
+        <p className="mb-7 text-ink-2">
+          Controleer de beslissingen die tijdens de vergadering zijn vastgelegd. Je kunt de tekst, eigenaar en
+          uitvoerdatum aanpassen.
+        </p>
+        {items.length ? (
+          items.map((item) => (
+            <section key={item.id} className="mb-5 rounded-2xl border border-line p-4 sm:p-6">
+              <h2 className="mb-4 text-lg font-bold">{item.text}</h2>
+              <EntryPanel item={item} kind="decision" />
+            </section>
+          ))
+        ) : (
+          <section className="rounded-2xl border border-line p-4 sm:p-6">
+            <h2 className="text-lg font-bold">Geen beslissingen vastgelegd</h2>
+            <p className="mt-2 text-sm text-ink-2">
+              Een vastgelegde beslissing verschijnt hier met het bijbehorende agendapunt.
+            </p>
+            <div className="mt-5 rounded-xl bg-brand-soft p-4">
+              <p className="mb-2 text-xs font-bold text-brand">Voorbeeld · wordt niet opgeslagen</p>
+              <h3 className="font-semibold">Opleidingsbudget Q4</h3>
+              <p className="mt-2 text-sm">We keuren het opleidingsbudget voor het vierde kwartaal goed.</p>
+              <p className="mt-2 text-sm text-ink-2">Eigenaar: Lisa · Uitvoeren tegen: 30 november</p>
+            </div>
+          </section>
+        )}
+      </TooltipProvider>
+    </MeetingProvider>
+  );
+}
+function ActionsReview({ meeting }: { meeting: Meeting }) {
+  const ops = useStore();
+  const people = usePeople();
+  const items = agendaItems(meeting);
+  return (
+    <>
+      <p className="mb-7 text-ink-2">
+        Controleer wie elke actie uitvoert en tegen wanneer. Acties zonder eigenaar komen bij jou terecht wanneer je
+        verdergaat.
+      </p>
+      <section className="my-5 rounded-2xl border border-line bg-white p-4 sm:p-6">
+        <h2 className="mb-4 text-lg font-bold">Acties ({meeting.actions.length})</h2>
+        {!meeting.actions.length && <p className="text-sm text-ink-3">Geen acties vastgelegd.</p>}
+        {meeting.actions.map((a) => (
+          <div key={a.id} className="flex flex-wrap items-center gap-3 border-t border-line py-3">
+            <span className="min-w-40 flex-1 text-sm">{a.what}</span>
+            <label className="text-sm">
+              Eigenaar{" "}
+              <select
+                aria-label={`Eigenaar voor ${a.what}`}
+                className={field}
+                value={a.ownerId ?? ""}
+                onChange={(e) => {
+                  ops.assignOwner(meeting.id, a.id, e.target.value);
+                  const item = items.find((i) => i.entries.some((entry) => entry.actionId === a.id));
+                  const entry = item?.entries.find((entry) => entry.actionId === a.id);
+                  if (item && entry)
+                    ops.updateEntry(meeting.id, item.id, entry.id, { ownerId: e.target.value || null });
+                }}
+              >
+                <option value="">Kiezen…</option>
+                {people
+                  .filter((p) => meeting.participants.includes(p.id) || p.id === meeting.startedBy)
+                  .map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.name}
+                    </option>
+                  ))}
+              </select>
+            </label>
+            <label className="text-sm">
+              Datum{" "}
+              <input
+                aria-label={`Datum voor ${a.what}`}
+                className={field}
+                type="date"
+                value={dateValue(a.deadline)}
+                onChange={(e) => {
+                  const latest = useStore.getState().meetings.find((m) => m.id === meeting.id)!;
+                  ops.putMeeting({
+                    ...latest,
+                    actions: latest.actions.map((action) =>
+                      action.id === a.id ? { ...action, deadline: e.target.value } : action,
+                    ),
+                    blocks: latest.blocks.map((b) => ({
+                      ...b,
+                      items: b.items.map((i) => ({
+                        ...i,
+                        entries: i.entries.map((entry) =>
+                          entry.actionId === a.id ? { ...entry, date: e.target.value } : entry,
+                        ),
+                      })),
+                    })),
+                  });
+                }}
+              />
+            </label>
+          </div>
+        ))}
+      </section>
+
+      {!meeting.actions.length && (
+        <div className="rounded-xl bg-brand-soft p-4">
+          <p className="mb-2 text-xs font-bold text-brand">Voorbeeld · wordt niet opgeslagen</p>
+          <h2 className="font-semibold">Offertes voor de opleiding opvragen</h2>
+          <p className="mt-2 text-sm text-ink-2">Eigenaar: Lisa · Deadline: 20 november</p>
+        </div>
+      )}
+    </>
   );
 }

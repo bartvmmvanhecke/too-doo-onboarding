@@ -1,7 +1,7 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test } from "@playwright/test";
 import { seedWrapUp, storedMeetings } from "./fixtures/wrap-up";
-test("springen voltooit niets, bevestigen en vrij navigeren in drie stappen", async ({ page }) => {
+test("springen voltooit niets, bevestigen en vrij navigeren in vijf stappen", async ({ page }) => {
   await seedWrapUp(page);
   const agenda = page.getByRole("complementary", { name: "Vergaderagenda" });
   await agenda.getByRole("button", { name: /Punt 3/ }).click();
@@ -17,7 +17,7 @@ test("springen voltooit niets, bevestigen en vrij navigeren in drie stappen", as
   await page.getByRole("button", { name: "Afronden", exact: true }).first().click();
   await page.getByRole("button", { name: "Vergadering afronden", exact: true }).click();
   await expect(page).toHaveURL(/\/vergaderingen\/wrap-test\/afronden$/);
-  await expect(page.getByRole("heading", { name: "Agenda & acties", exact: true })).toBeFocused();
+  await expect(page.getByRole("heading", { name: "Agenda", exact: true })).toBeFocused();
   await expect(page.getByRole("button", { name: "Voltooien: Punt 2", exact: true })).toHaveAttribute(
     "aria-pressed",
     "true",
@@ -25,9 +25,9 @@ test("springen voltooit niets, bevestigen en vrij navigeren in drie stappen", as
   await expect(
     page.getByRole("button", { name: "Verplaatsen naar volgende vergadering: Punt 6", exact: true }),
   ).toHaveAttribute("aria-pressed", "true");
-  await page.getByRole("button", { name: "3. Opvolging", exact: true }).click();
+  await page.getByRole("button", { name: "5. Opvolging", exact: true }).click();
   await expect(page.getByRole("status")).toContainText("1 actie heeft geen eigenaar. Ze komt bij jou terecht.");
-  await page.getByRole("button", { name: "1. Agenda & acties", exact: true }).click();
+  await page.getByRole("button", { name: "1. Agenda", exact: true }).click();
   await page.getByRole("button", { name: "Terug naar de vergadering", exact: true }).click();
   await expect(agenda).toBeVisible();
   expect((await storedMeetings(page))[0].endedAt).toBeUndefined();
@@ -41,7 +41,7 @@ test("concept blijft bewaard, eindtijd bevestigen en opslaan zonder mail", async
   await banner.getByRole("button", { name: "Afronden →", exact: true }).click();
   expect((await storedMeetings(page))[0].endTimeConfirmed).toBe(true);
   await page.getByRole("button", { name: "Laten vallen: Punt 6", exact: true }).click();
-  await page.getByRole("button", { name: "Volgende vergadering →", exact: true }).click();
+  await page.getByRole("button", { name: "4. Volgende vergadering", exact: true }).click();
   await expect(page.getByText(/Al gepland: ma 16 nov/)).toBeVisible();
   await page.getByRole("button", { name: "Opvolging →", exact: true }).click();
   await page.getByLabel("Samenvatting", { exact: true }).fill("Onze eigen samenvatting.");
@@ -52,7 +52,7 @@ test("concept blijft bewaard, eindtijd bevestigen en opslaan zonder mail", async
   await page.getByRole("checkbox", { name: "Sofie De Smet", exact: true }).uncheck();
   await page.getByRole("button", { name: "Later afronden", exact: true }).click();
   await banner.getByRole("button", { name: "Afronden →", exact: true }).click();
-  await page.getByRole("button", { name: "3. Opvolging", exact: true }).click();
+  await page.getByRole("button", { name: "5. Opvolging", exact: true }).click();
   await page.reload();
   await expect(page.getByLabel("Samenvatting", { exact: true })).toHaveValue("Onze eigen samenvatting.");
   await expect(page.getByRole("button", { name: "Score 4", exact: true })).toHaveAttribute("aria-pressed", "true");
@@ -75,7 +75,7 @@ test("zonder volgende vergadering bewaard voor later, mobiel en toegankelijke wi
   const results = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa"]).analyze();
   expect(results.violations).toEqual([]);
   await page.screenshot({ path: "/tmp/wrap-up-v3-mobile.png", fullPage: true });
-  await page.getByRole("button", { name: "Volgende vergadering →", exact: true }).click();
+  await page.getByRole("button", { name: "4. Volgende vergadering", exact: true }).click();
   await page.getByLabel("Geen volgende vergadering plannen", { exact: true }).check();
   await page.getByRole("button", { name: "Opvolging →", exact: true }).click();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
@@ -183,7 +183,7 @@ test("prototype-opties staan uit en verbergen bestaande details alleen na inscha
 test("wizardstijl met verbonden stappen en volledige kalender, ook bij bekende volgende datum", async ({ page }) => {
   await seedWrapUp(page, { automatic: true });
   await page.getByRole("button", { name: "Afronden →", exact: true }).click();
-  await page.getByRole("button", { name: "2. Volgende vergadering", exact: true }).click();
+  await page.getByRole("button", { name: "4. Volgende vergadering", exact: true }).click();
   const calendar = page.locator('[data-slot="calendar"]');
   await expect(calendar).toBeVisible();
   await expect(calendar.getByRole("gridcell")).toHaveCount(42);
@@ -220,7 +220,7 @@ test("bestaande volgende vergadering blijft concept tot afronden en score staat 
 }) => {
   await seedWrapUp(page, { automatic: true });
   await page.getByRole("button", { name: "Afronden →", exact: true }).click();
-  await page.getByRole("button", { name: "2. Volgende vergadering", exact: true }).click();
+  await page.getByRole("button", { name: "4. Volgende vergadering", exact: true }).click();
   await expect(page.getByRole("heading", { name: "Bevestig de volgende vergadering", exact: true })).toBeVisible();
   await page.getByLabel("Naam van de volgende vergadering", { exact: true }).fill("Vervolg over het budget");
   await page.getByLabel("Duur (minuten)", { exact: true }).fill("90");
@@ -260,7 +260,7 @@ test("bestaande volgende vergadering blijft concept tot afronden en score staat 
 test("nieuwe planning heeft een titel, mag overgeslagen worden en ongeldige velden geven uitleg", async ({ page }) => {
   await seedWrapUp(page, { automatic: true, next: false });
   await page.getByRole("button", { name: "Afronden →", exact: true }).click();
-  await page.getByRole("button", { name: "2. Volgende vergadering", exact: true }).click();
+  await page.getByRole("button", { name: "4. Volgende vergadering", exact: true }).click();
   await expect(page.getByRole("heading", { name: "Plan de volgende vergadering", exact: true })).toBeVisible();
   await expect(page.getByLabel("Naam van de volgende vergadering", { exact: true })).toHaveValue("Directievergadering");
   await page.locator('[data-slot="calendar"]').getByRole("button").filter({ hasText: /^18$/ }).click();
@@ -274,4 +274,52 @@ test("nieuwe planning heeft een titel, mag overgeslagen worden en ongeldige veld
   await expect(page.getByRole("heading", { name: "Opvolging", exact: true })).toBeVisible();
   await page.getByRole("button", { name: "Opslaan zonder versturen", exact: true }).click();
   expect(await storedMeetings(page)).toHaveLength(1);
+});
+
+test("vijf stappen tonen beslissingen en acties, bewaren wijzigingen en houden de agenda binnen de kaart", async ({
+  page,
+}) => {
+  await seedWrapUp(page, { automatic: true });
+  await page.evaluate(() => {
+    const raw = JSON.parse(localStorage.getItem("too-doo-onboarding")!);
+    raw.state.meetings[0].blocks[0].items[0].entries.push({
+      id: "decision-example",
+      kind: "decision",
+      text: "Opleidingsbudget goedgekeurd",
+      ownerId: "jp",
+      date: "2026-11-30",
+    });
+    localStorage.setItem("too-doo-onboarding", JSON.stringify(raw));
+  });
+  await page.reload();
+  await page.getByRole("button", { name: "Afronden →", exact: true }).click();
+  await expect(page.getByRole("navigation", { name: "Afrondingsstappen" }).getByRole("button")).toHaveCount(5);
+  const row = page.locator("li.group").first();
+  await expect(row).toBeVisible();
+  expect(await row.evaluate((el) => el.scrollWidth <= el.clientWidth)).toBe(true);
+  await page.screenshot({ path: "/tmp/wrap-up-five-steps-desktop.png" });
+  await page.setViewportSize({ width: 1130, height: 824 });
+  expect(await row.evaluate((el) => el.scrollWidth <= el.clientWidth)).toBe(true);
+  await page.setViewportSize({ width: 390, height: 844 });
+  expect(await row.evaluate((el) => el.scrollWidth <= el.clientWidth)).toBe(true);
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.getByRole("button", { name: "Beslissingen →", exact: true }).click();
+  await expect(page.getByRole("heading", { name: "Beslissingen", exact: true })).toBeFocused();
+  await expect(page.getByText("Opleidingsbudget goedgekeurd", { exact: true })).toBeVisible();
+  await page.getByRole("button", { name: 'Beslissing "Opleidingsbudget goedgekeurd" bewerken', exact: true }).click();
+  await page.getByRole("textbox", { name: "Beslissing bewerken", exact: true }).fill("Opleidingsbudget Q4 goedgekeurd");
+  await page.getByRole("textbox", { name: "Beslissing bewerken", exact: true }).press("Enter");
+  await page.getByRole("button", { name: "Acties →", exact: true }).click();
+  await expect(page.getByRole("heading", { name: "Acties", exact: true })).toBeFocused();
+  await page.getByLabel("Eigenaar voor Offerte opvragen", { exact: true }).selectOption("sd");
+  await page.getByLabel("Datum voor Offerte opvragen", { exact: true }).fill("2026-11-20");
+  await page.reload();
+  await expect(page.getByLabel("Eigenaar voor Offerte opvragen", { exact: true })).toHaveValue("sd");
+  await expect(page.getByLabel("Datum voor Offerte opvragen", { exact: true })).toHaveValue("2026-11-20");
+  expect((await storedMeetings(page))[0].blocks[0].items[0].entries[0].text).toBe("Opleidingsbudget Q4 goedgekeurd");
+  await page.getByRole("button", { name: "Volgende vergadering →", exact: true }).click();
+  await expect(page.getByRole("heading", { name: "Bevestig de volgende vergadering", exact: true })).toBeFocused();
+  await page.setViewportSize({ width: 390, height: 844 });
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  await page.screenshot({ path: "/tmp/wrap-up-five-steps-mobile.png" });
 });

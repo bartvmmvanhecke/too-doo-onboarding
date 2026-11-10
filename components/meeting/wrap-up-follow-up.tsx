@@ -239,11 +239,11 @@ export function WrapUpFollowUp({
         <textarea
           id="wrap-summary"
           aria-describedby="summary-help"
-          className="min-h-40 w-full rounded-xl border border-line p-4 text-sm leading-relaxed"
+          className="min-h-40 w-full rounded-xl border border-line bg-white p-4 text-sm leading-relaxed"
           value={draft.summary ?? ""}
           onChange={(e) => patch({ summary: e.target.value })}
         />
-        <div className="border-t border-line pt-5">
+        <div className="pt-5">
           <FollowUpPreview meeting={meeting} />
         </div>
       </section>

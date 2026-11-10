@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useStore } from "@/lib/store";
 import { isDemoEnvironment } from "@/lib/demo-environment";
-import { loadAutoClosedPreview, loadMeetingsOverviewScenario } from "@/lib/prototype/meetingsOverviewScenarios";
+import { loadAutoClosedPreview, loadDirectWrapUpPreview, loadMeetingsOverviewScenario } from "@/lib/prototype/meetingsOverviewScenarios";
 
 export function MeetingsOverviewPrototypeBar({ onLoad }: { onLoad: () => void }) {
   const router = useRouter();
@@ -51,6 +51,16 @@ export function MeetingsOverviewPrototypeBar({ onLoad }: { onLoad: () => void })
         className="min-h-11 rounded-lg border border-[var(--prototype-bar-border)] bg-[var(--prototype-bar-button)] px-3 text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--prototype-bar-focus)]"
       >
         Automatisch afgesloten · eindtijd bevestigen
+      </button>
+      <button
+        type="button"
+        onClick={() => {
+          const id = loadDirectWrapUpPreview();
+          if (id) router.push(`/vergaderingen/${id}/afronden`);
+        }}
+        className="min-h-11 rounded-lg border border-[var(--prototype-bar-border)] bg-[var(--prototype-bar-button)] px-3 text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--prototype-bar-focus)]"
+      >
+        Meteen naar afrondingsflow
       </button>
       <span aria-live="polite" className="ml-auto text-[var(--prototype-bar-muted)]">
         {selected

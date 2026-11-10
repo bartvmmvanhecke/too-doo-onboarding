@@ -26,12 +26,13 @@ for (const scheduled of [true, false]) {
       await page.getByLabel("Naam", { exact: true }).fill("Verplaatst overleg");
       await page.getByLabel("Datum", { exact: true }).fill("2026-11-18");
     } else {
-      await expect(
-        page.getByRole("heading", { name: "Nog geen volgende vergadering gepland", exact: true }),
-      ).toBeVisible();
-      await page.getByRole("button", { name: "+ Volgende vergadering plannen", exact: true }).click();
+      await expect(page.getByRole("heading", { name: "Volgende vergadering plannen", exact: true })).toBeVisible();
+      await expect(page.getByLabel("Naam", { exact: true })).toHaveValue("");
       await expect(page.getByLabel("Datum", { exact: true })).toHaveValue("2026-11-16");
-      await page.getByRole("button", { name: "Annuleren", exact: true }).click();
+      await page.getByLabel("Naam", { exact: true }).fill("Nieuw overleg");
+      await expect(page.getByText("Schuift door naar ma 16 nov", { exact: true })).toBeVisible();
+      await page.getByLabel("Naam", { exact: true }).fill("");
+      await expect(page.getByText("Gaat naar “Bewaard voor later”", { exact: true })).toBeVisible();
     }
     await page.getByRole("button", { name: "Afronden →", exact: true }).click();
     await expect(page.getByRole("heading", { name: "Vergaderscore (optioneel)", exact: true })).toBeVisible();

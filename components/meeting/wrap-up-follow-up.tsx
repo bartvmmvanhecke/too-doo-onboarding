@@ -24,7 +24,11 @@ export function WrapUpPlanning({
   const [editing, setEditing] = useState(false);
   const [beforeEdit, setBeforeEdit] = useState<Partial<WrapUpDraft>>({});
   const carried = agendaItems(meeting).filter((item) => draft.decisions?.[item.id] === "next");
-  const scheduled = !draft.noNext && !!draft.nextDate;
+  const proposedDate = new Date(`${meeting.date || toISO(new Date())}T12:00:00`);
+  proposedDate.setDate(proposedDate.getDate() + 7);
+  const planningName = !next && !draft.nextDate ? "" : (draft.nextName ?? "");
+  const planningDate = draft.nextDate || toISO(proposedDate);
+  const scheduled = !draft.noNext && !!draft.nextDate && !!planningName.trim();
   const when = scheduled ? formatShortDate(draft.nextDate!) : "";
   const openEditor = () => {
     setBeforeEdit({
@@ -44,9 +48,9 @@ export function WrapUpPlanning({
     <div className="mt-3 space-y-4">
       <p className="text-sm text-ink-2">Optioneel. Hier komen de verplaatste punten terecht.</p>
       <section
-        className={`${styles.finalCard} rounded-2xl border p-5 ${scheduled && !editing ? "border-brand" : "border-line"} ${!scheduled && !editing ? "border-dashed" : ""}`}
+        className={`${styles.finalCard} rounded-2xl border p-5 ${scheduled && !editing && next ? "border-brand" : "border-line"} ${!scheduled && !editing && next ? "border-dashed" : ""}`}
       >
-        {editing ? (
+        {editing || !next ? (
           <>
             <div className="mb-4 flex items-start justify-between gap-4">
               <div>
@@ -54,26 +58,31 @@ export function WrapUpPlanning({
                 <p className="mt-1 text-sm text-ink-3">
                   {next
                     ? "Je wijzigt de bestaande vergadering. Er komt geen tweede bij, en de rest van de reeks blijft zoals ze is."
-                    : "Er komt een nieuwe vergadering bij in je agenda."}
+                    : "Optioneel. Laat de naam leeg als je nog niets wilt plannen."}
                 </p>
               </div>
-              <Button
-                variant="link"
-                onClick={() => {
-                  patch(beforeEdit);
-                  setEditing(false);
-                }}
-              >
-                Annuleren
-              </Button>
+              {next && (
+                <Button
+                  variant="link"
+                  onClick={() => {
+                    patch(beforeEdit);
+                    setEditing(false);
+                  }}
+                >
+                  Annuleren
+                </Button>
+              )}
             </div>
             <div className="grid gap-4 sm:grid-cols-3">
               <label className="flex flex-col gap-2 text-sm font-bold">
                 Naam
                 <input
                   className={field}
-                  value={draft.nextName ?? ""}
-                  onChange={(event) => patch({ nextName: event.target.value })}
+                  value={planningName}
+                  placeholder={`Bijvoorbeeld: ${meeting.name}`}
+                  onChange={(event) =>
+                    patch({ nextName: event.target.value, nextDate: planningDate, noNext: !event.target.value.trim() })
+                  }
                 />
               </label>
               <label className="flex flex-col gap-2 text-sm font-bold">
@@ -82,8 +91,10 @@ export function WrapUpPlanning({
                   className={field}
                   type="date"
                   min={meeting.date || undefined}
-                  value={draft.nextDate ?? ""}
-                  onChange={(event) => patch({ nextDate: event.target.value, noNext: false })}
+                  value={planningDate}
+                  onChange={(event) =>
+                    patch({ nextDate: event.target.value, nextName: planningName, noNext: !planningName.trim() })
+                  }
                 />
               </label>
               <label className="flex flex-col gap-2 text-sm font-bold">

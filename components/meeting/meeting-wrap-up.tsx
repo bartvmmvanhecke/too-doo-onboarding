@@ -167,7 +167,7 @@ export function MeetingWrapUp({ meeting }: { meeting: Meeting }) {
               ))}
             </nav>
             <div className={styles.body}>
-              {draft.entry !== "live" && <EndTimeInfo meeting={meeting} />}
+              {draft.entry !== "live" && step !== 3 && <EndTimeInfo meeting={meeting} />}
               <h1 ref={heading} tabIndex={-1} className="mb-2 text-3xl font-bold outline-none">
                 {steps[step].label}
               </h1>

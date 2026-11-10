@@ -2,9 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { initialWrapUpDraft } from "@/lib/wrap-up-flow";
-import { ArrowLeft, CalendarCheck, Check, ChevronUp, Ellipsis, Clock, Coffee, Play, Plus } from "lucide-react";
+import { ArrowLeft, CalendarCheck, ChevronUp, Ellipsis, Clock, Coffee, Play, Plus } from "lucide-react";
 import { PendingFollowUp } from "./pending-follow-up";
 import { isDemoEnvironment } from "@/lib/demo-environment";
 import { isPending, isHandled } from "@/lib/meeting-wrap-up";
@@ -34,8 +32,6 @@ const addButton = "rounded-full border-brand-tint bg-brand-soft text-brand hover
 
 /** Detail vanuit het vergaderoverzicht, met de bestaande agenda- en opslagfuncties. */
 export function MeetingOverviewDetail({ meeting }: { meeting: Meeting }) {
-  const router = useRouter();
-  const meetings = useStore((s) => s.meetings);
   const people = usePeople();
   const user = useStore((s) => s.user);
   const ops = useMeetingOps();
@@ -182,29 +178,7 @@ export function MeetingOverviewDetail({ meeting }: { meeting: Meeting }) {
                     {Math.abs(remaining)} min {remaining < 0 ? "te veel" : "over"}
                   </span>
                 </div>
-                {meeting.endedAt && meeting.followUpStatus === "pending" ? (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      ops.putMeeting({
-                        ...meeting,
-                        endTimeConfirmed: true,
-                        wrapUpOpen: false,
-                        wrapUpDraft: { ...initialWrapUpDraft(meeting, meetings), entry: "later", step: 0 },
-                      });
-                      router.push(`/vergaderingen/${meeting.id}/afronden`);
-                    }}
-                    className={cn(
-                      "flex min-h-11 items-center gap-2 rounded-full px-4 text-sm font-bold text-white",
-                      isDemoEnvironment() && demo.wrapUpPrimary
-                        ? "bg-brand hover:bg-brand/90"
-                        : "bg-danger hover:bg-danger/90",
-                    )}
-                  >
-                    <Check className="size-4" aria-hidden />
-                    Afronden
-                  </button>
-                ) : (
+                {!pending && (
                   <Button className="rounded-full" onClick={() => ops.startRun(meeting.id)}>
                     <Play className="size-5" aria-hidden />
                     Start vergadering

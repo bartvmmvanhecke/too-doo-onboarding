@@ -42,13 +42,13 @@
   flex: 1;
 }
 .content {
-  max-width: 768px;
+  max-width: 1152px;
   margin: 0 auto;
   padding: 40px 24px 32px;
 }
 .steps {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   margin: 0 -12px 24px;
 }
 .step {
@@ -122,7 +122,7 @@
   background: var(--wizard-surface);
 }
 .footerInner {
-  max-width: 768px;
+  max-width: 1152px;
   margin: auto;
   padding: 16px 24px;
   display: flex;
@@ -230,6 +230,8 @@
     font-size: 12px;
   }
   .steps {
+    overflow-x: auto;
+    grid-template-columns: repeat(5, minmax(104px, 1fr));
     margin: 0 -4px 24px;
   }
   .footerInner {
@@ -263,4 +265,15 @@
 .footerActions > button {
   padding-inline: 12px;
   font-size: 14px;
+}
+
+/* Agenda controls wrap together when the viewport cannot fit the full row. */
+.body :global(li.group) {
+  max-width: 100%;
+  flex-wrap: wrap;
+}
+@media (min-width: 1100px) {
+  .body :global(li.group) {
+    flex-wrap: nowrap;
+  }
 }

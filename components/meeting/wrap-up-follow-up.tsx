@@ -83,12 +83,12 @@ export function WrapUpPlanning({
             <>
               <div
                 id="next-meeting-fields"
-                className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,240px),1fr))] gap-4"
+                className="grid grid-cols-1 gap-4 min-[960px]:grid-cols-[3fr_minmax(240px,2fr)_1fr]"
               >
-                <label className="flex flex-col gap-2 text-sm font-bold">
+                <label className="flex min-w-0 flex-col gap-2 text-sm font-bold">
                   Naam
                   <input
-                    className={`${field} font-normal`}
+                    className={`${field} min-w-0 w-full font-normal`}
                     value={planningName}
                     placeholder={`Bijvoorbeeld: ${meeting.name}`}
                     onChange={(event) =>
@@ -159,10 +159,10 @@ export function WrapUpPlanning({
                     </PopoverContent>
                   </Popover>
                 </div>
-                <label className="flex flex-col gap-2 text-sm font-bold">
+                <label className="flex min-w-0 flex-col gap-2 text-sm font-bold">
                   Tijd
                   <input
-                    className={`${field} font-normal`}
+                    className={`${field} min-w-0 w-full font-normal`}
                     type="time"
                     value={draft.nextTime ?? (next ? "09:00" : "")}
                     onChange={(event) => patch({ nextTime: event.target.value })}

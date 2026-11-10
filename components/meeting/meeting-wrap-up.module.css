@@ -107,6 +107,15 @@
   color: var(--brand);
   border: 0;
 }
+.body {
+  width: 75%;
+  margin-inline: auto;
+}
+@media (max-width: 900px) {
+  .body {
+    width: 100%;
+  }
+}
 .body > h1 {
   font-size: 24px;
 }
@@ -174,9 +183,13 @@
 }
 .calendar :global(.rdp-dropdowns) {
   width: 100%;
+  gap: 8px;
+  padding-inline: 12px;
 }
 .calendar :global(.rdp-dropdown_root) {
   flex: 1;
+  min-width: 0;
+  background: white;
 }
 .calendar :global(.rdp-caption_label) {
   width: 100%;

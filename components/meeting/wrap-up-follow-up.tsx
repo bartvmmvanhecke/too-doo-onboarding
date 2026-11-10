@@ -161,15 +161,28 @@ export function WrapUpPlanning({
                     )}
                   </div>
                 </div>
-                <label className="flex min-w-0 flex-col gap-2 text-sm font-bold">
-                  Tijd
-                  <input
-                    className={`${field} min-w-0 w-full font-normal`}
-                    type="time"
-                    value={draft.nextTime ?? (next ? "09:00" : "")}
-                    onChange={(event) => patch({ nextTime: event.target.value })}
-                  />
-                </label>
+                <div className="flex min-w-0 flex-col gap-2 text-sm font-bold">
+                  <label htmlFor="next-time-input">Tijd</label>
+                  <div className="relative">
+                    <input
+                      id="next-time-input"
+                      className={`${field} min-w-0 w-full font-normal ${(draft.nextTime ?? (next ? "09:00" : "")) ? "pr-8 [&::-webkit-calendar-picker-indicator]:hidden" : ""}`}
+                      type="time"
+                      value={draft.nextTime ?? (next ? "09:00" : "")}
+                      onChange={(event) => patch({ nextTime: event.target.value })}
+                    />
+                    {(draft.nextTime ?? (next ? "09:00" : "")) && (
+                      <button
+                        type="button"
+                        aria-label="Tijd wissen"
+                        className="absolute inset-y-0 right-0 flex w-8 items-center justify-center rounded-r-lg text-ink-3 hover:text-brand focus-visible:outline-2 focus-visible:outline-brand"
+                        onClick={() => patch({ nextTime: "" })}
+                      >
+                        <X aria-hidden className="size-4" />
+                      </button>
+                    )}
+                  </div>
+                </div>
               </div>
               {!next && (
                 <div className="mt-4 flex flex-wrap items-center gap-2 text-sm text-ink-3">

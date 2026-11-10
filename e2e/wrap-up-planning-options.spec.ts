@@ -37,6 +37,9 @@ for (const scheduled of [true, false]) {
       await page.getByRole("button", { name: /over 2 weken/ }).click();
       await expect(page.locator("#next-date-trigger")).toContainText("23/11/2026");
       await expect(page.getByLabel("Tijd", { exact: true })).toHaveValue("09:00");
+      await page.getByRole("button", { name: "Tijd wissen", exact: true }).click();
+      await expect(page.getByLabel("Tijd", { exact: true })).toHaveValue("");
+      await expect(page.getByRole("button", { name: "Tijd wissen", exact: true })).toHaveCount(0);
       await page.getByRole("button", { name: "Datum wissen", exact: true }).click();
       await expect(page.getByText("Gaat naar “Bewaard voor later”", { exact: true })).toBeVisible();
     }

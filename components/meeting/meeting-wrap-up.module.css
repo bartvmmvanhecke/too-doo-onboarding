@@ -375,3 +375,40 @@
     padding: 16px;
   }
 }
+
+.scoreScale {
+  display: grid;
+  grid-template-columns: repeat(10, minmax(0, 1fr));
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: white;
+}
+.scoreOption {
+  min-height: 56px;
+  border-right: 1px solid var(--line-soft);
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--ink-3);
+}
+.scoreOption:last-child {
+  border-right: 0;
+}
+.scoreOption:hover {
+  background: var(--brand-soft);
+  color: var(--brand);
+}
+.scoreOption[aria-pressed="true"] {
+  background: var(--brand);
+  color: white;
+}
+.scoreOption:focus-visible {
+  outline: 2px solid var(--brand);
+  outline-offset: -3px;
+}
+@media (max-width: 600px) {
+  .scoreOption {
+    min-height: 44px;
+    font-size: 14px;
+  }
+}

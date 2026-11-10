@@ -238,8 +238,13 @@ test("bestaande volgende vergadering blijft concept tot afronden en score staat 
   );
   await page.getByRole("button", { name: "Opvolging →", exact: true }).click();
   await expect(page.getByText(/Vervolg over het budget · wo 18 nov/)).toBeVisible();
-  await page.getByRole("button", { name: "Score 5", exact: true }).click();
-  await page.getByLabel("Vraag ook de deelnemers om een score", { exact: true }).check();
+  const scoreScale = page.getByRole("group", { name: "Vergaderingsscore", exact: true });
+  await expect(scoreScale.getByRole("button")).toHaveCount(10);
+  await scoreScale.locator("..").screenshot({ path: "/tmp/wrap-up-score-ui.png" });
+  await expect(page.getByLabel("Feedback", { exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Score 10", exact: true }).click();
+  await expect(page.getByRole("button", { name: "Score 10", exact: true })).toHaveAttribute("aria-pressed", "true");
+  await page.getByLabel("Scoreaanvraag individueel naar deelnemers versturen", { exact: true }).check();
   const order = await page.evaluate(() => {
     const score = document.querySelector('[aria-label="Vergaderingsscore"]')!;
     const send = [...document.querySelectorAll("button")].find((b) => b.textContent === "Inplannen & Afronden")!;
@@ -254,7 +259,7 @@ test("bestaande volgende vergadering blijft concept tot afronden en score staat 
     duration: 90,
     date: "2026-11-18",
   });
-  expect(meetings[0]).toMatchObject({ followUpStatus: "saved", wrapUpDraft: { score: 5, askScore: true } });
+  expect(meetings[0]).toMatchObject({ followUpStatus: "saved", wrapUpDraft: { score: 10, askScore: true } });
 });
 
 test("nieuwe planning heeft een titel, mag overgeslagen worden en ongeldige velden geven uitleg", async ({ page }) => {

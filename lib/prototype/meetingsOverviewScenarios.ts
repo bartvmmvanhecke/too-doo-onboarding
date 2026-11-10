@@ -5,6 +5,7 @@ import { toISO } from "@/lib/date";
 import { isDemoEnvironment } from "@/lib/demo-environment";
 import { USER_PERSON_ID } from "@/lib/mock-data";
 import { useStore, type Meeting } from "@/lib/store";
+import { initialWrapUpDraft } from "@/lib/wrap-up-flow";
 
 export type MeetingsOverviewScenario = "default" | "pending";
 
@@ -120,6 +121,30 @@ export function loadAutoClosedPreview(now = new Date(), meetingId?: string): str
       ...DIRECTIE_PEOPLE,
     ],
   });
+  return id;
+}
+
+/** Open the wrap-up wizard with only Strategic priorities left to resolve. */
+export function loadDirectWrapUpPreview(now = new Date()): string | null {
+  const id = loadAutoClosedPreview(now);
+  if (!id) return null;
+  const state = useStore.getState();
+  const current = state.meetings.find((meeting) => meeting.id === id)!;
+  const meeting: Meeting = {
+    ...current,
+    run: null,
+    endTimeConfirmed: true,
+    blocks: current.blocks.map((block) => ({
+      ...block,
+      items: block.items.map((item) => ({
+        ...item,
+        runStatus: item.id === "wrap-demo-3" ? "open" : "done",
+        handledAt: item.id === "wrap-demo-3" ? undefined : current.endedAt,
+      })),
+    })),
+  };
+  meeting.wrapUpDraft = { ...initialWrapUpDraft(meeting, state.meetings), entry: "later", step: 0 };
+  useStore.setState({ meetings: state.meetings.map((item) => (item.id === id ? meeting : item)) });
   return id;
 }
 

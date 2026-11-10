@@ -1,12 +1,14 @@
+import { DIRECTIE_AGENDA_TITLES } from "./meetingFixtures";
+import { autoCloseAt } from "../meeting-schedule";
 import { newBlock, newItem, type Entry } from "../agenda";
-import { carryForward, plannedEnd, unattended } from "../meeting-wrap-up";
+import { unattended } from "../meeting-wrap-up";
 import { chimeEnabled, setChimeEnabled } from "../audio/chime-state";
 import { timerEnd, meetingNow } from "../meeting-clock";
 import { isDemoEnvironment } from "../demo-environment";
 import { AVATAR_COLORS, USER_PERSON_ID, type Person } from "../mock-data";
 import { useStore, type Meeting, type Action } from "../store";
 
-export type WrapUpScenario = "start" | "jumps" | "last" | "advance" | "last-five" | "unattended";
+export type WrapUpScenario = "start" | "jumps" | "last" | "third-last" | "advance" | "last-five" | "unattended";
 /** All prototype mutations and fixture data live here. No API or backend calls. */
 export function loadWrapUpScenario(kind: WrapUpScenario, meetingId: string, realNow = Date.now()) {
   if (!isDemoEnvironment()) return null;
@@ -35,20 +37,11 @@ export function loadWrapUpScenario(kind: WrapUpScenario, meetingId: string, real
     const activity: Meeting = {
       ...current,
       lastActivityAt: now,
-      blocks: current.blocks.map((b) => ({
-        ...b,
-        items: b.items.map((i) =>
-          i.id === current.run?.currentId ? { ...i, runStatus: "handled", handledAt: now } : i,
-        ),
-      })),
     };
-    const closed = unattended(activity, Math.max(plannedEnd(activity), now) + 9 * 3600000);
+    const closed = unattended(activity, Math.max(autoCloseAt(activity), now + 9 * 3600000));
     const meeting: Meeting = { ...closed, autoClosedAt: now, reminderQueuedAt: now };
     useStore.setState({
-      meetings: carryForward(
-        meeting,
-        state.meetings.map((m) => (m.id === meetingId ? meeting : m)),
-      ),
+      meetings: state.meetings.map((m) => (m.id === meetingId ? meeting : m)),
     });
     return { announcement: "Gebruiker vertrokken: vergadering automatisch afgesloten", preview: true };
   }
@@ -72,34 +65,31 @@ export function loadWrapUpScenario(kind: WrapUpScenario, meetingId: string, real
     createdAt: start + elapsed * 60000,
     ...(kind === "action" ? { actionId: `action-${id}` } : {}),
   });
-  const entries: Record<number, Entry[]> = kind === "start" ? {} : {
-    2: [entry("budget", "action", "Budgetvoorstel Q1 bijwerken", fixturePeople[0].id, "18 nov")],
-    4: [
-      entry("audit", "decision", "Veiligheidsaudit uitbesteden aan externe partner", null, "15 dec"),
-      entry("offertes", "action", "Offertes externe auditors opvragen", fixturePeople[1].id, "20 nov"),
-    ],
-    5: [
-      entry("opleiding", "decision", "Opleidingsbudget Q4 vrijgeven", null, "30 nov"),
-      entry(
-        "inschrijvingen",
-        "action",
-        "Inschrijvingen opleiding verzamelen per afdeling",
-        fixturePeople[2].id,
-        "20 nov",
-      ),
-      entry("communicatie", "action", "Communicatie naar teams over audit", null, "25 nov"),
-    ],
-    6: [entry("kerst", "note", "Kerstdrink valt in week 51", null, "")],
-  };
-  const titles = [
-    "Opening en vorige besluiten",
-    "Budgetvoorstel Q1",
-    "Strategische prioriteiten",
-    "Veiligheidsaudit",
-    "Opleidingsbudget Q4",
-    "Varia",
-  ];
-  const handled = kind === "start" ? [] : kind === "jumps" ? [1, 2, 4] : [1, 2, 3, 4, 5];
+  const entries: Record<number, Entry[]> =
+    kind === "start"
+      ? {}
+      : {
+          2: [entry("budget", "action", "Budgetvoorstel Q1 bijwerken", fixturePeople[0].id, "18 nov")],
+          4: [
+            entry("audit", "decision", "Veiligheidsaudit uitbesteden aan externe partner", null, "15 dec"),
+            entry("offertes", "action", "Offertes externe auditors opvragen", fixturePeople[1].id, "20 nov"),
+          ],
+          5: [
+            entry("opleiding", "decision", "Opleidingsbudget Q4 vrijgeven", null, "30 nov"),
+            entry(
+              "inschrijvingen",
+              "action",
+              "Inschrijvingen opleiding verzamelen per afdeling",
+              fixturePeople[2].id,
+              "20 nov",
+            ),
+            entry("communicatie", "action", "Communicatie naar teams over audit", null, "25 nov"),
+          ],
+          6: [entry("kerst", "note", "Kerstdrink valt in week 51", null, "")],
+        };
+  const titles = DIRECTIE_AGENDA_TITLES;
+  const handled =
+    kind === "start" ? [] : kind === "jumps" ? [1, 4] : kind === "third-last" ? [1, 2, 4, 5, 6] : [1, 2, 3, 4, 5];
   const actions: Action[] = Object.values(entries)
     .flat()
     .filter((e) => e.kind === "action")
@@ -140,8 +130,12 @@ export function loadWrapUpScenario(kind: WrapUpScenario, meetingId: string, real
             id: `wrap-demo-${i + 1}`,
             duration: 10,
             ownerIds: [],
-            runStatus: handled.includes(i + 1) ? "handled" : "open",
-            handledAt: handled.includes(i + 1) ? start + elapsed * 60000 : undefined,
+            runStatus: handled.includes(i + 1) ? "done" : "open",
+            visitedAt:
+              handled.includes(i + 1) || (kind === "jumps" && [2, 5].includes(i + 1))
+                ? start + elapsed * 60000
+                : undefined,
+            doneAt: handled.includes(i + 1) ? start + elapsed * 60000 : undefined,
             entries: entries[i + 1] ?? [],
           }),
         ),
@@ -150,7 +144,7 @@ export function loadWrapUpScenario(kind: WrapUpScenario, meetingId: string, real
     run: {
       startedAt: start,
       stepStartedAt: start + elapsed * 60000,
-      currentId: `wrap-demo-${kind === "start" ? 1 : kind === "jumps" ? 5 : 6}`,
+      currentId: `wrap-demo-${kind === "start" ? 1 : kind === "jumps" ? 5 : kind === "third-last" ? 3 : 6}`,
       doneIds: handled.map((n) => `wrap-demo-${n}`),
       postponedIds: [],
       actuals: {},
@@ -184,5 +178,5 @@ export function loadWrapUpScenario(kind: WrapUpScenario, meetingId: string, real
     meetings: [...clean.filter((m) => m.id !== nextId).map((m) => (m.id === meetingId ? meeting : m)), next],
     extraPeople: [...state.extraPeople.filter((p) => !fixturePeople.some((f) => f.id === p.id)), ...fixturePeople],
   });
-  return { announcement: `Scenario geladen: ${handled.length} van 6 behandeld`, preview: false };
+  return { announcement: `Scenario geladen: ${handled.length} van 6 voltooid`, preview: false };
 }

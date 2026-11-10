@@ -1,10 +1,11 @@
 "use client";
 
+import { RegistrationQuestion } from "@/components/meeting/registration-question";
+import { registrationState } from "@/lib/meeting-schedule";
 import { meetingNow } from "@/lib/meeting-clock";
 import { MeetingReminderPreview } from "@/components/b/meeting-reminder-preview";
 import { closeManually } from "@/lib/meeting-wrap-up";
 import { CompletedMeetingDetail } from "@/components/meeting/completed-meeting-detail";
-import { MeetingWrapUp } from "@/components/meeting/meeting-wrap-up";
 import { MeetingStartGate } from "@/components/meeting/meeting-start-gate";
 import { useEffect } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
@@ -30,10 +31,20 @@ export function MeetingScreen() {
     useStore
       .getState()
       .putMeeting(meeting.endedAt ? { ...meeting, wrapUpOpen: true } : closeManually(meeting, meetingNow(meeting)));
-    router.replace(`/app/overleg/${meeting.id}`);
+    router.replace(`/vergaderingen/${meeting.id}/afronden`);
   }, [meeting, params, router]);
 
   if (!meeting) return null;
+  const registration = registrationState(meeting, meetingNow(meeting));
+  if (
+    meeting.outcome === "not_held" ||
+    (!meeting.outcome &&
+      (params.get("doorgegaan") === "ja" ||
+        params.get("doorgegaan") === "nee" ||
+        (meeting.followUpStatus === "pending" &&
+          ((registration === "empty" && !!meeting.endedAt) || registration === "not_started"))))
+  )
+    return <RegistrationQuestion meeting={meeting} />;
   if (params.get("herinnering") === "1") return <MeetingReminderPreview meeting={meeting} />;
   if (params.get("meldingen") === "1")
     return (
@@ -47,7 +58,7 @@ export function MeetingScreen() {
       <div data-meeting-detail className="contents">
         <SavedBanner meeting={meeting} />
         {meeting.wrapUpOpen ? (
-          <MeetingWrapUp meeting={meeting} />
+          <WrapUpRedirect id={meeting.id} />
         ) : meeting.followUpStatus === "sent" ? (
           <CompletedMeetingDetail meeting={meeting} />
         ) : params.get("variant") === "b" && !meeting.run ? (
@@ -60,4 +71,12 @@ export function MeetingScreen() {
       </div>
     </MeetingStartGate>
   );
+}
+
+function WrapUpRedirect({ id }: { id: string }) {
+  const router = useRouter();
+  useEffect(() => {
+    router.replace(`/vergaderingen/${id}/afronden`);
+  }, [id, router]);
+  return null;
 }

@@ -1,11 +1,15 @@
 "use client";
+import { isDemoEnvironment } from "@/lib/demo-environment";
+import { loadMeetingsOverviewScenario } from "@/lib/prototype/meetingsOverviewScenarios";
+import { PreviousFollowUpBanner } from "./previous-follow-up-banner";
 
 import { useState } from "react";
 import Link from "next/link";
-import { ArrowLeft, CalendarCheck, Check, ChevronUp, Ellipsis, Clock, Coffee, Play, Plus } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { ArrowLeft, CalendarCheck, Check, ChevronUp, Clock, Coffee, Play, Plus } from "lucide-react";
 import { PendingFollowUp } from "./pending-follow-up";
 import { isHandled } from "@/lib/meeting-wrap-up";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { PendingMeetingMenu } from "./pending-meeting-menu";
 import { Avatar } from "@/components/avatar";
 import { BreakBlock, TopicsBlock } from "@/components/meeting/agenda";
 import { InlineText } from "@/components/meeting/bits";
@@ -31,12 +35,15 @@ const addButton = "rounded-full border-brand-tint bg-brand-soft text-brand hover
 
 /** Detail vanuit het vergaderoverzicht, met de bestaande agenda- en opslagfuncties. */
 export function MeetingOverviewDetail({ meeting }: { meeting: Meeting }) {
+  const router = useRouter();
   const people = usePeople();
   const user = useStore((s) => s.user);
   const ops = useMeetingOps();
   const [tab, setTab] = useState<Tab>("agenda");
   const pending = !!meeting.endedAt && meeting.followUpStatus === "pending";
-  const [infoOpen, setInfoOpen] = useState(!pending);
+  const compactOption = useStore((s) => s.demo.wrapUpCompact);
+  const compact = pending && !!compactOption;
+  const [infoOpen, setInfoOpen] = useState(true);
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
   const [detailsId, setDetailsId] = useState<string | null>(null);
   const [adding, setAdding] = useState<"theme" | "item" | null>(null);
@@ -93,9 +100,10 @@ export function MeetingOverviewDetail({ meeting }: { meeting: Meeting }) {
             <ArrowLeft className="size-4" aria-hidden />
             Terug naar overzicht
           </Link>
+          <PreviousFollowUpBanner meeting={meeting} />
           <header className="flex flex-wrap items-center justify-between gap-5 py-2">
             <div className="flex min-w-0 flex-col items-start gap-2">
-              {pending ? (
+              {compact ? (
                 <span className="rounded-full bg-[var(--wrap-amber-bg)] px-3 py-1 text-sm font-bold text-[var(--wrap-amber-ink)]">
                   Nog af te ronden
                 </span>
@@ -106,7 +114,22 @@ export function MeetingOverviewDetail({ meeting }: { meeting: Meeting }) {
                 </span>
               )}
               <div className="flex flex-wrap items-center gap-3">
-                <h1 className="max-w-full text-[36px] leading-tight font-semibold sm:text-[40px]">{meeting.name}</h1>
+                <h1 className="max-w-full text-[36px] leading-tight font-semibold sm:text-[40px]">
+                  {isDemoEnvironment() && meeting.run && !meeting.endedAt ? (
+                    <button
+                      type="button"
+                      className="min-h-11 text-left"
+                      onClick={() => {
+                        loadMeetingsOverviewScenario("default");
+                        router.push("/app");
+                      }}
+                    >
+                      {meeting.name}
+                    </button>
+                  ) : (
+                    meeting.name
+                  )}
+                </h1>
               </div>
               <div className="flex flex-wrap items-center gap-3">
                 <p className="text-sm font-semibold text-ink-3">
@@ -116,7 +139,7 @@ export function MeetingOverviewDetail({ meeting }: { meeting: Meeting }) {
                   {pending &&
                     ` · gehouden · ${Math.round((meeting.endedAt! - (meeting.startedAt ?? meeting.endedAt!)) / 60000)} min`}
                 </p>
-                {pending && (
+                {compact && (
                   <>
                     <div className="flex -space-x-1">
                       {attendees.slice(0, 2).map((p) => (
@@ -141,20 +164,20 @@ export function MeetingOverviewDetail({ meeting }: { meeting: Meeting }) {
               </div>
             </div>
             {pending ? (
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button variant="outline" size="icon" aria-label="Meer opties voor vergadering">
-                    <Ellipsis className="size-5" />
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="app-theme">
-                  <Button variant="ghost" onClick={() => ops.startRun(meeting.id)}>
-                    Vergadering hervatten
-                  </Button>
-                </PopoverContent>
-              </Popover>
+              <PendingMeetingMenu meeting={meeting}>
+                <Button variant="ghost" onClick={() => openAdd("theme")}>
+                  Thema toevoegen
+                </Button>
+                <Button variant="ghost" onClick={() => openAdd("item")}>
+                  Agendapunt toevoegen
+                </Button>
+                <Button variant="ghost" onClick={() => ops.addBlock(meeting.id, "break")}>
+                  Pauze
+                </Button>
+              </PendingMeetingMenu>
             ) : (
               <div className="flex flex-wrap items-center gap-4">
+                {pending && <PendingMeetingMenu meeting={meeting} />}
                 <div
                   className={cn(
                     "flex flex-wrap items-center gap-3 font-bold",
@@ -177,7 +200,10 @@ export function MeetingOverviewDetail({ meeting }: { meeting: Meeting }) {
                 {meeting.endedAt && meeting.followUpStatus === "pending" ? (
                   <button
                     type="button"
-                    onClick={() => ops.putMeeting({ ...meeting, wrapUpOpen: true })}
+                    onClick={() => {
+                      ops.putMeeting({ ...meeting, wrapUpOpen: true });
+                      router.push(`/vergaderingen/${meeting.id}/afronden`);
+                    }}
                     className="flex min-h-11 items-center gap-2 rounded-full bg-danger px-4 text-sm font-bold text-white hover:bg-danger/90"
                   >
                     <Check className="size-4" aria-hidden />
@@ -193,7 +219,7 @@ export function MeetingOverviewDetail({ meeting }: { meeting: Meeting }) {
             )}
           </header>
 
-          {infoOpen && (
+          {infoOpen && !compact && (
             <section aria-label="Vergaderinformatie" className="rounded-2xl border border-line bg-line-soft/30 p-5">
               <h2 className={cn(pill, "mb-4")}>Vergaderinformatie</h2>
               <dl className="grid min-w-0 grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-[1fr_1.2fr_1.5fr_1.5fr_2fr_auto]">
@@ -253,7 +279,7 @@ export function MeetingOverviewDetail({ meeting }: { meeting: Meeting }) {
           )}
 
           {pending && <PendingFollowUp meeting={meeting} />}
-          {!pending && (
+          {!compact && (
             <div className="flex min-w-0 items-center gap-2 border-b border-line pb-2">
               <div role="tablist" aria-label="Vergadering" className="flex min-w-0 flex-1 overflow-x-auto">
                 {tabs.map((t) => (
@@ -313,11 +339,11 @@ export function MeetingOverviewDetail({ meeting }: { meeting: Meeting }) {
           <section
             id="meeting-tab-panel"
             role="tabpanel"
-            aria-labelledby={pending ? "pending-agenda-title" : `meeting-tab-${tab}`}
+            aria-labelledby={compact ? "pending-agenda-title" : `meeting-tab-${tab}`}
             className="flex min-w-0 flex-col gap-4"
           >
             <div className="flex flex-wrap items-center justify-between gap-3">
-              <h2 id={pending ? "pending-agenda-title" : undefined} className="text-[30px] font-semibold">
+              <h2 id={compact ? "pending-agenda-title" : undefined} className="text-[30px] font-semibold">
                 {tabs.find((t) => t.id === tab)?.label}
               </h2>
               {pending && (
@@ -325,7 +351,7 @@ export function MeetingOverviewDetail({ meeting }: { meeting: Meeting }) {
                   {items.filter((i) => isHandled(meeting, i.id)).length} van {items.length} voltooid
                 </p>
               )}
-              {!pending && tab === "agenda" && (
+              {!compact && tab === "agenda" && (
                 <div className="flex flex-wrap gap-2">
                   <Button variant="outline" className={addButton} onClick={() => openAdd("theme")}>
                     <Plus className="size-5" />

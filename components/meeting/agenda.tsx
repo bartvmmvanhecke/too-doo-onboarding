@@ -1,9 +1,11 @@
 "use client";
 
+import { suggestDecision, nextInSeries } from "@/lib/meeting-wrap-up";
+import { useStore } from "@/lib/store";
 import { formatShortDate } from "@/lib/date";
 
 import { useState, type DragEvent, type ReactNode } from "react";
-import { ArrowRight, ChevronDown, CircleCheck, MoreHorizontal, Pencil, Plus, Trash2 } from "lucide-react";
+import { ChevronDown, CircleCheck, MoreHorizontal, Pencil, Plus, Trash2 } from "lucide-react";
 import {
   card,
   DurationEditor,
@@ -58,20 +60,12 @@ function dropBefore(e: DragEvent<HTMLElement>): boolean {
 
 /* ---------- Agendapunt ---------- */
 
-function ItemStatus({ status }: { status: "done" | "todo" | "postponed" }) {
+function ItemStatus({ status }: { status: "done" | "todo" }) {
   if (status === "done")
     return (
-      <span role="img" aria-label="Afgerond" className="flex shrink-0">
+      <span role="img" aria-label="Voltooid" className="flex shrink-0">
         <CircleCheck className="size-[18px] text-success" strokeWidth={STROKE} aria-hidden />
       </span>
-    );
-  if (status === "postponed")
-    return (
-      <ArrowRight
-        className="size-4 shrink-0 text-ink-subtle"
-        strokeWidth={STROKE}
-        aria-label="Naar volgende vergadering"
-      />
     );
   return (
     <span
@@ -99,24 +93,26 @@ export function AgendaItemRow({
   const { updateItem } = useMeetingOps();
   const [armed, setArmed] = useState(false);
   const [dropAt, setDropAt] = useState<"before" | "after" | null>(null);
+  const meetings = useStore((s) => s.meetings);
+  const nextMeeting = nextInSeries(meeting, meetings);
   const run = meeting.run;
   const pendingFollowUp = !!meeting.endedAt && meeting.followUpStatus === "pending";
   const status = pendingFollowUp
-    ? item.runStatus === "handled" || run?.doneIds.includes(item.id)
+    ? item.runStatus === "done" || run?.doneIds.includes(item.id)
       ? "done"
       : "todo"
     : run
       ? run.doneIds.includes(item.id)
         ? "done"
-        : run.postponedIds.includes(item.id)
-          ? "postponed"
-          : "todo"
+        : "todo"
       : null;
   const actual = run?.actuals[item.id];
   const update = (patch: Partial<AgendaItem>) => updateItem(meeting.id, item.id, patch);
 
   return (
     <li
+      id={`agenda-item-${item.id}`}
+      data-agenda-item={item.id}
       draggable={armed}
       onDragStart={(e) => {
         e.dataTransfer.setData(ITEM_TYPE, item.id);
@@ -157,13 +153,31 @@ export function AgendaItemRow({
         value={item.text}
         label="Titel wijzigen"
         onSave={(text) => update({ text })}
-        className={cn(
-          "text-[15px] font-semibold",
-          status === "done" && !pendingFollowUp && "text-ink-3 line-through",
-          status === "postponed" && "text-ink-3",
-        )}
+        className={cn("text-[15px] font-semibold", status === "done" && !pendingFollowUp && "text-ink-3 line-through")}
       />
-      {pendingFollowUp && (
+      {pendingFollowUp && status !== "done" && (
+        <label className="ml-auto">
+          <span className="sr-only">Wat met dit punt? {item.text}</span>
+          <select
+            value={item.decision ?? (meeting.filledAfterwards ? "" : suggestDecision(item))}
+            onChange={(e) => update({ decision: e.target.value as "done" | "next" | "drop" })}
+            className={cn(
+              "min-h-11 rounded-lg border bg-white px-3 text-sm",
+              meeting.filledAfterwards && !item.decision ? "border-warning" : "border-line",
+            )}
+          >
+            <option value="" disabled>
+              Kies…
+            </option>
+            <option value="done">Voltooid</option>
+            <option value="next">
+              {nextMeeting?.date ? `Naar ${formatShortDate(nextMeeting.date)}` : "Bewaren voor later"}
+            </option>
+            <option value="drop">Laten vallen</option>
+          </select>
+        </label>
+      )}
+      {pendingFollowUp && status === "done" && (
         <span
           className={cn(
             "ml-auto rounded-md px-2.5 py-1 text-xs font-bold",
@@ -171,6 +185,14 @@ export function AgendaItemRow({
           )}
         >
           {status === "done" ? "voltooid" : "niet voltooid"}
+        </span>
+      )}
+      {pendingFollowUp && status !== "done" && (
+        <span className="w-full text-xs text-ink-3">
+          {item.visitedAt
+            ? `Besproken, niet voltooid${run?.actuals[item.id] ? ` · ${Math.round(run.actuals[item.id] / 60)} van ${item.duration ?? 0} min` : ""}`
+            : "Niet aan bod gekomen"}
+          {item.entries.some((e) => e.kind === "action" && !e.ownerId) ? " · 1 actie zonder eigenaar" : ""}
         </span>
       )}
       {item.carriedFrom && <span className="text-xs text-ink-3">uit {formatShortDate(item.carriedFrom)}</span>}
@@ -197,7 +219,6 @@ export function AgendaItemRow({
           ) : (
             <DurationPicker value={item.duration} onChange={(duration) => update({ duration })} />
           )}
-          {status === "postponed" && <span className="text-[13px] text-ink-3">naar volgende vergadering</span>}
           <span className="ml-auto flex items-center">
             <EntryColumns item={item} />
             <ItemEditButton item={item} onOpen={() => onOpenDetails(item)} />

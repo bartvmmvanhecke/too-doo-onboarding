@@ -1192,3 +1192,38 @@ html[data-onboarding-fade="in"] body {
   --prototype-bar-button: #16205a;
   --prototype-bar-focus: #8db8ec;
 }
+
+/* Vergadering afronden v2: additions, existing theme tokens stay intact. */
+.app-theme {
+  --wrap-primary: #2747d6;
+  --wrap-status-line: #e2c48f;
+  --wrap-status-bg: #fffbf3;
+  --wrap-color-2255ff: #2255ff;
+  --wrap-color-e5f3ff: #e5f3ff;
+  --wrap-color-2055e5: #2055e5;
+  --wrap-color-d4eaff: #d4eaff;
+  --wrap-color-08042e: #08042e;
+  --wrap-color-2e6090: #2e6090;
+  --wrap-color-1f2b3b: #1f2b3b;
+  --wrap-color-b3d4f3: #b3d4f3;
+  --wrap-color-f9f9fc: #f9f9fc;
+  --wrap-color-e1e3ec: #e1e3ec;
+  --wrap-color-777891: #777891;
+  --wrap-color-f0f1f6: #f0f1f6;
+  --wrap-color-cfd5e0: #cfd5e0;
+  --wrap-color-98a4b9: #98a4b9;
+  --wrap-color-f4faff: #f4faff;
+  --wrap-color-1948c9: #1948c9;
+  --wrap-color-f3f3f3: #f3f3f3;
+  --wrap-color-242424: #242424;
+  --wrap-color-0f6cbd: #0f6cbd;
+  --wrap-color-616161: #616161;
+  --wrap-color-ddd: #ddd;
+  --wrap-color-dcebf7: #dcebf7;
+  --wrap-color-777: #777;
+  --wrap-color-e5eff8: #e5eff8;
+  --wrap-color-666: #666;
+  --wrap-color-f0f4fa: #f0f4fa;
+}
+[data-attention="true"] { outline: 2px solid var(--wrap-status-line); background: var(--wrap-status-bg); }
+@media (prefers-reduced-motion: reduce) { .app-theme *, .app-theme *::before, .app-theme *::after { scroll-behavior: auto !important; animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; } }

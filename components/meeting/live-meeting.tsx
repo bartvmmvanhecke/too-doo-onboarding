@@ -1,5 +1,10 @@
 "use client";
+import { isDemoEnvironment } from "@/lib/demo-environment";
+import { loadMeetingsOverviewScenario } from "@/lib/prototype/meetingsOverviewScenarios";
+import { PreviousFollowUpBanner } from "./previous-follow-up-banner";
 
+import { ChimeControl } from "./chime-control";
+import { AwayPrompt } from "./away-prompt";
 import { MeetingPrototypeBar } from "@/components/prototype/meeting-prototype-bar";
 import { elapsedClock, remainingLabel, timerEnd, meetingNow } from "@/lib/meeting-clock";
 import { useEffect, useRef, useState } from "react";
@@ -7,7 +12,6 @@ import {
   ArrowDown,
   Bold,
   Check,
-  CircleStop,
   Ellipsis,
   Italic,
   Link2,
@@ -20,6 +24,9 @@ import {
   Underline,
 } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { needsDecisions } from "@/lib/meeting-wrap-up";
+import { sendFollowUp } from "@/lib/meeting-follow-up";
 import { nextInSeries } from "@/lib/meeting-wrap-up";
 import { Avatar } from "@/components/avatar";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
@@ -30,16 +37,18 @@ import { OVERTIME_EXTEND_MIN } from "@/lib/meetingWrapUp.config";
 import { clockTime } from "@/lib/meeting-wrap-up";
 import { Button } from "@/components/ui/button";
 import { useNow } from "./meeting-context";
-import { closeManually, isHandled, navigateTo, othersOpen } from "@/lib/meeting-wrap-up";
+import { closeManually, isHandled, navigateTo, othersOpen, nextOpenItem } from "@/lib/meeting-wrap-up";
 import { cn } from "@/lib/utils";
 
 const pill =
-  "inline-flex min-h-11 items-center justify-center gap-2 rounded-full border border-[#2255ff] bg-[#e5f3ff] px-4 text-sm font-bold text-[#2055e5] hover:bg-[#d4eaff] disabled:cursor-not-allowed disabled:opacity-50";
+  "inline-flex min-h-11 items-center justify-center gap-2 rounded-full border border-[var(--wrap-color-2255ff)] bg-[var(--wrap-color-e5f3ff)] px-4 text-sm font-bold text-[var(--wrap-color-2055e5)] hover:bg-[var(--wrap-color-d4eaff)] disabled:cursor-not-allowed disabled:opacity-50";
 
 export function LiveMeeting({ meeting }: { meeting: Meeting }) {
   return (
-    <div className="app-theme fixed inset-0 z-40 flex flex-col overflow-hidden bg-[linear-gradient(180deg,transparent,#08042e),linear-gradient(110deg,#2e6090,#73c8fb_75%)] text-[#1f2b3b]">
+    <div className="app-theme fixed inset-0 z-40 flex flex-col overflow-hidden bg-[linear-gradient(180deg,transparent,var(--wrap-color-08042e)),linear-gradient(110deg,var(--wrap-color-2e6090),#73c8fb_75%)] text-[var(--wrap-color-1f2b3b)]">
       <MeetingPrototypeBar meetingId={meeting.id} />
+      <AwayPrompt meeting={meeting} />
+      <PreviousFollowUpBanner meeting={meeting} />
       <LiveMeetingContent key={meeting.demoScenarioRevision ?? 0} meeting={meeting} />
     </div>
   );
@@ -47,6 +56,7 @@ export function LiveMeeting({ meeting }: { meeting: Meeting }) {
 
 function LiveMeetingContent({ meeting }: { meeting: Meeting }) {
   const ops = useStore();
+  const router = useRouter();
   const people = usePeople();
   const run = meeting.run!;
   const items = allItems(meeting.blocks);
@@ -54,43 +64,28 @@ function LiveMeetingContent({ meeting }: { meeting: Meeting }) {
   const now = meetingNow(meeting, useNow(true, timerEnd(meeting) - meetingNow(meeting, 0)));
   const end = timerEnd(meeting);
   const overtime = now >= end;
+  const nextOpen = nextOpenItem(meeting, run.currentId);
   const otherOpen = othersOpen(meeting, run.currentId);
   const completingLast = otherOpen.length === 0 && !!run.currentId && !isHandled(meeting, run.currentId);
   const handled = items.filter((i) => isHandled(meeting, i.id)).length;
-  const openNumbers = otherOpen.map((i) => items.indexOf(i) + 1).join(" en ");
-  const finish = () => {
+  const openNumbers = new Intl.ListFormat("nl", { type: "conjunction" }).format(
+    otherOpen.map((i) => String(items.indexOf(i) + 1)),
+  );
+  const finish = (allowSkip = false) => {
     if (note.trim()) saveNote();
-    ops.putMeeting(
-      closeManually(
-        useStore.getState().meetings.find((m) => m.id === meeting.id)!,
-        now,
-      ),
+    const closed = closeManually(
+      useStore.getState().meetings.find((m) => m.id === meeting.id)!,
+      now,
     );
+    ops.putMeeting(closed);
+    if (allowSkip && ops.demo.wrapUpSkip && !needsDecisions(closed, useStore.getState().meetings)) {
+      sendFollowUp(meeting.id, true);
+      router.push(`/vergaderingen/${meeting.id}`);
+    } else router.push(`/vergaderingen/${meeting.id}/afronden`);
   };
   const item = items.find((i) => i.id === run.currentId);
   const block = meeting.blocks.find((b) => b.id === run.currentId || b.items.some((i) => i.id === run.currentId));
   const [minimizePrompt, setMinimizePrompt] = useState(false);
-  const [finishPrompt, setFinishPrompt] = useState(false);
-  const undoStart = () => {
-    if (note.trim()) saveNote();
-    const latest = useStore.getState().meetings.find((m) => m.id === meeting.id)!;
-    ops.putMeeting({
-      ...latest,
-      run: null,
-      startedAt: undefined,
-      startedBy: undefined,
-      lastActivityAt: undefined,
-      overtimeUntil: undefined,
-      demoTimeOffsetMs: undefined,
-      followUpStatus: undefined,
-      wrapUpOpen: false,
-      minimized: false,
-      blocks: latest.blocks.map((b) => ({
-        ...b,
-        items: b.items.map((i) => ({ ...i, runStatus: "open", handledAt: undefined })),
-      })),
-    });
-  };
   const minimize = () =>
     ops.putMeeting({ ...useStore.getState().meetings.find((m) => m.id === meeting.id)!, minimized: true });
   const [editing, setEditing] = useState<EntryKind | "agenda" | "edit-agenda" | null>(null);
@@ -107,14 +102,12 @@ function LiveMeetingContent({ meeting }: { meeting: Meeting }) {
     const card = activeCard.current;
     if (!card) return;
     const observer = new ResizeObserver(([entry]) =>
-      setCompactActions(entry.contentRect.width < (completingLast ? 360 : 240)),
+      setCompactActions(entry.contentRect.width < (completingLast ? 360 : 440)),
     );
     observer.observe(card);
     return () => observer.disconnect();
   }, [run.currentId, completingLast]);
-  const [previouslyHandled, setPreviouslyHandled] = useState(
-    () => new Set(items.filter((i) => isHandled(meeting, i.id)).map((i) => i.id)),
-  );
+
   useEffect(() => {
     activeCard.current?.querySelector<HTMLButtonElement>("button[aria-current]")?.focus();
     activeCard.current?.scrollIntoView({ block: "nearest", inline: "nearest" });
@@ -162,7 +155,6 @@ function LiveMeetingContent({ meeting }: { meeting: Meeting }) {
   };
   const selectItem = (id: string) => {
     if (note.trim()) saveNote();
-    if (isHandled(meeting, id)) setPreviouslyHandled((ids) => new Set([...ids, id]));
     setNote("");
     ops.putMeeting(
       navigateTo(
@@ -189,13 +181,28 @@ function LiveMeetingContent({ meeting }: { meeting: Meeting }) {
   return (
     <div className="contents">
       <header className="flex min-h-16 shrink-0 flex-wrap items-center gap-3 px-3 py-2 text-white sm:px-5">
-        <h1 className="mr-3 min-w-0 text-2xl font-bold lg:w-[280px] lg:shrink-0">{meeting.name}</h1>
+        <h1 className="mr-3 min-w-0 text-2xl font-bold lg:w-[280px] lg:shrink-0">
+          {isDemoEnvironment() ? (
+            <button
+              type="button"
+              className="min-h-11 text-left"
+              onClick={() => {
+                loadMeetingsOverviewScenario("default");
+                router.push("/app");
+              }}
+            >
+              {meeting.name}
+            </button>
+          ) : (
+            meeting.name
+          )}
+        </h1>
         <p className="order-last w-full min-w-0 truncate text-[14pt] font-bold sm:order-none sm:w-auto sm:flex-1">
           {item?.text ?? block?.title}
         </p>
         <div className="flex flex-wrap items-center gap-4 text-xs">
           <span>
-            {handled} van de {items.length} voltooid
+            {handled} / {items.length} voltooid{otherOpen.length ? ` · nog open: ${openNumbers}` : ""}
           </span>
           <span
             role="status"
@@ -216,11 +223,17 @@ function LiveMeetingContent({ meeting }: { meeting: Meeting }) {
             />
           </span>
         </div>
+        <ChimeControl />
         <button
           type="button"
-          onClick={() => setFinishPrompt(true)}
+          onClick={() => finish()}
           aria-label="Rond vergadering af"
-          className="ml-auto flex min-h-11 items-center gap-2 rounded-full bg-danger px-4 text-sm font-semibold text-white hover:bg-danger/90"
+          className={cn(
+            "ml-auto flex min-h-11 items-center gap-2 rounded-full px-4 text-sm font-semibold",
+            ops.demo.wrapUpPrimary
+              ? "bg-white text-brand hover:bg-white/90"
+              : "bg-danger text-white hover:bg-danger/90",
+          )}
         >
           <Check aria-hidden className="size-4" />
           <span>Rond vergadering af</span>
@@ -261,7 +274,7 @@ function LiveMeetingContent({ meeting }: { meeting: Meeting }) {
                     key={i.id}
                     className={cn(
                       "@container min-w-[260px] rounded-2xl border border-white/20 p-3 lg:min-w-0",
-                      active && "border-white/50 bg-white/15 text-white",
+                      active && "border-brand bg-white text-brand ring-2 ring-brand",
                     )}
                   >
                     <div className={cn(active && "mb-3 flex items-start justify-between gap-3")}>
@@ -295,7 +308,8 @@ function LiveMeetingContent({ meeting }: { meeting: Meeting }) {
                       </button>
                       {active && (
                         <div className="flex shrink-0 flex-col items-end gap-2 text-xs">
-                          {(isHandled(meeting, i.id) || previouslyHandled.has(i.id)) && (
+                          <span className="font-bold">nu</span>
+                          {isHandled(meeting, i.id) && (
                             <span className="flex items-center gap-2 font-bold">
                               voltooid
                               <Check
@@ -321,24 +335,30 @@ function LiveMeetingContent({ meeting }: { meeting: Meeting }) {
                               if (note.trim()) saveNote();
                               setNote("");
                               ops.nextStep(meeting.id, "done");
-                              if (completingLast) setFinishPrompt(true);
+                              if (completingLast) finish(true);
                             }}
                             className={cn(
-                              "inline-flex min-h-11 flex-1 items-center justify-center gap-2 whitespace-nowrap rounded-full border px-3 text-sm font-bold",
+                              "inline-flex min-h-11 min-w-0 flex-1 items-center justify-center gap-2 whitespace-nowrap rounded-full border px-3 text-sm font-bold",
                               completingLast
-                                ? "border-danger bg-danger text-white hover:bg-danger/90"
-                                : "border-[#b3d4f3] bg-[#e5f3ff] text-[#2055e5] hover:bg-[#d4eaff]",
+                                ? ops.demo.wrapUpPrimary
+                                  ? "border-[var(--wrap-primary)] bg-[var(--wrap-primary)] text-white hover:opacity-90"
+                                  : "border-danger bg-danger text-white hover:bg-danger/90"
+                                : "border-[var(--wrap-color-b3d4f3)] bg-[var(--wrap-color-e5f3ff)] text-[var(--wrap-color-2055e5)] hover:bg-[var(--wrap-color-d4eaff)]",
                             )}
                           >
                             <Check aria-hidden className="size-4 shrink-0" />
-                            {completingLast ? "Voltooi & rond af →" : "Voltooi"}
+                            <span className="truncate">
+                              {completingLast
+                                ? "Voltooi & rond af →"
+                                : `Voltooi · volgend open punt (${nextOpen ? items.indexOf(nextOpen) + 1 : "—"})`}
+                            </span>
                           </button>
                           <button
                             type="button"
                             onClick={() => setMoving(true)}
                             className={cn(
-                              "hidden min-h-11 flex-1 whitespace-nowrap rounded-full border border-white px-3 text-sm font-bold hover:bg-white/10",
-                              completingLast ? "@min-[360px]:block" : "@min-[240px]:block",
+                              "hidden min-h-11 flex-1 whitespace-nowrap rounded-full border border-current px-3 text-sm font-bold hover:bg-white/10",
+                              completingLast ? "@min-[360px]:block" : "@min-[440px]:block",
                             )}
                           >
                             Verplaats
@@ -348,7 +368,7 @@ function LiveMeetingContent({ meeting }: { meeting: Meeting }) {
                               <button
                                 type="button"
                                 aria-label="Meer opties voor agendapunt"
-                                className="flex size-11 shrink-0 items-center justify-center rounded-full border border-white"
+                                className="flex size-11 shrink-0 items-center justify-center rounded-full border border-current"
                               >
                                 <Ellipsis className="size-5" />
                               </button>
@@ -373,13 +393,41 @@ function LiveMeetingContent({ meeting }: { meeting: Meeting }) {
                               >
                                 Bewerk agendapunt
                               </button>
-                              <button
-                                type="button"
-                                onClick={() => ops.nextStep(meeting.id, "postpone")}
-                                className="min-h-11 text-sm"
-                              >
-                                Uitstellen naar later
-                              </button>
+                              {isHandled(meeting, i.id) && (
+                                <button
+                                  type="button"
+                                  className="min-h-11 w-full text-left text-sm"
+                                  onClick={() => {
+                                    const latest = useStore.getState().meetings.find((m) => m.id === meeting.id)!;
+                                    ops.putMeeting({
+                                      ...latest,
+                                      blocks: latest.blocks.map((b) => ({
+                                        ...b,
+                                        items: b.items.map((entry) =>
+                                          entry.id === i.id
+                                            ? { ...entry, runStatus: "open", doneAt: undefined }
+                                            : entry,
+                                        ),
+                                      })),
+                                      run: { ...latest.run!, doneIds: latest.run!.doneIds.filter((id) => id !== i.id) },
+                                    });
+                                  }}
+                                >
+                                  Heropenen
+                                </button>
+                              )}
+                              {!ops.demo.wrapUpSingleMove && (
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    ops.updateItem(meeting.id, i.id, { decision: "next", carry: "next" });
+                                    ops.nextStep(meeting.id, "postpone");
+                                  }}
+                                  className="min-h-11 text-sm"
+                                >
+                                  Naar volgende vergadering
+                                </button>
+                              )}
                             </PopoverContent>
                           </Popover>
                         </div>
@@ -393,7 +441,7 @@ function LiveMeetingContent({ meeting }: { meeting: Meeting }) {
             )}
           </div>
           <p className="px-3 py-2 text-xs text-white/80">
-            Een punt telt als voltooid zodra je naar een ander punt gaat. Klik erop om het te heropenen.
+            Voltooi vinkt een punt af. Spring je naar een ander punt, dan blijft het open tot je het voltooit.
           </p>
           <div className="border-t border-white/15 p-2 lg:pt-4">
             <button
@@ -406,7 +454,7 @@ function LiveMeetingContent({ meeting }: { meeting: Meeting }) {
             </button>
           </div>
         </aside>
-        <main className="flex min-h-0 min-w-0 flex-1 flex-col gap-7 overflow-y-auto rounded-tl-2xl bg-[#f9f9fc] p-5 xl:flex-row xl:p-6">
+        <main className="flex min-h-0 min-w-0 flex-1 flex-col gap-7 overflow-y-auto rounded-tl-2xl bg-[var(--wrap-color-f9f9fc)] p-5 xl:flex-row xl:p-6">
           <div className="min-w-0 flex-1">
             {(minimizePrompt || overtime) && (
               <section
@@ -437,7 +485,7 @@ function LiveMeetingContent({ meeting }: { meeting: Meeting }) {
                   >
                     {minimizePrompt ? "Minimaliseren" : "+15 min"}
                   </Button>
-                  <Button size="sm" onClick={finish}>
+                  <Button size="sm" onClick={() => finish()}>
                     Afronden
                   </Button>
                 </div>
@@ -445,7 +493,7 @@ function LiveMeetingContent({ meeting }: { meeting: Meeting }) {
             )}
             {item && otherOpen.length === 0 && (
               <p className="mb-5 rounded-xl bg-brand-soft p-4 font-bold text-brand">
-                → Laatste open punt · daarna versturen we de opvolging
+                → Laatste open punt · voltooi het om de vergadering af te ronden
               </p>
             )}
             {!run.currentId && (
@@ -479,7 +527,10 @@ function LiveMeetingContent({ meeting }: { meeting: Meeting }) {
               return (
                 <section
                   key={section.kind}
-                  className={cn("pb-7", section.kind === "document" && "border-t border-[#e1e3ec] pt-6")}
+                  className={cn(
+                    "pb-7",
+                    section.kind === "document" && "border-t border-[var(--wrap-color-e1e3ec)] pt-6",
+                  )}
                 >
                   <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
                     <h2 className="text-base font-bold">{section.title}</h2>
@@ -529,7 +580,7 @@ function LiveMeetingContent({ meeting }: { meeting: Meeting }) {
                       ))}
                     </ul>
                   ) : (
-                    <p className="text-sm text-[#777891]">{section.empty}</p>
+                    <p className="text-sm text-[var(--wrap-color-777891)]">{section.empty}</p>
                   )}
                   {section.kind === "action" && block?.kind === "actions" && (
                     <ul className="mt-3 space-y-2">
@@ -599,14 +650,14 @@ function LiveMeetingContent({ meeting }: { meeting: Meeting }) {
           </div>
           <section
             aria-label="Vergadernotities"
-            className="flex min-h-[560px] min-w-0 flex-1 flex-col overflow-hidden rounded-2xl bg-[#f0f1f6] xl:min-h-0"
+            className="flex min-h-[560px] min-w-0 flex-1 flex-col overflow-hidden rounded-2xl bg-[var(--wrap-color-f0f1f6)] xl:min-h-0"
           >
             <div className="flex items-center justify-between p-4">
               <h2 className="text-base font-bold">Vergadernotities</h2>
               <Popover>
                 <PopoverTrigger asChild>
                   <button type="button" aria-label="Notitieopties" className="flex size-11 items-center justify-center">
-                    <Ellipsis aria-hidden className="size-5 text-[#777891]" />
+                    <Ellipsis aria-hidden className="size-5 text-[var(--wrap-color-777891)]" />
                   </button>
                 </PopoverTrigger>
                 <PopoverContent className="app-theme text-sm">
@@ -617,7 +668,9 @@ function LiveMeetingContent({ meeting }: { meeting: Meeting }) {
             </div>
             <div className="min-h-[150px] flex-1 overflow-y-auto px-4 pb-4">
               {!notes.length && !privateNotes.length ? (
-                <p className="pt-8 text-center text-sm text-[#777891]">Nog geen vergadernotities toegevoegd.</p>
+                <p className="pt-8 text-center text-sm text-[var(--wrap-color-777891)]">
+                  Nog geen vergadernotities toegevoegd.
+                </p>
               ) : (
                 <ul className="space-y-3">
                   {notes.map((e) => (
@@ -660,7 +713,7 @@ function LiveMeetingContent({ meeting }: { meeting: Meeting }) {
               }}
               className="border-t border-line bg-white p-4"
             >
-              <div className="rounded-lg border border-[#cfd5e0] bg-white p-3 shadow-sm">
+              <div className="rounded-lg border border-[var(--wrap-color-cfd5e0)] bg-white p-3 shadow-sm">
                 <div role="toolbar" aria-label="Notitieopmaak" className="mb-3 flex gap-1">
                   {[
                     { label: "Vet", Icon: Bold, before: "**", after: "**" },
@@ -676,7 +729,7 @@ function LiveMeetingContent({ meeting }: { meeting: Meeting }) {
                       aria-label={label}
                       disabled={!item}
                       onClick={() => format(before, after)}
-                      className="flex size-11 items-center justify-center rounded text-[#98a4b9] hover:bg-line-soft"
+                      className="flex size-11 items-center justify-center rounded text-[var(--wrap-color-98a4b9)] hover:bg-line-soft"
                     >
                       <Icon aria-hidden className="size-4" />
                     </button>
@@ -692,7 +745,7 @@ function LiveMeetingContent({ meeting }: { meeting: Meeting }) {
                     setNote(e.target.value);
                     recordTyping();
                   }}
-                  className="min-h-[110px] w-full resize-y bg-transparent text-base outline-none placeholder:text-[#777891]"
+                  className="min-h-[110px] w-full resize-y bg-transparent text-base outline-none placeholder:text-[var(--wrap-color-777891)]"
                 />
               </div>
               <div className="mt-4 flex flex-wrap items-center justify-end gap-2">
@@ -713,46 +766,6 @@ function LiveMeetingContent({ meeting }: { meeting: Meeting }) {
           </section>
         </main>
       </div>
-      <Dialog open={finishPrompt} onOpenChange={setFinishPrompt}>
-        <DialogContent className="app-theme max-w-[450px] gap-5 rounded-2xl p-6 sm:p-7">
-          <div className="mb-1 flex size-16 items-center justify-center rounded-full bg-[#f4faff]">
-            <div className="flex size-11 items-center justify-center rounded-full bg-[#e5f3ff] text-[#2055e5]">
-              <CircleStop aria-hidden className="size-6" />
-            </div>
-          </div>
-          <DialogTitle className="text-xl font-bold">Vergadering beëindigen</DialogTitle>
-          <DialogDescription className="text-base leading-relaxed">
-            Klaar om af te ronden? Je gaat naar de samenvatting waar je openstaande agendapunten, beslissingen en nieuwe
-            acties kunt nakijken voordat je afsluit.
-          </DialogDescription>
-          <div className="mt-5 flex flex-col gap-3">
-            <button
-              type="button"
-              onClick={() => {
-                setFinishPrompt(false);
-                finish();
-              }}
-              className="min-h-11 rounded-full bg-[#2055e5] px-4 text-base font-bold text-white hover:bg-[#1948c9]"
-            >
-              Vergadering afronden
-            </button>
-            <button
-              type="button"
-              onClick={() => setFinishPrompt(false)}
-              className="min-h-11 rounded-full border border-[#b3d4f3] bg-[#e5f3ff] px-4 text-base font-bold text-[#2055e5] hover:bg-[#d4eaff]"
-            >
-              Vergadering voortzetten
-            </button>
-            <button
-              type="button"
-              onClick={undoStart}
-              className="mt-3 min-h-11 font-bold text-ink-2 underline underline-offset-4"
-            >
-              Start ongedaan maken
-            </button>
-          </div>
-        </DialogContent>
-      </Dialog>
       <Dialog open={!!editing} onOpenChange={(open) => !open && setEditing(null)}>
         <DialogContent className="app-theme">
           <DialogTitle>
@@ -860,6 +873,18 @@ function LiveMeetingContent({ meeting }: { meeting: Meeting }) {
         <DialogContent className="app-theme">
           <DialogTitle>Verplaats agendapunt</DialogTitle>
           <DialogDescription>Kies het thema waar je dit agendapunt wil bespreken.</DialogDescription>
+          {ops.demo.wrapUpSingleMove && (
+            <Button
+              variant="outline"
+              onClick={() => {
+                if (item) ops.updateItem(meeting.id, item.id, { decision: "next", carry: "next" });
+                ops.nextStep(meeting.id, "postpone");
+                setMoving(false);
+              }}
+            >
+              Naar volgende vergadering
+            </Button>
+          )}
           {meeting.blocks
             .filter((b) => b.kind === "topics")
             .map((b) => (

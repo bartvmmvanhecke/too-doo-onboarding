@@ -1,3 +1,4 @@
+import { directieAgendaItems } from "./meetingFixtures";
 import { newBlock, newItem } from "@/lib/agenda";
 import { toISO } from "@/lib/date";
 import { isDemoEnvironment } from "@/lib/demo-environment";
@@ -27,7 +28,10 @@ export function loadMeetingsOverviewScenario(scenario: MeetingsOverviewScenario,
     blocks: [
       newBlock("topics", {
         title: "Lopende zaken",
-        items: [newItem("Opening en vorige besluiten"), newItem("Voortgang en volgende stappen")],
+        items:
+          name === "Directieoverleg"
+            ? directieAgendaItems()
+            : [newItem("Opening en vorige besluiten"), newItem("Voortgang en volgende stappen")],
       }),
     ],
     run: null,
@@ -37,7 +41,7 @@ export function loadMeetingsOverviewScenario(scenario: MeetingsOverviewScenario,
     ...(completed ? { followUpStatus: "sent" as const } : {}),
   });
   const meetings = [
-    make("upcoming-1", "Productieoverleg", 3),
+    make("upcoming-1", "Directieoverleg", 3),
     make("upcoming-2", "Sync Stijn", 6),
     make("completed-1", "Managementoverleg", -3, true),
     make("completed-2", "Teamoverleg", -7, true),

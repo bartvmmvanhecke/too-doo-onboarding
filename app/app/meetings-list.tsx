@@ -15,11 +15,15 @@ import { USER_PERSON_ID } from "@/lib/mock-data";
 import { usePeople, useStore, type Meeting } from "@/lib/store";
 import { formatTime } from "@/lib/time";
 import { cn } from "@/lib/utils";
-import { clockTime } from "@/lib/meeting-wrap-up";
+import { pendingForChair, pendingExpired, registrationState } from "@/lib/meeting-schedule";
+import { agendaItems, isHandled } from "@/lib/meeting-wrap-up";
+import { meetingNow } from "@/lib/meeting-clock";
 
-type Status = "pending" | "done" | "planned" | "wrapUp";
+type Status = "pending" | "done" | "planned" | "wrapUp" | "unsent" | "notHeld";
 
 const STATUS: Record<Status, { label: string; className: string }> = {
+  unsent: { label: "Opvolging niet verstuurd", className: "bg-warning-bg text-warning" },
+  notHeld: { label: "Niet doorgegaan", className: "bg-line-soft text-ink-3" },
   wrapUp: { label: "Nog af te ronden", className: "bg-[var(--wrap-amber-bg)] text-[var(--wrap-amber-ink)]" },
   pending: { label: "In afwachting", className: "bg-warning-bg text-warning" },
   done: { label: "Afgerond", className: "bg-success-bg text-success-ink" },
@@ -36,7 +40,9 @@ function isPast(m: Meeting, todayISO: string) {
 }
 
 function statusOf(m: Meeting, todayISO: string): Status {
-  if (m.endedAt && m.followUpStatus === "pending") return "wrapUp";
+  if (m.outcome === "not_held") return "notHeld";
+  if (m.followUpStatus === "pending" && pendingExpired(m, meetingNow(m))) return "unsent";
+  if (pendingForChair(m, meetingNow(m))) return "wrapUp";
   if (!isPast(m, todayISO)) return "planned";
   return m.held ? "done" : "pending";
 }
@@ -73,11 +79,13 @@ export function MeetingsList() {
       (type === ALL || m.type === type) &&
       (person === ALL || m.participants.includes(person)),
   );
-  const pending = filtered.filter((m) => m.endedAt && m.followUpStatus === "pending");
+  const pending = filtered.filter((m) => pendingForChair(m, meetingNow(m)));
   const remaining = filtered.filter((m) => !pending.includes(m));
-  const past = remaining.filter((m) => isPast(m, todayISO)).sort((a, b) => b.date!.localeCompare(a.date!));
+  const past = remaining
+    .filter((m) => isPast(m, todayISO) || statusOf(m, todayISO) === "unsent" || m.outcome === "not_held")
+    .sort((a, b) => b.date!.localeCompare(a.date!));
   const upcoming = remaining
-    .filter((m) => !isPast(m, todayISO))
+    .filter((m) => !isPast(m, todayISO) && statusOf(m, todayISO) !== "unsent" && m.outcome !== "not_held")
     .sort((a, b) => (a.date ?? "9999").localeCompare(b.date ?? "9999") || (a.time ?? 0) - (b.time ?? 0));
 
   const meetNow = () => {
@@ -218,9 +226,12 @@ function MeetingRow({ meeting: m, status }: { meeting: Meeting; status: Status }
     .filter((p): p is NonNullable<typeof p> => !!p);
   const shown = attendees.slice(0, 4);
   const rest = attendees.length - shown.length;
-  const href = `/app/overleg/${m.id}`;
+  const href = status === "wrapUp" ? `/vergaderingen/${m.id}#afronden` : `/app/overleg/${m.id}`;
   const needsWrapUp = status === "wrapUp";
   const unowned = m.actions.filter((a) => !a.ownerId).length;
+  const registration = registrationState(m, meetingNow(m));
+  const actionLabel =
+    registration === "not_started" ? "Achteraf invullen" : registration === "empty" ? "Doorgegaan?" : "Afronden →";
   const openDetail = () => {
     if (!needsWrapUp) return;
     const latest = useStore.getState().meetings.find((meeting) => meeting.id === m.id)!;
@@ -244,7 +255,7 @@ function MeetingRow({ meeting: m, status }: { meeting: Meeting; status: Status }
           </span>
           <span className="text-[13px] text-ink-3">
             {needsWrapUp
-              ? `${m.endReason === "auto" ? "automatisch afgesloten" : "afgesloten"} ${clockTime(m.endedAt!)} · ${m.actions.length} ${m.actions.length === 1 ? "actie" : "acties"} · ${unowned} zonder eigenaar`
+              ? `${whenLine(m)} · ${registration === "not_started" ? "Niet gestart in Too-Doo" : registration === "empty" ? "Gestart, maar niets vastgelegd" : `${m.endReason === "auto" ? "Automatisch afgesloten" : "Afgesloten"} · ${agendaItems(m).filter((i) => isHandled(m, i.id)).length} van ${agendaItems(m).length} voltooid · ${unowned} ${unowned === 1 ? "actie" : "acties"} zonder eigenaar`}`
               : whenLine(m)}
           </span>
         </span>
@@ -273,10 +284,10 @@ function MeetingRow({ meeting: m, status }: { meeting: Meeting; status: Status }
         <Link
           href={href}
           onClick={openDetail}
-          aria-label={`Afronden: ${m.name}`}
+          aria-label={`${actionLabel}: ${m.name}`}
           className="inline-flex min-h-11 shrink-0 items-center justify-center rounded-full bg-danger px-4 text-sm font-bold text-white no-underline hover:bg-danger/90 hover:text-white"
         >
-          Afronden →
+          {actionLabel}
         </Link>
       )}
       <Popover open={open} onOpenChange={setOpen}>

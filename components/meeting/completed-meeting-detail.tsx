@@ -5,7 +5,7 @@ import { ArrowLeft, CheckCircle2 } from "lucide-react";
 import { usePeople, useStore, type Meeting } from "@/lib/store";
 import { Button } from "@/components/ui/button";
 import { finishWrapUp } from "@/lib/wrap-up-flow";
-import { actualDuration, agendaItems, isHandled, nextInSeries } from "@/lib/meeting-wrap-up";
+import { actualDuration, clockTime, agendaItems, isHandled, nextInSeries } from "@/lib/meeting-wrap-up";
 import { formatShortDate } from "@/lib/date";
 import { formatTime } from "@/lib/time";
 
@@ -28,7 +28,9 @@ export function CompletedMeetingDetail({ meeting }: { meeting: Meeting }) {
       <header>
         <div className="flex flex-wrap items-center gap-3">
           <h1 className="text-4xl font-semibold">{meeting.name}</h1>
-          <span className="rounded-full bg-success-bg px-3 py-1 text-sm font-bold text-success-ink">Afgerond</span>
+          <span className="rounded-full bg-success-bg px-3 py-1 text-sm font-bold text-success-ink">
+            {meeting.noActivity && !meeting.held ? "Niet doorgegaan" : "Afgerond"}
+          </span>
         </div>
         <p className="mt-3 text-sm text-ink-3">
           {meeting.date ? formatShortDate(meeting.date) : ""}
@@ -38,46 +40,60 @@ export function CompletedMeetingDetail({ meeting }: { meeting: Meeting }) {
           · {minutes} min (gepland {meeting.duration}) · {participants} deelnemers
         </p>
       </header>
-      <section
-        role="status"
-        className="flex flex-wrap items-start gap-3 rounded-2xl bg-success-bg p-5 text-success-ink"
-      >
-        <CheckCircle2 aria-hidden className="size-6 shrink-0" />
-        <div className="flex-1">
-          <p className="font-bold">
-            {meeting.followUpStatus === "saved"
-              ? "Vergadering afgerond · opvolging niet verstuurd"
-              : `Opvolging verstuurd naar ${participants} deelnemers${next?.date ? ` · volgende vergadering ${formatShortDate(next.date)}` : ""}`}
+      {meeting.followUpStatus === "saved" ? (
+        <section
+          role="status"
+          className="flex flex-wrap items-center gap-5 rounded-2xl border border-line bg-white p-5 text-ink-2"
+        >
+          <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-success-bg text-success-ink">
+            <CheckCircle2 aria-hidden className="size-5" />
+          </span>
+          <p className="min-w-0 flex-1 text-sm">
+            {meeting.noActivity && !meeting.held
+              ? "Vergadering niet doorgegaan · de opvolging wordt niet verstuurd."
+              : `Afgerond om ${clockTime(meeting.endedAt!)} · de opvolging is nog niet naar de deelnemers verstuurd.`}
           </p>
-          {meeting.followUpStatus === "saved" && (
+          {!(meeting.noActivity && !meeting.held) && (
             <Button
-              className="mt-3"
+              variant="outline"
+              className="rounded-full text-brand"
               onClick={() => {
                 const state = useStore.getState();
-                const latest = state.meetings.find((m) => m.id === meeting.id)!;
-                // TODO(api): explicit delivery using the stored recipient selection and summary.
+                const latest = state.meetings.find((item) => item.id === meeting.id)!;
                 useStore.setState({ meetings: finishWrapUp(latest, state.meetings, "sent") });
               }}
             >
-              Nu versturen
+              Opvolging versturen
             </Button>
           )}
-          {next?.date && (
-            <p className="mt-1">
-              Volgende vergadering: {formatShortDate(next.date)}
-              {next.time !== null ? ` · ${formatTime(next.time)}–${formatTime(next.time + next.duration)}` : ""}.
+        </section>
+      ) : (
+        <section
+          role="status"
+          className="flex flex-wrap items-start gap-3 rounded-2xl bg-success-bg p-5 text-success-ink"
+        >
+          <CheckCircle2 aria-hidden className="size-6 shrink-0" />
+          <div className="flex-1">
+            <p className="font-bold">
+              {`Opvolging verstuurd naar ${participants} deelnemers${next?.date ? ` · volgende vergadering ${formatShortDate(next.date)}` : ""}`}
             </p>
+            {next?.date && (
+              <p className="mt-1">
+                Volgende vergadering: {formatShortDate(next.date)}
+                {next.time !== null ? ` · ${formatTime(next.time)}–${formatTime(next.time + next.duration)}` : ""}.
+              </p>
+            )}
+          </div>
+          {next && (
+            <Link
+              href={`/app/overleg/${next.id}`}
+              className="inline-flex min-h-11 items-center font-bold text-brand underline"
+            >
+              Bekijk volgende vergadering
+            </Link>
           )}
-        </div>
-        {next && (
-          <Link
-            href={`/app/overleg/${next.id}`}
-            className="inline-flex min-h-11 items-center font-bold text-brand underline"
-          >
-            Bekijk volgende vergadering
-          </Link>
-        )}
-      </section>
+        </section>
+      )}
       <h2 className="text-3xl font-semibold">Agenda</h2>
       <div className="rounded-2xl border border-line bg-white px-5 py-2">
         {items.map((item, index) => (

@@ -79,7 +79,7 @@ test("automatisch afsluiten opent detail zonder mail of overdracht", async ({ pa
   await bar(page).getByRole("button", { name: "Scenario: sprongen 1 → 4 → 2 → 5", exact: true }).click();
   await bar(page).getByRole("button", { name: "Gebruiker loopt weg → automatisch afsluiten", exact: true }).click();
   await expect(page.getByRole("status", { name: "Nog af te ronden", exact: true })).toContainText(
-    "Automatisch afgesloten",
+    "Rond deze vergadering af",
   );
   await expect(bar(page)).toHaveCount(0);
   await expect(page.getByRole("status", { name: "Lopende vergadering" })).toHaveCount(0);

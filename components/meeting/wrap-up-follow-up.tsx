@@ -274,49 +274,44 @@ export function WrapUpFollowUp({
           </fieldset>
         )}
       </section>
-      <section className="border-t border-line py-5 text-sm text-ink-2">
-        <h2 className="mb-2 font-semibold">Vergaderscore · optioneel</h2>
-        <p className="mb-3">Hoe liep deze vergadering? Vul eventueel samen een score in.</p>
-        <div role="group" aria-label="Vergaderingsscore" className="flex gap-2">
-          {[1, 2, 3, 4, 5].map((score) => (
+      <section className="border-t border-line py-8 text-ink-2">
+        <h2 className="mb-4 text-3xl font-bold text-ink">Vergaderscore</h2>
+        <p className="mb-6 max-w-3xl text-sm leading-relaxed">
+          De vergaderscore helpt om de algemene tevredenheid over vergaderingen binnen het bedrijf op te volgen.
+        </p>
+        <label className="mb-6 flex min-h-11 cursor-pointer items-center gap-3 text-sm font-bold">
+          <input
+            className="size-5 shrink-0 accent-brand"
+            type="checkbox"
+            checked={draft.askScore ?? false}
+            onChange={(e) => patch({ askScore: e.target.checked })}
+          />
+          Scoreaanvraag individueel naar deelnemers versturen
+        </label>
+        <div role="group" aria-label="Vergaderingsscore" className={styles.scoreScale}>
+          {Array.from({ length: 10 }, (_, index) => index + 1).map((score) => (
             <button
               type="button"
               key={score}
               aria-label={`Score ${score}`}
               aria-pressed={draft.score === score}
               onClick={() => patch({ score: draft.score === score ? undefined : score })}
-              className={`size-11 rounded-full border font-semibold ${draft.score === score ? "border-brand bg-brand-soft text-brand" : "border-line bg-white"}`}
+              className={styles.scoreOption}
             >
               {score}
             </button>
           ))}
         </div>
-        {draft.score && (
-          <label className="mt-4 block max-w-lg">
-            Feedback
-            <textarea
-              className="mt-2 min-h-24 w-full rounded-lg border border-line bg-white p-3"
-              value={draft.feedback ?? ""}
-              onChange={(e) => patch({ feedback: e.target.value })}
-            />
-          </label>
-        )}
-        <label className="mt-3 flex min-h-11 items-center gap-3">
-          <input
-            type="checkbox"
-            checked={draft.askScore ?? false}
-            onChange={(e) => patch({ askScore: e.target.checked })}
+        <label className="mt-7 block text-sm font-bold">
+          Feedback
+          <textarea
+            placeholder="Aa"
+            className="mt-3 min-h-44 w-full rounded-xl border border-line bg-white p-4 font-normal"
+            value={draft.feedback ?? ""}
+            onChange={(e) => patch({ feedback: e.target.value })}
           />
-          Vraag ook de deelnemers om een score
         </label>
-        <p className="text-xs text-ink-3">
-          De vraag gaat mee in de opvolgingsmail. Er wordt geen afzonderlijke scoremail verstuurd.
-        </p>
-        {draft.score && (
-          <Button variant="ghost" onClick={() => patch({ score: undefined, feedback: "" })}>
-            Score overslaan
-          </Button>
-        )}
+        <p className="mt-3 text-xs text-ink-3">Optioneel. De scoreaanvraag gaat mee in de opvolgingsmail.</p>
       </section>
     </div>
   );

@@ -88,12 +88,12 @@ test("aanwezigheid naar vergadermodus, verslag opslaan en vergadering beëindige
   await expect(page.getByRole("complementary", { name: "Vergaderagenda" })).toBeVisible();
   await page.getByRole("button", { name: "Afronden", exact: true }).first().click();
   await page.getByRole("button", { name: "Vergadering afronden", exact: true }).click();
-  await expect(page.getByRole("heading", { name: "Agenda & acties", exact: true })).toBeFocused();
-  await page.getByRole("button", { name: "Terug naar de vergadering", exact: true }).click();
+  await expect(page.getByRole("heading", { name: "Agenda", exact: true })).toBeFocused();
+  await page.getByRole("button", { name: "Terug naar vergadering", exact: true }).click();
   await expect(page.getByRole("complementary", { name: "Vergaderagenda" })).toBeVisible();
   await page.getByRole("button", { name: "Afronden", exact: true }).first().click();
   await page.getByRole("button", { name: "Vergadering afronden", exact: true }).click();
-  await page.getByRole("button", { name: "Volgende vergadering →", exact: true }).click();
+  await page.getByRole("button", { name: "4. Volgende vergadering", exact: true }).click();
   await page.locator('[data-slot="calendar"]').getByRole("button").filter({ hasText: /^16$/ }).click();
   await page.getByRole("button", { name: "Opvolging →", exact: true }).click();
   const reviewing = await page.evaluate(
@@ -102,7 +102,7 @@ test("aanwezigheid naar vergadermodus, verslag opslaan en vergadering beëindige
   expect(reviewing.wrapUpOpen).toBe(true);
   expect(reviewing.followUpStatus).toBe("pending");
   expect(reviewing.run).not.toBeNull();
-  await page.getByRole("button", { name: "Verstuur opvolging", exact: true }).click();
+  await page.getByRole("button", { name: "Inplannen & Afronden", exact: true }).click();
   await expect(page.getByRole("status")).toContainText("Opvolging verstuurd naar");
   await expect(page.getByRole("complementary", { name: "Vergaderagenda" })).toHaveCount(0);
   const meeting = await page.evaluate(() => JSON.parse(localStorage.getItem("too-doo-onboarding")!).state.meetings[0]);

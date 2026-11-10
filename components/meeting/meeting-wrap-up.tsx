@@ -2,24 +2,21 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import styles from "./meeting-wrap-up.module.css";
-import { Check, ArrowRight, Trash2 } from "lucide-react";
+import { Check, ArrowRight, Trash2, Scale, SquareCheck, Timer, CalendarDays, ListChecks } from "lucide-react";
+import { Avatar } from "@/components/avatar";
+import { formatShortDate } from "@/lib/date";
 import { Logo } from "@/components/brand";
 import { Button } from "@/components/ui/button";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { useStore, usePeople, type Meeting, type WrapUpDraft } from "@/lib/store";
-import { agendaItems, clockTime, isHandled, nextInSeries } from "@/lib/meeting-wrap-up";
+import { agendaItems, clockTime, isHandled, nextInSeries, suggestDecision } from "@/lib/meeting-wrap-up";
 import { initialWrapUpDraft, assignMissingOwners, finishWrapUp, planningError } from "@/lib/wrap-up-flow";
 import { WrapUpPlanning, WrapUpFollowUp } from "./wrap-up-follow-up";
-import { AgendaItemRow } from "./agenda";
 import { EntryPanel } from "./entries";
 import { MeetingProvider } from "./meeting-context";
-import { agendaMoves } from "./meeting-detail";
 import { ownerOptions } from "@/lib/owners";
-import { deadlineDate, type AgendaItem, type EntryKind } from "@/lib/agenda";
-import { toISO } from "@/lib/date";
+import { type AgendaItem, type EntryKind } from "@/lib/agenda";
 
-const dateValue = (value: string) =>
-  /^\d{4}-\d{2}-\d{2}$/.test(value) ? value : deadlineDate(value) ? toISO(deadlineDate(value)!) : "";
 // Keep stored step IDs stable for drafts created with the original three steps.
 const steps = [
   { id: 0, label: "Agenda" },
@@ -151,7 +148,9 @@ export function MeetingWrapUp({ meeting }: { meeting: Meeting }) {
               </h1>
               {step === 0 ? (
                 <>
-                  <p className="mb-7 text-ink-2">Kijk na wat er nog openstaat en kies wat ermee gebeurt.</p>
+                  <p className="mb-7 text-ink-2">
+                    Kies wat er gebeurt met de punten die nog openstaan. Per punt staat een voorstel klaar.
+                  </p>
                   <AgendaReview meeting={meeting} draft={draft} patch={patch} />
                 </>
               ) : step === 1 ? (
@@ -174,21 +173,21 @@ export function MeetingWrapUp({ meeting }: { meeting: Meeting }) {
         </main>
         <footer className={styles.footer}>
           <div className={styles.footerInner}>
-            <Button variant="ghost" onClick={leave}>
-              {draft.entry === "live" && meeting.run ? "Terug naar de vergadering" : "Later afronden"}
-            </Button>
+            {step > 0 && (
+              <Button variant="link" className={styles.previousStep} onClick={() => go(step - 1)}>
+                ← {steps[step - 1].label}
+              </Button>
+            )}
             <div className={styles.footerActions}>
-              {step > 0 && (
-                <Button variant="ghost" onClick={() => go(step - 1)}>
-                  ← Terug
-                </Button>
-              )}
+              <Button variant="link" onClick={leave}>
+                {draft.entry === "live" && meeting.run ? "Terug naar vergadering" : "Later afronden"}
+              </Button>
               {step === 4 && (
                 <>
                   <Button variant="outline" onClick={() => finish("saved")}>
-                    Opslaan zonder versturen
+                    Afronden
                   </Button>
-                  <Button onClick={() => finish("sent")}>Verstuur opvolging</Button>
+                  <Button onClick={() => finish("sent")}>Inplannen &amp; Afronden</Button>
                 </>
               )}
               {step < 4 && <Button onClick={() => go(step + 1)}>{steps[step + 1].label} →</Button>}
@@ -196,10 +195,10 @@ export function MeetingWrapUp({ meeting }: { meeting: Meeting }) {
             <p className="w-full text-xs text-ink-3">
               {step === 4
                 ? draft.entry === "live" && meeting.run
-                  ? "Versturen en opslaan ronden de vergadering af. Terug naar de vergadering hervat de vergadermodus."
-                  : "Versturen en opslaan ronden de vergadering af. Later afronden bewaart alleen je concept."
+                  ? "Afronden bewaart de opvolging zonder mail. Inplannen & Afronden bewaart de planning en verstuurt de opvolging."
+                  : "Afronden bewaart de opvolging zonder mail. Inplannen & Afronden bewaart de planning en verstuurt de opvolging."
                 : draft.entry === "live" && meeting.run
-                  ? "Terug naar de vergadering hervat de vergadermodus."
+                  ? "Terug naar vergadering hervat de vergadermodus."
                   : "Later afronden bewaart je keuzes. De opvolging wordt nog niet verstuurd."}
             </p>
           </div>
@@ -261,32 +260,49 @@ function AgendaReview({
   patch: (p: Partial<WrapUpDraft>) => void;
 }) {
   const people = usePeople();
-  const ops = useStore();
   const [editing, setEditing] = useState<{ id: string; kind: EntryKind } | null>(null);
   const items = agendaItems(meeting);
   const open = items.filter((i) => !isHandled(meeting, i.id));
   const done = items.filter((i) => isHandled(meeting, i.id));
-  const moves = agendaMoves(meeting, ops);
   const renderItem = (item: AgendaItem) => {
     const block = meeting.blocks.find((b) => b.items.some((i) => i.id === item.id))!;
+    const discussed = item.visitedAt !== undefined;
+    const recorded = item.entries.filter((entry) => entry.kind !== "document").length;
+    const suggestion = suggestDecision(item);
     return (
-      <div key={item.id} className="border-t border-line py-4 first:border-0">
-        <ul>
-          <AgendaItemRow
-            item={item}
-            block={block}
-            index={block.items.indexOf(item)}
-            moves={moves}
-            onOpenDetails={() => setEditing({ id: item.id, kind: "note" })}
-          />
-        </ul>
+      <article key={item.id} aria-label={item.text} className={styles.agendaCard}>
+        <div className={styles.agendaCardHeader}>
+          <span className={styles.agendaCategory}>{block.title}</span>
+          <div className={styles.agendaCounts}>
+            {(
+              [
+                { kind: "decision", label: "beslissingen", Icon: Scale },
+                { kind: "action", label: "acties", Icon: SquareCheck },
+              ] as const
+            ).map(({ kind, label, Icon }) => (
+              <button
+                type="button"
+                key={kind}
+                onClick={() =>
+                  setEditing(editing?.id === item.id && editing.kind === kind ? null : { id: item.id, kind })
+                }
+              >
+                <Icon aria-hidden className="size-4" /> {item.entries.filter((entry) => entry.kind === kind).length}{" "}
+                {label}
+              </button>
+            ))}
+          </div>
+        </div>
+        <h3 className="mt-2 text-lg font-bold">{item.text}</h3>
+        <p className="mt-2 mb-5 flex flex-wrap items-center gap-2 text-sm text-ink-3">
+          <Timer aria-hidden className="size-4" />
+          {item.duration != null && <span>{item.duration} min ·</span>}
+          {discussed
+            ? `besproken · ${recorded ? `${recorded} items vastgelegd` : "niets vastgelegd"}`
+            : "niet besproken"}
+        </p>
         {!isHandled(meeting, item.id) && (
           <>
-            <p className="my-2 text-sm text-ink-3">
-              {item.visitedAt !== undefined
-                ? `besproken · ${item.entries.filter((e) => e.kind !== "document").length} items vastgelegd`
-                : "niet aan bod gekomen"}
-            </p>
             <div className="flex flex-wrap gap-2">
               {(
                 [
@@ -301,7 +317,9 @@ function AgendaReview({
                   aria-label={`${label}: ${item.text}`}
                   aria-pressed={draft.decisions?.[item.id] === value}
                   onClick={() => patch({ decisions: { ...draft.decisions, [item.id]: value } })}
-                  className={`inline-flex min-h-11 items-center gap-2 rounded-lg border px-3 text-sm font-semibold ${value === "drop" ? "text-danger" : "text-ink"} ${draft.decisions?.[item.id] === value ? (value === "drop" ? "border-danger bg-danger/10" : "border-brand bg-brand-soft") : "border-line bg-white"}`}
+                  className={styles.agendaChoice}
+                  data-choice={value}
+                  data-selected={draft.decisions?.[item.id] === value}
                 >
                   <Icon aria-hidden className="size-4" />
                   {label}
@@ -310,22 +328,17 @@ function AgendaReview({
             </div>
           </>
         )}
-        <div className="mt-3 flex flex-wrap gap-2">
-          {(["decision", "action", "note"] as const).map((kind) => (
-            <Button
-              key={kind}
-              variant="ghost"
-              onClick={() =>
-                setEditing(editing?.id === item.id && editing.kind === kind ? null : { id: item.id, kind })
-              }
-            >
-              {kind === "decision" ? "Beslissingen" : kind === "action" ? "Acties" : "Notities"} (
-              {item.entries.filter((e) => e.kind === kind).length})
-            </Button>
-          ))}
-        </div>
+        {!isHandled(meeting, item.id) && (
+          <p className="mt-3 text-sm text-ink-3">
+            {suggestion === "done"
+              ? "Voorstel: voltooien, want het punt is besproken"
+              : discussed
+                ? "Voorstel: verplaatsen, want er is nog niets vastgelegd"
+                : "Voorstel: verplaatsen, want het punt kwam niet aan bod"}
+          </p>
+        )}
         {editing?.id === item.id && <EntryPanel item={item} kind={editing.kind} onClose={() => setEditing(null)} />}
-      </div>
+      </article>
     );
   };
   return (
@@ -334,16 +347,12 @@ function AgendaReview({
     >
       <TooltipProvider>
         <div className="[&_button]:min-h-11 [&_button]:min-w-11 [&_input]:min-h-11 [&_select]:min-h-11">
-          <section className="rounded-2xl border border-line bg-white p-4 sm:p-6">
+          <section>
             <h2 className="text-lg font-bold">Open punten ({open.length})</h2>
-            <p className="mt-2 mb-3 text-sm text-ink-2">
-              {open.length
-                ? "Deze punten zijn nog niet voltooid. Kies wat ermee gebeurt."
-                : "Alle punten zijn voltooid."}
-            </p>
-            {open.map(renderItem)}
+            {!open.length && <p className="mt-3 text-sm text-ink-2">Alle punten zijn voltooid.</p>}
+            <div className="mt-4 flex flex-col gap-4">{open.map(renderItem)}</div>
           </section>
-          <details className="rounded-2xl border border-line bg-white p-4 sm:p-6">
+          <details className={`mt-5 rounded-2xl border border-line p-4 sm:p-6 ${styles.completedAgenda}`}>
             <summary className="min-h-11 cursor-pointer font-bold">Voltooide punten ({done.length})</summary>
             {done.map(renderItem)}
           </details>
@@ -354,120 +363,69 @@ function AgendaReview({
 }
 
 function DecisionsReview({ meeting }: { meeting: Meeting }) {
-  const people = usePeople();
-  const items = agendaItems(meeting).filter((item) => item.entries.some((entry) => entry.kind === "decision"));
-  return (
-    <MeetingProvider
-      value={{ meeting, people, owners: ownerOptions(people, meeting.participants, meeting.name, []), now: 0 }}
-    >
-      <TooltipProvider>
-        <p className="mb-7 text-ink-2">
-          Controleer de beslissingen die tijdens de vergadering zijn vastgelegd. Je kunt de tekst, eigenaar en
-          uitvoerdatum aanpassen.
-        </p>
-        {items.length ? (
-          items.map((item) => (
-            <section key={item.id} className="mb-5 rounded-2xl border border-line p-4 sm:p-6">
-              <h2 className="mb-4 text-lg font-bold">{item.text}</h2>
-              <EntryPanel item={item} kind="decision" />
-            </section>
-          ))
-        ) : (
-          <section className="rounded-2xl border border-line p-4 sm:p-6">
-            <h2 className="text-lg font-bold">Geen beslissingen vastgelegd</h2>
-            <p className="mt-2 text-sm text-ink-2">
-              Een vastgelegde beslissing verschijnt hier met het bijbehorende agendapunt.
-            </p>
-            <div className="mt-5 rounded-xl bg-brand-soft p-4">
-              <p className="mb-2 text-xs font-bold text-brand">Voorbeeld · wordt niet opgeslagen</p>
-              <h3 className="font-semibold">Opleidingsbudget Q4</h3>
-              <p className="mt-2 text-sm">We keuren het opleidingsbudget voor het vierde kwartaal goed.</p>
-              <p className="mt-2 text-sm text-ink-2">Eigenaar: Lisa · Uitvoeren tegen: 30 november</p>
-            </div>
-          </section>
-        )}
-      </TooltipProvider>
-    </MeetingProvider>
+  const rows = agendaItems(meeting).flatMap((item) =>
+    item.entries
+      .filter((entry) => entry.kind === "decision")
+      .map((entry) => ({
+        id: `${item.id}:${entry.id}`,
+        text: entry.text,
+        topic: item.text,
+        ownerId: entry.ownerId,
+        date: entry.date,
+      })),
   );
+  return <ReviewList rows={rows} label="Genomen beslissingen" empty="Geen beslissingen vastgelegd." />;
 }
 function ActionsReview({ meeting }: { meeting: Meeting }) {
-  const ops = useStore();
-  const people = usePeople();
   const items = agendaItems(meeting);
-  return (
-    <>
-      <p className="mb-7 text-ink-2">
-        Controleer wie elke actie uitvoert en tegen wanneer. Acties zonder eigenaar komen bij jou terecht wanneer je
-        verdergaat.
-      </p>
-      <section className="my-5 rounded-2xl border border-line bg-white p-4 sm:p-6">
-        <h2 className="mb-4 text-lg font-bold">Acties ({meeting.actions.length})</h2>
-        {!meeting.actions.length && <p className="text-sm text-ink-3">Geen acties vastgelegd.</p>}
-        {meeting.actions.map((a) => (
-          <div key={a.id} className="flex flex-wrap items-center gap-3 border-t border-line py-3">
-            <span className="min-w-40 flex-1 text-sm">{a.what}</span>
-            <label className="text-sm">
-              Eigenaar{" "}
-              <select
-                aria-label={`Eigenaar voor ${a.what}`}
-                className={field}
-                value={a.ownerId ?? ""}
-                onChange={(e) => {
-                  ops.assignOwner(meeting.id, a.id, e.target.value);
-                  const item = items.find((i) => i.entries.some((entry) => entry.actionId === a.id));
-                  const entry = item?.entries.find((entry) => entry.actionId === a.id);
-                  if (item && entry)
-                    ops.updateEntry(meeting.id, item.id, entry.id, { ownerId: e.target.value || null });
-                }}
-              >
-                <option value="">Kiezen…</option>
-                {people
-                  .filter((p) => meeting.participants.includes(p.id) || p.id === meeting.startedBy)
-                  .map((p) => (
-                    <option key={p.id} value={p.id}>
-                      {p.name}
-                    </option>
-                  ))}
-              </select>
-            </label>
-            <label className="text-sm">
-              Datum{" "}
-              <input
-                aria-label={`Datum voor ${a.what}`}
-                className={field}
-                type="date"
-                value={dateValue(a.deadline)}
-                onChange={(e) => {
-                  const latest = useStore.getState().meetings.find((m) => m.id === meeting.id)!;
-                  ops.putMeeting({
-                    ...latest,
-                    actions: latest.actions.map((action) =>
-                      action.id === a.id ? { ...action, deadline: e.target.value } : action,
-                    ),
-                    blocks: latest.blocks.map((b) => ({
-                      ...b,
-                      items: b.items.map((i) => ({
-                        ...i,
-                        entries: i.entries.map((entry) =>
-                          entry.actionId === a.id ? { ...entry, date: e.target.value } : entry,
-                        ),
-                      })),
-                    })),
-                  });
-                }}
-              />
-            </label>
-          </div>
-        ))}
-      </section>
-
-      {!meeting.actions.length && (
-        <div className="rounded-xl bg-brand-soft p-4">
-          <p className="mb-2 text-xs font-bold text-brand">Voorbeeld · wordt niet opgeslagen</p>
-          <h2 className="font-semibold">Offertes voor de opleiding opvragen</h2>
-          <p className="mt-2 text-sm text-ink-2">Eigenaar: Lisa · Deadline: 20 november</p>
-        </div>
-      )}
-    </>
+  const rows = meeting.actions.map((action) => ({
+    id: action.id,
+    text: action.what,
+    topic: items.find((item) => item.entries.some((entry) => entry.actionId === action.id))?.text,
+    ownerId: action.ownerId,
+    date: action.deadline,
+  }));
+  return <ReviewList rows={rows} label="Nieuwe acties" empty="Geen acties vastgelegd." />;
+}
+function ReviewList({
+  rows,
+  label,
+  empty,
+}: {
+  rows: { id: string; text: string; topic?: string; ownerId: string | null; date?: string }[];
+  label: string;
+  empty: string;
+}) {
+  const people = usePeople();
+  return rows.length ? (
+    <ul aria-label={label} className="flex flex-col gap-4">
+      {rows.map((row) => {
+        const owner = people.find((person) => person.id === row.ownerId);
+        return (
+          <li key={row.id} className={styles.reviewRow}>
+            <div className="min-w-0 flex-1">
+              <h2 className="break-words text-base font-bold">{row.text}</h2>
+              <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-ink-3">
+                {row.topic && (
+                  <span className="inline-flex min-w-0 items-center gap-1.5">
+                    <ListChecks aria-hidden className="size-4 shrink-0" />
+                    <span className="break-words">{row.topic}</span>
+                  </span>
+                )}
+                {row.date && (
+                  <span className="inline-flex items-center gap-1.5">
+                    <CalendarDays aria-hidden className="size-4 shrink-0" />
+                    {/^\d{4}-\d{2}-\d{2}$/.test(row.date) ? formatShortDate(row.date) : row.date}
+                  </span>
+                )}
+              </div>
+            </div>
+            {owner ? <Avatar person={owner} size={36} /> : <span className="text-xs text-ink-3">Geen eigenaar</span>}
+          </li>
+        );
+      })}
+    </ul>
+  ) : (
+    <p className="text-sm text-ink-3">{empty}</p>
   );
 }

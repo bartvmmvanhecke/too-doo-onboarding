@@ -343,7 +343,7 @@ function AgendaReview({
             </p>
             {open.map(renderItem)}
           </section>
-          <details className="rounded-2xl border border-line bg-white p-4 sm:p-6">
+          <details className="mt-5 rounded-2xl border border-line bg-white p-4 sm:p-6">
             <summary className="min-h-11 cursor-pointer font-bold">Voltooide punten ({done.length})</summary>
             {done.map(renderItem)}
           </details>

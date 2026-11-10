@@ -17,7 +17,7 @@ export function MeetingBannerPrototypeBar({ meeting }: { meeting: Meeting }) {
     <div
       role="region"
       aria-label="Prototype-bediening afrondbanners"
-      className="mb-6 flex flex-wrap items-center gap-2 rounded-xl bg-[var(--prototype-bar-bg)] px-6 py-3 pr-16 text-[13px] text-white"
+      className="flex shrink-0 flex-wrap items-center gap-2 bg-[var(--prototype-bar-bg)] px-6 py-2.5 pr-16 text-[13px] text-white"
     >
       <span className="text-[11px] font-bold tracking-wide text-[var(--prototype-bar-muted)]">PROTOTYPE</span>
       {(

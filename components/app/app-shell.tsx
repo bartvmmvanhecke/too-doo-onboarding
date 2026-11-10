@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, type ReactNode } from "react";
+import { MeetingBannerPrototypeBar } from "@/components/prototype/meeting-banner-prototype-bar";
 import { MeetingsOverviewPrototypeBar } from "@/components/prototype/meetings-overview-prototype-bar";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -171,5 +172,8 @@ function AddMeetingsDialogHost() {
 
 function OverviewPrototypeBarHost({ onLoad }: { onLoad: () => void }) {
   const pathname = usePathname();
+  const meeting = useStore((state) => state.meetings.find((item) => item.id === "prototype-auto-closed"));
+  if (pathname === "/app/overleg/prototype-auto-closed" && meeting)
+    return <MeetingBannerPrototypeBar meeting={meeting} />;
   return pathname === "/app" ? <MeetingsOverviewPrototypeBar onLoad={onLoad} /> : null;
 }

@@ -386,6 +386,12 @@ test("prototypebalk toont vier afrondbanners en hervat bewaarde keuzes", async (
   await page.getByRole("button", { name: "Automatisch afgesloten · eindtijd bevestigen", exact: true }).click();
   const bar = page.getByRole("region", { name: "Prototype-bediening afrondbanners", exact: true });
   await expect(bar.getByRole("button")).toHaveCount(4);
+  const barBox = (await bar.boundingBox())!;
+  expect(barBox.x).toBe(0);
+  expect(barBox.y).toBe(0);
+  expect(barBox.width).toBe(await page.evaluate(() => innerWidth));
+  const navigationBox = (await page.getByRole("navigation", { name: "Hoofdmenu", exact: true }).boundingBox())!;
+  expect(navigationBox.y).toBeGreaterThanOrEqual(barBox.height);
   const banner = page.getByRole("status", { name: "Nog af te ronden", exact: true });
   await expect(banner).toContainText("Rond deze vergadering af");
   await bar.getByRole("button", { name: "Geen actie geregistreerd", exact: true }).click();

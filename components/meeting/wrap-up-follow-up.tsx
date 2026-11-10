@@ -5,6 +5,7 @@ import { nlBE } from "react-day-picker/locale";
 import { toISO } from "@/lib/date";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import { ChevronDown, List } from "lucide-react";
 import { usePeople, useStore, type Meeting, type WrapUpDraft } from "@/lib/store";
 import { agendaItems, nextInSeries } from "@/lib/meeting-wrap-up";
 import { followUpContent } from "@/lib/wrap-up-flow";
@@ -221,65 +222,22 @@ export function WrapUpFollowUp({
   draft: WrapUpDraft;
   patch: (p: Partial<WrapUpDraft>) => void;
 }) {
+  const [overviewOpen, setOverviewOpen] = useState(false);
+  const meetings = useStore((state) => state.meetings);
   const people = usePeople();
-  const [recipientsOpen, setRecipientsOpen] = useState(false);
-  const recipients = draft.recipientIds ?? [];
-  const ids = [...new Set([...(meeting.attendance?.map((p) => p.personId) ?? meeting.participants), ...recipients])];
+  const content = followUpContent(
+    { ...meeting, wrapUpDraft: draft },
+    meetings,
+    Object.fromEntries(people.map((person) => [person.id, person.name])),
+  );
   return (
     <div className="mt-6 space-y-6">
-      <section className="space-y-4 rounded-2xl border border-line bg-white p-5 sm:p-7">
-        <div>
-          <label htmlFor="wrap-summary" className="block text-lg font-bold">
-            Samenvatting
-          </label>
-          <p id="summary-help" className="mt-1 text-sm text-ink-3">
-            Gegenereerd met AI · je kunt alles aanpassen
-          </p>
-        </div>
-        <textarea
-          id="wrap-summary"
-          aria-describedby="summary-help"
-          className="min-h-40 w-full rounded-xl border border-line bg-white p-4 text-sm leading-relaxed"
-          value={draft.summary ?? ""}
-          onChange={(e) => patch({ summary: e.target.value })}
-        />
-        <div className="pt-5">
-          <FollowUpPreview meeting={meeting} />
-        </div>
-      </section>
-      <section className="rounded-2xl border border-line bg-white p-5">
-        <div className="flex flex-wrap items-center gap-3">
-          <p>Wordt verstuurd naar {recipients.length} deelnemers</p>
-          <Button variant="ghost" aria-expanded={recipientsOpen} onClick={() => setRecipientsOpen(!recipientsOpen)}>
-            Aanpassen
-          </Button>
-        </div>
-        {recipientsOpen && (
-          <fieldset className="mt-3">
-            <legend className="sr-only">Ontvangers</legend>
-            {ids.map((id) => (
-              <label key={id} className="flex min-h-11 items-center gap-3 text-sm">
-                <input
-                  type="checkbox"
-                  checked={recipients.includes(id)}
-                  onChange={(e) =>
-                    patch({ recipientIds: e.target.checked ? [...recipients, id] : recipients.filter((v) => v !== id) })
-                  }
-                />
-                {people.find((p) => p.id === id)?.name ??
-                  meeting.attendance?.find((p) => p.personId === id)?.name ??
-                  id}
-              </label>
-            ))}
-          </fieldset>
-        )}
-      </section>
-      <section className="border-t border-line py-8 text-ink-2">
-        <h2 className="mb-4 text-3xl font-bold text-ink">Vergaderscore</h2>
-        <p className="mb-6 max-w-3xl text-sm leading-relaxed">
+      <section className={`${styles.finalCard} rounded-2xl border border-line p-6 text-ink-2`}>
+        <h2 className="mb-2 text-xl font-bold text-ink">Vergaderscore</h2>
+        <p className="mb-3 max-w-3xl text-sm leading-relaxed">
           De vergaderscore helpt om de algemene tevredenheid over vergaderingen binnen het bedrijf op te volgen.
         </p>
-        <label className="mb-6 flex min-h-11 cursor-pointer items-center gap-3 text-sm font-bold">
+        <label className="mb-3 flex min-h-11 cursor-pointer items-center gap-3 text-sm font-bold">
           <input
             className="size-5 shrink-0 accent-brand"
             type="checkbox"
@@ -302,16 +260,95 @@ export function WrapUpFollowUp({
             </button>
           ))}
         </div>
-        <label className="mt-7 block text-sm font-bold">
+        <label className="mt-4 block text-sm font-bold">
           Feedback
           <textarea
             placeholder="Aa"
-            className="mt-3 min-h-44 w-full rounded-xl border border-line bg-white p-4 font-normal"
+            className="mt-2 min-h-28 w-full rounded-xl border border-line bg-white p-4 font-normal"
             value={draft.feedback ?? ""}
             onChange={(e) => patch({ feedback: e.target.value })}
           />
         </label>
-        <p className="mt-3 text-xs text-ink-3">Optioneel. De scoreaanvraag gaat mee in de opvolgingsmail.</p>
+        <p className="mt-3 text-xs text-ink-3">Optioneel.</p>
+      </section>
+      <section className={`${styles.finalCard} overflow-hidden rounded-2xl border border-line`}>
+        <div className="flex flex-wrap items-center gap-5 p-6">
+          <List aria-hidden className="size-5 shrink-0 text-ink-2" />
+          <div className="min-w-0 flex-1 basis-80">
+            <h2 className="mb-2 text-lg font-bold">Wat er vastligt</h2>
+            <p className="flex flex-wrap gap-x-3 gap-y-1 text-sm text-ink-2">
+              <span>{content.decisions.length} beslissingen</span>
+              <span aria-hidden>·</span>
+              <span>{content.actions.length} acties</span>
+              <span aria-hidden>·</span>
+              <span className="font-bold text-brand">
+                {content.carried.length} {content.carried.length === 1 ? "punt verplaatst" : "punten verplaatst"}
+              </span>
+              <span aria-hidden>·</span>
+              <span className="font-bold text-brand">
+                {content.nextDate
+                  ? `volgende vergadering ${formatShortDate(content.nextDate)}`
+                  : "geen volgende vergadering gepland"}
+              </span>
+            </p>
+          </div>
+          <Button
+            variant="outline"
+            className="rounded-full text-brand"
+            aria-expanded={overviewOpen}
+            aria-controls="wrap-final-overview"
+            onClick={() => setOverviewOpen(!overviewOpen)}
+          >
+            {overviewOpen ? "Verberg overzicht" : "Bekijk overzicht"}
+            <ChevronDown aria-hidden className={`size-4 ${overviewOpen ? "rotate-180" : ""}`} />
+          </Button>
+        </div>
+        {overviewOpen && (
+          <div id="wrap-final-overview" className="space-y-5 border-t border-line-soft p-6">
+            <div>
+              <label htmlFor="wrap-summary" className="block font-bold">
+                Samenvatting
+              </label>
+              <p id="summary-help" className="mt-1 text-sm text-ink-3">
+                Gegenereerd met AI · 2–3 zinnen, geen opsomming · je kunt alles aanpassen
+              </p>
+              <textarea
+                id="wrap-summary"
+                aria-describedby="summary-help"
+                className="mt-2 min-h-28 w-full rounded-xl border border-line bg-white p-4 text-sm leading-relaxed"
+                value={draft.summary ?? ""}
+                onChange={(event) => patch({ summary: event.target.value })}
+              />
+            </div>
+            <div className="grid gap-6 sm:grid-cols-2">
+              <section>
+                <h3 className="mb-2 font-bold">Beslissingen</h3>
+                {content.decisions.length ? (
+                  <ul className="space-y-2 text-sm text-ink-2">
+                    {content.decisions.map((text, index) => (
+                      <li key={index}>{text}</li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="text-sm text-ink-3">Geen beslissingen vastgelegd.</p>
+                )}
+              </section>
+              <section>
+                <h3 className="mb-2 font-bold">Acties</h3>
+                {content.actions.length ? (
+                  <ul className="space-y-2 text-sm text-ink-2">
+                    {content.actions.map((text, index) => (
+                      <li key={index}>{text}</li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="text-sm text-ink-3">Geen acties vastgelegd.</p>
+                )}
+              </section>
+            </div>
+            <p className="text-sm text-ink-3">Wijzigen doe je in de stap waar het thuishoort.</p>
+          </div>
+        )}
       </section>
     </div>
   );

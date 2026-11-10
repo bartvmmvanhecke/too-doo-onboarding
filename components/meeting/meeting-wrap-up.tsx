@@ -24,7 +24,7 @@ const steps = [
   { id: 3, label: "Beslissingen" },
   { id: 4, label: "Acties" },
   { id: 1, label: "Volgende vergadering" },
-  { id: 2, label: "Opvolging" },
+  { id: 2, label: "Afronden" },
 ];
 const field = "min-h-11 rounded-lg border border-line bg-white px-3 text-sm";
 export function MeetingWrapUp({ meeting }: { meeting: Meeting }) {

@@ -19,7 +19,7 @@ export function PendingFollowUp({ meeting, showAction = true }: { meeting: Meeti
     3: { number: 2, label: "Beslissingen" },
     4: { number: 3, label: "Acties" },
     1: { number: 4, label: "Volgende vergadering" },
-    2: { number: 5, label: "Opvolging" },
+    2: { number: 5, label: "Afronden" },
   };
   const resume = stepLabels[storedStep];
   const Icon = resume ? ArrowRight : meeting.noActivity ? CircleAlert : SquareCheckBig;

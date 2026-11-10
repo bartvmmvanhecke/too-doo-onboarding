@@ -382,26 +382,10 @@ export function WrapUpFollowUp({
         <p className="mt-3 text-xs text-ink-3">Optioneel.</p>
       </section>
       <section className={`${styles.finalCard} overflow-hidden rounded-2xl border border-line`}>
-        <div className="flex flex-wrap items-center gap-5 p-6">
-          <List aria-hidden className="mt-1 size-5 shrink-0 self-start text-ink-2" />
-          <div className="min-w-0 flex-1 basis-80">
-            <h2 className="mb-2 text-lg font-bold">Wat er vastligt</h2>
-            <p className="flex flex-wrap gap-x-3 gap-y-1 text-sm text-ink-2">
-              <span>{content.decisions.length} beslissingen</span>
-              <span aria-hidden>·</span>
-              <span>{content.actions.length} acties</span>
-              <span aria-hidden>·</span>
-              <span className="font-bold text-brand">
-                {content.carried.length} {content.carried.length === 1 ? "punt verplaatst" : "punten verplaatst"}
-              </span>
-              <span aria-hidden>·</span>
-              <span className="font-bold text-brand">
-                {content.nextDate
-                  ? `volgende vergadering ${formatShortDate(content.nextDate)}`
-                  : "geen volgende vergadering gepland"}
-              </span>
-            </p>
-          </div>
+        <div className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-x-5 gap-y-2 p-6">
+          <List aria-hidden className="size-5 text-ink-2" />
+          <h2 className="text-lg font-bold">Wat er vastligt</h2>
+
           <Button
             variant="link"
             className="rounded-none text-brand"
@@ -412,6 +396,27 @@ export function WrapUpFollowUp({
             {overviewOpen ? "Verberg overzicht" : "Bekijk overzicht"}
             <ChevronDown aria-hidden className={`size-4 ${overviewOpen ? "rotate-180" : ""}`} />
           </Button>
+          <p className="col-span-2 col-start-2 overflow-x-auto text-sm whitespace-nowrap text-ink-2">
+            <span>{content.decisions.length} beslissingen</span>
+            <span aria-hidden className="mx-2">
+              ·
+            </span>
+            <span>{content.actions.length} acties</span>
+            <span aria-hidden className="mx-2">
+              ·
+            </span>
+            <span className="font-bold text-brand">
+              {content.carried.length} {content.carried.length === 1 ? "punt verplaatst" : "punten verplaatst"}
+            </span>
+            <span aria-hidden className="mx-2">
+              ·
+            </span>
+            <span>
+              {content.nextDate
+                ? `volgende vergadering ${formatShortDate(content.nextDate)}`
+                : "geen volgende vergadering gepland"}
+            </span>
+          </p>
         </div>
         {overviewOpen && (
           <div id="wrap-final-overview" className="space-y-5 border-t border-line-soft p-6">

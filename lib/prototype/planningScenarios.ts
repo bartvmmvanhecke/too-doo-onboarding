@@ -39,7 +39,7 @@ export function loadPlanningScenario(meetingId: string, scheduled: boolean) {
     wrapUpDraft: {
       ...draft,
       nextDate: scheduled ? next.date! : "",
-      nextTime: formatTime(next.time!),
+      nextTime: scheduled ? formatTime(next.time!) : "",
       nextName: current.name,
       nextDuration: current.duration,
       noNext: false,

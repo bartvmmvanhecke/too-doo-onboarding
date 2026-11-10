@@ -2,7 +2,10 @@
 import styles from "./meeting-wrap-up.module.css";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { ChevronDown, List } from "lucide-react";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { nlBE } from "react-day-picker/locale";
+import { ChevronDown, CalendarDays, List, X } from "lucide-react";
 import { usePeople, useStore, type Meeting, type WrapUpDraft } from "@/lib/store";
 import { agendaItems, nextInSeries } from "@/lib/meeting-wrap-up";
 import { followUpContent } from "@/lib/wrap-up-flow";
@@ -22,9 +25,15 @@ export function WrapUpPlanning({
   const meetings = useStore((s) => s.meetings);
   const next = nextInSeries(meeting, meetings);
   const [editing, setEditing] = useState(false);
+  const [calendarOpen, setCalendarOpen] = useState(false);
   const [beforeEdit, setBeforeEdit] = useState<Partial<WrapUpDraft>>({});
   const carried = agendaItems(meeting).filter((item) => draft.decisions?.[item.id] === "next");
-  const scheduled = !draft.noNext && !!draft.nextDate;
+  const proposedDate = new Date(`${meeting.date || toISO(new Date())}T12:00:00`);
+  proposedDate.setDate(proposedDate.getDate() + 7);
+  const planningName = draft.nextName ?? meeting.name;
+  const planningDate = draft.nextDate ?? "";
+  const suggestionTime = formatTime(meeting.time ?? 540);
+  const scheduled = !draft.noNext && !!draft.nextDate && !!planningName.trim();
   const when = scheduled ? formatShortDate(draft.nextDate!) : "";
   const openEditor = () => {
     setBeforeEdit({
@@ -44,58 +53,169 @@ export function WrapUpPlanning({
     <div className="mt-3 space-y-4">
       <p className="text-sm text-ink-2">Optioneel. Hier komen de verplaatste punten terecht.</p>
       <section
-        className={`${styles.finalCard} rounded-2xl border p-5 ${scheduled && !editing ? "border-brand" : "border-line"} ${!scheduled && !editing ? "border-dashed" : ""}`}
+        className={`${styles.finalCard} rounded-2xl border p-5 ${!next || (scheduled && !editing) ? "border-brand" : "border-line"} ${!scheduled && !editing && next ? "border-dashed" : ""}`}
       >
-        {editing ? (
+        {editing || !next ? (
           <>
             <div className="mb-4 flex items-start justify-between gap-4">
               <div>
-                <h2 className="font-bold">{next ? "Deze vergadering verplaatsen" : "Volgende vergadering plannen"}</h2>
+                <h2 className="font-bold">
+                  {next ? "Deze vergadering verplaatsen" : "Nog geen volgende vergadering gepland"}
+                </h2>
                 <p className="mt-1 text-sm text-ink-3">
                   {next
                     ? "Je wijzigt de bestaande vergadering. Er komt geen tweede bij, en de rest van de reeks blijft zoals ze is."
-                    : "Er komt een nieuwe vergadering bij in je agenda."}
+                    : "Plan je volgende vergadering, Laat leeg als je later wilt plannen."}
                 </p>
               </div>
-              <Button
-                variant="link"
-                onClick={() => {
-                  patch(beforeEdit);
-                  setEditing(false);
-                }}
+              {next && (
+                <Button
+                  variant="link"
+                  onClick={() => {
+                    patch(beforeEdit);
+                    setEditing(false);
+                  }}
+                >
+                  Annuleren
+                </Button>
+              )}
+            </div>
+            <>
+              <div
+                id="next-meeting-fields"
+                className="grid grid-cols-1 gap-4 min-[960px]:grid-cols-[3fr_minmax(240px,2fr)_1fr]"
               >
-                Annuleren
-              </Button>
-            </div>
-            <div className="grid gap-4 sm:grid-cols-3">
-              <label className="flex flex-col gap-2 text-sm font-bold">
-                Naam
-                <input
-                  className={field}
-                  value={draft.nextName ?? ""}
-                  onChange={(event) => patch({ nextName: event.target.value })}
-                />
-              </label>
-              <label className="flex flex-col gap-2 text-sm font-bold">
-                Datum
-                <input
-                  className={field}
-                  type="date"
-                  min={meeting.date || undefined}
-                  value={draft.nextDate ?? ""}
-                  onChange={(event) => patch({ nextDate: event.target.value, noNext: false })}
-                />
-              </label>
-              <label className="flex flex-col gap-2 text-sm font-bold">
-                Tijd
-                <input
-                  className={field}
-                  type="time"
-                  value={draft.nextTime ?? "09:00"}
-                  onChange={(event) => patch({ nextTime: event.target.value })}
-                />
-              </label>
-            </div>
+                <label className="flex min-w-0 flex-col gap-2 text-sm font-bold">
+                  Naam
+                  <input
+                    className={`${field} min-w-0 w-full font-normal`}
+                    value={planningName}
+                    placeholder={`Bijvoorbeeld: ${meeting.name}`}
+                    onChange={(event) =>
+                      patch({
+                        nextName: event.target.value,
+                        nextDate: planningDate,
+                        noNext: !event.target.value.trim(),
+                      })
+                    }
+                  />
+                </label>
+                <div className="flex min-w-0 flex-col gap-2 text-sm font-bold">
+                  <label id="next-date-label" htmlFor="next-date-trigger">
+                    Datum
+                  </label>
+                  <div className="relative">
+                    <Popover open={calendarOpen} onOpenChange={setCalendarOpen}>
+                      <PopoverTrigger asChild>
+                        <button
+                          id="next-date-trigger"
+                          type="button"
+                          aria-labelledby="next-date-label next-date-value"
+                          className={`${field} flex w-full items-center justify-between gap-2 pr-10 text-left font-normal`}
+                        >
+                          <span id="next-date-value">
+                            {planningDate
+                              ? new Date(`${planningDate}T12:00:00`).toLocaleDateString("nl-BE", {
+                                  day: "2-digit",
+                                  month: "2-digit",
+                                  year: "numeric",
+                                })
+                              : "dd/mm/yyyy"}
+                          </span>
+                          {!planningDate && <CalendarDays aria-hidden className="absolute right-3 size-4 text-ink-3" />}
+                        </button>
+                      </PopoverTrigger>
+                      <PopoverContent
+                        align="start"
+                        className="app-theme w-[var(--radix-popover-trigger-width)] min-w-60 max-w-[calc(100vw-2rem)] border-line bg-white p-2"
+                      >
+                        <Calendar
+                          className={styles.datePicker}
+                          mode="single"
+                          locale={nlBE}
+                          weekStartsOn={1}
+                          fixedWeeks
+                          selected={planningDate ? new Date(`${planningDate}T12:00:00`) : undefined}
+                          defaultMonth={planningDate ? new Date(`${planningDate}T12:00:00`) : proposedDate}
+                          disabled={meeting.date ? { before: new Date(`${meeting.date}T00:00:00`) } : undefined}
+                          onSelect={(date) => {
+                            if (!date) return;
+                            patch({ nextDate: toISO(date), nextName: planningName, noNext: !planningName.trim() });
+                            setCalendarOpen(false);
+                          }}
+                        />
+                      </PopoverContent>
+                    </Popover>
+                    {planningDate && (
+                      <button
+                        type="button"
+                        aria-label="Datum wissen"
+                        className="absolute inset-y-0 right-0 flex w-10 items-center justify-center rounded-r-lg text-ink-3 hover:text-brand focus-visible:outline-2 focus-visible:outline-brand"
+                        onClick={() => {
+                          patch({ nextDate: "", noNext: true });
+                          setCalendarOpen(false);
+                        }}
+                      >
+                        <X aria-hidden className="size-4" />
+                      </button>
+                    )}
+                  </div>
+                </div>
+                <div className="flex min-w-0 flex-col gap-2 text-sm font-bold">
+                  <label htmlFor="next-time-input">Tijd</label>
+                  <div className="relative">
+                    <input
+                      id="next-time-input"
+                      className={`${field} min-w-0 w-full font-normal ${(draft.nextTime ?? (next ? "09:00" : "")) ? "pr-8 [&::-webkit-calendar-picker-indicator]:hidden" : ""}`}
+                      type="time"
+                      value={draft.nextTime ?? (next ? "09:00" : "")}
+                      onChange={(event) => patch({ nextTime: event.target.value })}
+                    />
+                    {(draft.nextTime ?? (next ? "09:00" : "")) && (
+                      <button
+                        type="button"
+                        aria-label="Tijd wissen"
+                        className="absolute inset-y-0 right-0 flex w-8 items-center justify-center rounded-r-lg text-ink-3 hover:text-brand focus-visible:outline-2 focus-visible:outline-brand"
+                        onClick={() => patch({ nextTime: "" })}
+                      >
+                        <X aria-hidden className="size-4" />
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
+              {!next && (
+                <div className="mt-4 flex flex-wrap items-center gap-2 text-sm text-ink-3">
+                  <span>Suggesties:</span>
+                  {[7, 14].map((days) => {
+                    const date = new Date(proposedDate);
+                    date.setDate(date.getDate() + days - 7);
+                    const value = toISO(date);
+                    return (
+                      <Button
+                        key={days}
+                        variant="outline"
+                        size="sm"
+                        className="h-auto flex-wrap rounded-full px-4 py-2 font-normal text-ink-3"
+                        onClick={() =>
+                          patch({
+                            nextDate: value,
+                            nextTime: suggestionTime,
+                            nextName: planningName,
+                            noNext: !planningName.trim(),
+                          })
+                        }
+                      >
+                        <span className="font-bold text-brand">
+                          {formatShortDate(value)} · {suggestionTime}
+                        </span>
+                        <span>· {days === 7 ? "zelfde tijd volgende week" : "over 2 weken"}</span>
+                      </Button>
+                    );
+                  })}
+                </div>
+              )}
+            </>
           </>
         ) : (
           <div className="flex flex-wrap items-center gap-4">
@@ -121,7 +241,7 @@ export function WrapUpPlanning({
                   : "Je kunt gewoon verder. Verplaatste punten gaan dan naar “Bewaard voor later”."}
               </p>
             </div>
-            <Button variant="outline" className="rounded-full text-brand" onClick={openEditor}>
+            <Button variant="link" className="text-brand" onClick={openEditor}>
               {scheduled ? "Datum of tijd wijzigen" : "+ Volgende vergadering plannen"}
             </Button>
           </div>
@@ -262,29 +382,13 @@ export function WrapUpFollowUp({
         <p className="mt-3 text-xs text-ink-3">Optioneel.</p>
       </section>
       <section className={`${styles.finalCard} overflow-hidden rounded-2xl border border-line`}>
-        <div className="flex flex-wrap items-center gap-5 p-6">
-          <List aria-hidden className="size-5 shrink-0 text-ink-2" />
-          <div className="min-w-0 flex-1 basis-80">
-            <h2 className="mb-2 text-lg font-bold">Wat er vastligt</h2>
-            <p className="flex flex-wrap gap-x-3 gap-y-1 text-sm text-ink-2">
-              <span>{content.decisions.length} beslissingen</span>
-              <span aria-hidden>·</span>
-              <span>{content.actions.length} acties</span>
-              <span aria-hidden>·</span>
-              <span className="font-bold text-brand">
-                {content.carried.length} {content.carried.length === 1 ? "punt verplaatst" : "punten verplaatst"}
-              </span>
-              <span aria-hidden>·</span>
-              <span className="font-bold text-brand">
-                {content.nextDate
-                  ? `volgende vergadering ${formatShortDate(content.nextDate)}`
-                  : "geen volgende vergadering gepland"}
-              </span>
-            </p>
-          </div>
+        <div className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-x-5 gap-y-2 p-6">
+          <List aria-hidden className="size-5 text-ink-2" />
+          <h2 className="text-lg font-bold">Wat er vastligt</h2>
+
           <Button
-            variant="outline"
-            className="rounded-full text-brand"
+            variant="link"
+            className="rounded-none text-brand"
             aria-expanded={overviewOpen}
             aria-controls="wrap-final-overview"
             onClick={() => setOverviewOpen(!overviewOpen)}
@@ -292,6 +396,27 @@ export function WrapUpFollowUp({
             {overviewOpen ? "Verberg overzicht" : "Bekijk overzicht"}
             <ChevronDown aria-hidden className={`size-4 ${overviewOpen ? "rotate-180" : ""}`} />
           </Button>
+          <p className="col-span-2 col-start-2 overflow-x-auto text-sm whitespace-nowrap text-ink-2">
+            <span>{content.decisions.length} beslissingen</span>
+            <span aria-hidden className="mx-2">
+              ·
+            </span>
+            <span>{content.actions.length} acties</span>
+            <span aria-hidden className="mx-2">
+              ·
+            </span>
+            <span className="font-bold text-brand">
+              {content.carried.length} {content.carried.length === 1 ? "punt verplaatst" : "punten verplaatst"}
+            </span>
+            <span aria-hidden className="mx-2">
+              ·
+            </span>
+            <span>
+              {content.nextDate
+                ? `volgende vergadering ${formatShortDate(content.nextDate)}`
+                : "geen volgende vergadering gepland"}
+            </span>
+          </p>
         </div>
         {overviewOpen && (
           <div id="wrap-final-overview" className="space-y-5 border-t border-line-soft p-6">

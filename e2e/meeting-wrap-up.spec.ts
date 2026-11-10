@@ -248,7 +248,8 @@ test("bestaande volgende vergadering blijft concept tot afronden en score staat 
   await expect(page.getByRole("heading", { name: "Volgende vergadering", exact: true })).toBeVisible();
   await page.getByRole("button", { name: "Datum of tijd wijzigen", exact: true }).click();
   await page.getByLabel("Naam", { exact: true }).fill("Vervolg over het budget");
-  await page.getByLabel("Datum", { exact: true }).fill("2026-11-18");
+  await page.locator("#next-date-trigger").click();
+  await page.locator('[data-slot="calendar"]').getByRole("button").filter({ hasText: /^18$/ }).click();
   let meetings = await storedMeetings(page);
   expect(meetings.find((m: { id: string }) => m.id === "next")).toMatchObject({
     name: "Directievergadering",
@@ -284,20 +285,14 @@ test("bestaande volgende vergadering blijft concept tot afronden en score staat 
   expect(meetings[0]).toMatchObject({ followUpStatus: "saved", wrapUpDraft: { score: 10, askScore: true } });
 });
 
-test("nieuwe planning heeft een titel, mag overgeslagen worden en ongeldige velden geven uitleg", async ({ page }) => {
+test("nieuwe planning staat open en mag met lege naam overgeslagen worden", async ({ page }) => {
   await seedWrapUp(page, { automatic: true, next: false });
   await page.getByRole("button", { name: "Afronden →", exact: true }).click();
   await page.getByRole("button", { name: "4. Volgende vergadering", exact: true }).click();
-  await expect(page.getByRole("heading", { name: "Volgende vergadering", exact: true })).toBeVisible();
-  await page.getByRole("button", { name: "+ Volgende vergadering plannen", exact: true }).click();
   await expect(page.getByLabel("Naam", { exact: true })).toHaveValue("Directievergadering");
-  await page.getByLabel("Datum", { exact: true }).fill("2026-11-18");
+  await page.locator("#next-date-trigger").click();
+  await page.locator('[data-slot="calendar"]').getByRole("button").filter({ hasText: /^18$/ }).click();
   await page.getByLabel("Naam", { exact: true }).fill("");
-  await page.getByRole("button", { name: "Afronden →", exact: true }).click();
-  await expect(
-    page.getByRole("status").filter({ hasText: "Vul een naam voor de volgende vergadering in." }),
-  ).toBeVisible();
-  await page.getByRole("button", { name: "Annuleren", exact: true }).click();
   await page.getByRole("button", { name: "Afronden →", exact: true }).click();
   await expect(page.getByRole("heading", { name: "Afronden", exact: true })).toBeVisible();
   await page.getByRole("button", { name: "Vergadering afronden", exact: true }).click();

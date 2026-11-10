@@ -19,19 +19,29 @@ for (const scheduled of [true, false]) {
       await expect(page.getByRole("heading", { name: "Al gepland · uit de reeks" })).toBeVisible();
       await page.getByRole("button", { name: "Datum of tijd wijzigen" }).click();
       await page.getByLabel("Naam", { exact: true }).fill("Verplaatst overleg");
-      await page.getByLabel("Datum", { exact: true }).fill("2026-11-18");
+      await page.locator("#next-date-trigger").click();
+      await page.locator('[data-slot="calendar"]').getByRole("button").filter({ hasText: /^18$/ }).click();
       await page.getByRole("button", { name: "Annuleren", exact: true }).click();
       await expect(page.getByText(/Verplaatst overleg/)).toHaveCount(0);
       await page.getByRole("button", { name: "Datum of tijd wijzigen" }).click();
       await page.getByLabel("Naam", { exact: true }).fill("Verplaatst overleg");
-      await page.getByLabel("Datum", { exact: true }).fill("2026-11-18");
+      await page.locator("#next-date-trigger").click();
+      await page.locator('[data-slot="calendar"]').getByRole("button").filter({ hasText: /^18$/ }).click();
     } else {
       await expect(
         page.getByRole("heading", { name: "Nog geen volgende vergadering gepland", exact: true }),
       ).toBeVisible();
-      await page.getByRole("button", { name: "+ Volgende vergadering plannen", exact: true }).click();
-      await expect(page.getByLabel("Datum", { exact: true })).toHaveValue("2026-11-16");
-      await page.getByRole("button", { name: "Annuleren", exact: true }).click();
+      await expect(page.getByLabel("Naam", { exact: true })).toHaveValue("Directievergadering");
+      await expect(page.locator("#next-date-trigger")).toContainText("dd/mm/yyyy");
+      await expect(page.getByLabel("Tijd", { exact: true })).toHaveValue("");
+      await page.getByRole("button", { name: /over 2 weken/ }).click();
+      await expect(page.locator("#next-date-trigger")).toContainText("23/11/2026");
+      await expect(page.getByLabel("Tijd", { exact: true })).toHaveValue("09:00");
+      await page.getByRole("button", { name: "Tijd wissen", exact: true }).click();
+      await expect(page.getByLabel("Tijd", { exact: true })).toHaveValue("");
+      await expect(page.getByRole("button", { name: "Tijd wissen", exact: true })).toHaveCount(0);
+      await page.getByRole("button", { name: "Datum wissen", exact: true }).click();
+      await expect(page.getByText("Gaat naar “Bewaard voor later”", { exact: true })).toBeVisible();
     }
     await page.getByRole("button", { name: "Afronden →", exact: true }).click();
     await expect(page.getByRole("heading", { name: "Vergaderscore (optioneel)", exact: true })).toBeVisible();

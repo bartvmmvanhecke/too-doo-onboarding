@@ -17,7 +17,7 @@ export function initialWrapUpDraft(m: Meeting, meetings: Meeting[]): WrapUpDraft
     nextName: next?.name ?? m.name,
     nextDuration: next?.duration ?? m.duration,
     nextDate: next?.date ?? "",
-    nextTime: formatTime(next?.time ?? m.time ?? 540),
+    nextTime: next ? formatTime(next.time ?? m.time ?? 540) : "",
     noNext: false,
     summary: factualSummary(m),
     recipientIds: m.attendance?.filter((p) => p.present).map((p) => p.personId) ?? m.participants,

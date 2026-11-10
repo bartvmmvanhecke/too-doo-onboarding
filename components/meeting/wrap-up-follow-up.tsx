@@ -22,13 +22,13 @@ export function WrapUpPlanning({
   const meetings = useStore((s) => s.meetings);
   const next = nextInSeries(meeting, meetings);
   const [editing, setEditing] = useState(false);
-  const [planningCollapsed, setPlanningCollapsed] = useState(false);
   const [beforeEdit, setBeforeEdit] = useState<Partial<WrapUpDraft>>({});
   const carried = agendaItems(meeting).filter((item) => draft.decisions?.[item.id] === "next");
   const proposedDate = new Date(`${meeting.date || toISO(new Date())}T12:00:00`);
   proposedDate.setDate(proposedDate.getDate() + 7);
-  const planningName = !next && !draft.nextDate ? "" : (draft.nextName ?? "");
-  const planningDate = draft.nextDate || toISO(proposedDate);
+  const planningName = draft.nextName ?? meeting.name;
+  const planningDate = draft.nextDate ?? "";
+  const suggestionTime = formatTime(meeting.time ?? 540);
   const scheduled = !draft.noNext && !!draft.nextDate && !!planningName.trim();
   const when = scheduled ? formatShortDate(draft.nextDate!) : "";
   const openEditor = () => {
@@ -55,30 +55,13 @@ export function WrapUpPlanning({
           <>
             <div className="mb-4 flex items-start justify-between gap-4">
               <div>
-                <h2 className="font-bold">
-                  {next ? "Deze vergadering verplaatsen" : "Nog geen volgende vergadering ingepland"}
-                </h2>
+                <h2 className="font-bold">{next ? "Deze vergadering verplaatsen" : "Volgende vergadering plannen"}</h2>
                 <p className="mt-1 text-sm text-ink-3">
                   {next
                     ? "Je wijzigt de bestaande vergadering. Er komt geen tweede bij, en de rest van de reeks blijft zoals ze is."
-                    : "Plan optioneel je volgende vergadering. Heb je nog geen vervolgmoment in gedachten, klik dan op ‘Ik weet het nog niet’."}
+                    : "Optioneel. Laat leeg als je later wilt plannen."}
                 </p>
               </div>
-              {!next && (
-                <Button
-                  variant="link"
-                  className="shrink-0 text-brand"
-                  aria-expanded={!planningCollapsed}
-                  aria-controls="next-meeting-fields"
-                  onClick={() => {
-                    const collapsed = !planningCollapsed;
-                    setPlanningCollapsed(collapsed);
-                    patch({ noNext: collapsed || !planningName.trim() });
-                  }}
-                >
-                  {planningCollapsed ? "Plan volgende vergadering" : "Ik weet het nog niet"}
-                </Button>
-              )}
               {next && (
                 <Button
                   variant="link"
@@ -91,7 +74,7 @@ export function WrapUpPlanning({
                 </Button>
               )}
             </div>
-            {(!planningCollapsed || next) && (
+            <>
               <div id="next-meeting-fields" className="grid gap-4 sm:grid-cols-3">
                 <label className="flex flex-col gap-2 text-sm font-bold">
                   Naam
@@ -125,12 +108,43 @@ export function WrapUpPlanning({
                   <input
                     className={field}
                     type="time"
-                    value={draft.nextTime ?? "09:00"}
+                    value={draft.nextTime ?? (next ? "09:00" : "")}
                     onChange={(event) => patch({ nextTime: event.target.value })}
                   />
                 </label>
               </div>
-            )}
+              {!next && (
+                <div className="mt-4 flex flex-wrap items-center gap-2 text-sm text-ink-3">
+                  <span>Suggesties:</span>
+                  {[7, 14].map((days) => {
+                    const date = new Date(proposedDate);
+                    date.setDate(date.getDate() + days - 7);
+                    const value = toISO(date);
+                    return (
+                      <Button
+                        key={days}
+                        variant="outline"
+                        size="sm"
+                        className="h-auto flex-wrap rounded-full px-4 py-2 font-normal text-ink-3"
+                        onClick={() =>
+                          patch({
+                            nextDate: value,
+                            nextTime: suggestionTime,
+                            nextName: planningName,
+                            noNext: !planningName.trim(),
+                          })
+                        }
+                      >
+                        <span className="font-bold text-brand">
+                          {formatShortDate(value)} · {suggestionTime}
+                        </span>
+                        <span>· {days === 7 ? "zelfde tijd volgende week" : "over 2 weken"}</span>
+                      </Button>
+                    );
+                  })}
+                </div>
+              )}
+            </>
           </>
         ) : (
           <div className="flex flex-wrap items-center gap-4">

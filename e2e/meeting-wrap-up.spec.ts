@@ -288,8 +288,9 @@ test("nieuwe planning staat open en mag met lege naam overgeslagen worden", asyn
   await seedWrapUp(page, { automatic: true, next: false });
   await page.getByRole("button", { name: "Afronden →", exact: true }).click();
   await page.getByRole("button", { name: "4. Volgende vergadering", exact: true }).click();
-  await expect(page.getByLabel("Naam", { exact: true })).toHaveValue("");
+  await expect(page.getByLabel("Naam", { exact: true })).toHaveValue("Directievergadering");
   await page.getByLabel("Datum", { exact: true }).fill("2026-11-18");
+  await page.getByLabel("Naam", { exact: true }).fill("");
   await page.getByRole("button", { name: "Afronden →", exact: true }).click();
   await expect(page.getByRole("heading", { name: "Afronden", exact: true })).toBeVisible();
   await page.getByRole("button", { name: "Vergadering afronden", exact: true }).click();

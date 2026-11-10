@@ -248,7 +248,8 @@ test("bestaande volgende vergadering blijft concept tot afronden en score staat 
   await expect(page.getByRole("heading", { name: "Volgende vergadering", exact: true })).toBeVisible();
   await page.getByRole("button", { name: "Datum of tijd wijzigen", exact: true }).click();
   await page.getByLabel("Naam", { exact: true }).fill("Vervolg over het budget");
-  await page.getByLabel("Datum", { exact: true }).fill("2026-11-18");
+  await page.getByRole("button", { name: /^Datum / }).click();
+  await page.locator('[data-slot="calendar"]').getByRole("button").filter({ hasText: /^18$/ }).click();
   let meetings = await storedMeetings(page);
   expect(meetings.find((m: { id: string }) => m.id === "next")).toMatchObject({
     name: "Directievergadering",
@@ -289,7 +290,8 @@ test("nieuwe planning staat open en mag met lege naam overgeslagen worden", asyn
   await page.getByRole("button", { name: "Afronden →", exact: true }).click();
   await page.getByRole("button", { name: "4. Volgende vergadering", exact: true }).click();
   await expect(page.getByLabel("Naam", { exact: true })).toHaveValue("Directievergadering");
-  await page.getByLabel("Datum", { exact: true }).fill("2026-11-18");
+  await page.getByRole("button", { name: /^Datum / }).click();
+  await page.locator('[data-slot="calendar"]').getByRole("button").filter({ hasText: /^18$/ }).click();
   await page.getByLabel("Naam", { exact: true }).fill("");
   await page.getByRole("button", { name: "Afronden →", exact: true }).click();
   await expect(page.getByRole("heading", { name: "Afronden", exact: true })).toBeVisible();

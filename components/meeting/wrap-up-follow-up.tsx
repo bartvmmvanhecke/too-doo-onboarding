@@ -2,7 +2,10 @@
 import styles from "./meeting-wrap-up.module.css";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { ChevronDown, List } from "lucide-react";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { nlBE } from "react-day-picker/locale";
+import { ChevronDown, CalendarDays, List } from "lucide-react";
 import { usePeople, useStore, type Meeting, type WrapUpDraft } from "@/lib/store";
 import { agendaItems, nextInSeries } from "@/lib/meeting-wrap-up";
 import { followUpContent } from "@/lib/wrap-up-flow";
@@ -22,6 +25,7 @@ export function WrapUpPlanning({
   const meetings = useStore((s) => s.meetings);
   const next = nextInSeries(meeting, meetings);
   const [editing, setEditing] = useState(false);
+  const [calendarOpen, setCalendarOpen] = useState(false);
   const [beforeEdit, setBeforeEdit] = useState<Partial<WrapUpDraft>>({});
   const carried = agendaItems(meeting).filter((item) => draft.decisions?.[item.id] === "next");
   const proposedDate = new Date(`${meeting.date || toISO(new Date())}T12:00:00`);
@@ -55,7 +59,9 @@ export function WrapUpPlanning({
           <>
             <div className="mb-4 flex items-start justify-between gap-4">
               <div>
-                <h2 className="font-bold">{next ? "Deze vergadering verplaatsen" : "Nog geen volgende vergadering gepland"}</h2>
+                <h2 className="font-bold">
+                  {next ? "Deze vergadering verplaatsen" : "Nog geen volgende vergadering gepland"}
+                </h2>
                 <p className="mt-1 text-sm text-ink-3">
                   {next
                     ? "Je wijzigt de bestaande vergadering. Er komt geen tweede bij, en de rest van de reeks blijft zoals ze is."
@@ -75,7 +81,10 @@ export function WrapUpPlanning({
               )}
             </div>
             <>
-              <div id="next-meeting-fields" className="grid gap-4 sm:grid-cols-3">
+              <div
+                id="next-meeting-fields"
+                className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,240px),1fr))] gap-4"
+              >
                 <label className="flex flex-col gap-2 text-sm font-bold">
                   Naam
                   <input
@@ -91,18 +100,65 @@ export function WrapUpPlanning({
                     }
                   />
                 </label>
-                <label className="flex flex-col gap-2 text-sm font-bold">
-                  Datum
-                  <input
-                    className={`${field} font-normal`}
-                    type="date"
-                    min={meeting.date || undefined}
-                    value={planningDate}
-                    onChange={(event) =>
-                      patch({ nextDate: event.target.value, nextName: planningName, noNext: !planningName.trim() })
-                    }
-                  />
-                </label>
+                <div className="flex min-w-0 flex-col gap-2 text-sm font-bold">
+                  <label id="next-date-label" htmlFor="next-date-trigger">
+                    Datum
+                  </label>
+                  <Popover open={calendarOpen} onOpenChange={setCalendarOpen}>
+                    <PopoverTrigger asChild>
+                      <button
+                        id="next-date-trigger"
+                        type="button"
+                        aria-labelledby="next-date-label next-date-value"
+                        className={`${field} flex w-full items-center justify-between gap-2 text-left font-normal`}
+                      >
+                        <span id="next-date-value">
+                          {planningDate
+                            ? new Date(`${planningDate}T12:00:00`).toLocaleDateString("nl-BE", {
+                                day: "2-digit",
+                                month: "2-digit",
+                                year: "numeric",
+                              })
+                            : "dd/mm/yyyy"}
+                        </span>
+                        <CalendarDays aria-hidden className="size-4 shrink-0 text-ink-3" />
+                      </button>
+                    </PopoverTrigger>
+                    <PopoverContent
+                      align="start"
+                      className="app-theme w-[var(--radix-popover-trigger-width)] min-w-60 max-w-[calc(100vw-2rem)] border-line bg-white p-2"
+                    >
+                      <Calendar
+                        className={styles.datePicker}
+                        mode="single"
+                        locale={nlBE}
+                        weekStartsOn={1}
+                        fixedWeeks
+                        selected={planningDate ? new Date(`${planningDate}T12:00:00`) : undefined}
+                        defaultMonth={planningDate ? new Date(`${planningDate}T12:00:00`) : proposedDate}
+                        disabled={meeting.date ? { before: new Date(`${meeting.date}T00:00:00`) } : undefined}
+                        onSelect={(date) => {
+                          if (!date) return;
+                          patch({ nextDate: toISO(date), nextName: planningName, noNext: !planningName.trim() });
+                          setCalendarOpen(false);
+                        }}
+                      />
+                      {planningDate && (
+                        <Button
+                          variant="link"
+                          size="sm"
+                          className="w-full text-brand"
+                          onClick={() => {
+                            patch({ nextDate: "", noNext: true });
+                            setCalendarOpen(false);
+                          }}
+                        >
+                          Datum wissen
+                        </Button>
+                      )}
+                    </PopoverContent>
+                  </Popover>
+                </div>
                 <label className="flex flex-col gap-2 text-sm font-bold">
                   Tijd
                   <input

@@ -55,11 +55,11 @@ export function WrapUpPlanning({
           <>
             <div className="mb-4 flex items-start justify-between gap-4">
               <div>
-                <h2 className="font-bold">{next ? "Deze vergadering verplaatsen" : "Volgende vergadering plannen"}</h2>
+                <h2 className="font-bold">{next ? "Deze vergadering verplaatsen" : "Nog geen volgende vergadering gepland"}</h2>
                 <p className="mt-1 text-sm text-ink-3">
                   {next
                     ? "Je wijzigt de bestaande vergadering. Er komt geen tweede bij, en de rest van de reeks blijft zoals ze is."
-                    : "Laat leeg als je later wilt plannen."}
+                    : "Plan je volgende vergadering, Laat leeg als je later wilt plannen."}
                 </p>
               </div>
               {next && (

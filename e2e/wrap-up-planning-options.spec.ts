@@ -26,7 +26,7 @@ for (const scheduled of [true, false]) {
       await page.getByLabel("Naam", { exact: true }).fill("Verplaatst overleg");
       await page.getByLabel("Datum", { exact: true }).fill("2026-11-18");
     } else {
-      await expect(page.getByRole("heading", { name: "Volgende vergadering plannen", exact: true })).toBeVisible();
+      await expect(page.getByRole("heading", { name: "Nog geen volgende vergadering gepland", exact: true })).toBeVisible();
       await expect(page.getByLabel("Naam", { exact: true })).toHaveValue("Directievergadering");
       await expect(page.getByLabel("Datum", { exact: true })).toHaveValue("");
       await expect(page.getByLabel("Tijd", { exact: true })).toHaveValue("");

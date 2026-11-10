@@ -35,7 +35,7 @@ test("springen voltooit niets, bevestigen en vrij navigeren in vijf stappen", as
 test("concept blijft bewaard, eindtijd bevestigen en opslaan zonder mail", async ({ page }) => {
   await seedWrapUp(page, { automatic: true });
   const banner = page.getByRole("status", { name: "Nog af te ronden", exact: true });
-  await expect(banner).toContainText("Automatisch afgesloten · eindtijd");
+  await expect(banner).toContainText("Rond deze vergadering af");
   await expect(page.getByRole("tab", { name: /Agenda/ })).toBeVisible();
   await expect(page.getByRole("region", { name: "Vergaderinformatie" })).toBeVisible();
   await banner.getByRole("button", { name: "Afronden →", exact: true }).click();
@@ -68,7 +68,7 @@ test("concept blijft bewaard, eindtijd bevestigen en opslaan zonder mail", async
 });
 test("zonder volgende vergadering bewaard voor later, mobiel en toegankelijke wizard", async ({ page }) => {
   await seedWrapUp(page, { automatic: true, next: false, noActivity: true });
-  await expect(page.getByRole("status", { name: "Nog af te ronden" })).toContainText("geen activiteit geregistreerd");
+  await expect(page.getByRole("status", { name: "Nog af te ronden" })).toContainText("automatisch voorgesteld");
   await page.getByRole("button", { name: "Afronden →", exact: true }).click();
   await page.setViewportSize({ width: 390, height: 844 });
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
@@ -135,7 +135,7 @@ test("job sluit af na twee uur zonder mail of overdracht en eindtijd is aanpasba
   ).toBeUndefined();
   await banner.getByRole("button", { name: "Aanpassen", exact: true }).click();
   await banner.getByLabel("Eindtijd", { exact: true }).fill("10:10");
-  await banner.getByRole("button", { name: "Bewaren", exact: true }).click();
+  await banner.getByRole("button", { name: "Opslaan", exact: true }).click();
   expect((await storedMeetings(page))[0].endTimeConfirmed).toBe(true);
 });
 
@@ -206,11 +206,25 @@ test("prototypebalk opent direct de voorgestelde automatische eindtijd en bevest
   await page.getByRole("button", { name: "Automatisch afgesloten · eindtijd bevestigen", exact: true }).click();
   await expect(page).toHaveURL(/\/app\/overleg\/prototype-auto-closed$/);
   const banner = page.getByRole("status", { name: "Nog af te ronden", exact: true });
-  await expect(banner).toContainText("eindtijd 10:05 (laatste activiteit 09:50 + 15 min)");
-  await expect(banner.getByRole("button", { name: "Klopt", exact: true })).toBeVisible();
+  await expect(banner).toContainText("Eindtijd 10:05");
   await expect(banner.getByRole("button", { name: "Aanpassen", exact: true })).toBeVisible();
   expect((await storedMeetings(page)).length).toBe(3);
-  await banner.getByRole("button", { name: "Klopt", exact: true }).click();
+  await banner.getByRole("button", { name: "Aanpassen", exact: true }).click();
+  await expect(banner).toContainText("Niet vroeger dan het geplande einde (10:00)");
+  await banner.getByLabel("Eindtijd", { exact: true }).fill("09:59");
+  await banner.getByRole("button", { name: "Opslaan", exact: true }).click();
+  await expect(banner.getByRole("alert")).toContainText("Kies een eindtijd vanaf 10:00");
+  await banner.getByRole("button", { name: "Annuleren", exact: true }).click();
+  await expect(banner).toContainText("Eindtijd 10:05");
+  await page.screenshot({ path: "/tmp/auto-closed-banner.png" });
+  await banner.getByRole("button", { name: "Aanpassen", exact: true }).click();
+  await banner.getByLabel("Eindtijd", { exact: true }).fill("10:10");
+  await page.screenshot({ path: "/tmp/auto-closed-banner-edit.png" });
+  await banner.getByRole("button", { name: "Opslaan", exact: true }).click();
+  await expect(banner).toContainText("Eindtijd 10:10");
+  await expect(banner).toContainText("door jou aangepast");
+  await page.reload();
+  await expect(banner).toContainText("door jou aangepast");
   const preview = (await storedMeetings(page)).find((m: { id: string }) => m.id === "prototype-auto-closed");
   expect(preview.endTimeConfirmed).toBe(true);
 });

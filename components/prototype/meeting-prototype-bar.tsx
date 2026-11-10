@@ -34,7 +34,6 @@ export function MeetingPrototypeBar({ meetingId }: { meetingId: string }) {
         {(
           [
             { kind: "start", label: "Scenario: start bij eerste punt" },
-            { kind: "jumps", label: "Scenario: sprongen 1 → 4 → 2 → 5" },
             { kind: "last", label: "Scenario: nog één punt open" },
             { kind: "advance", label: "Tijd +5 min" },
             { kind: "last-five", label: "Laatste 5 seconden" },

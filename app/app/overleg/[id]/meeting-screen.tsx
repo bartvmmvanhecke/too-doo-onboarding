@@ -1,5 +1,6 @@
 "use client";
 
+import { MeetingBannerPrototypeBar } from "@/components/prototype/meeting-banner-prototype-bar";
 import { DigestPreview } from "@/components/meeting/digest-preview";
 import { NotificationSettings } from "@/components/meeting/notification-settings";
 import { CompletedMeetingDetail } from "@/components/meeting/completed-meeting-detail";
@@ -40,6 +41,7 @@ export function MeetingScreen() {
   return (
     <MeetingStartGate meeting={meeting}>
       <div data-meeting-detail className="contents">
+        <MeetingBannerPrototypeBar meeting={meeting} />
         <SavedBanner meeting={meeting} />
         {(!meeting.run || meeting.minimized || meeting.endedAt) && <PreviousFollowUp meeting={meeting} />}
         {meeting.followUpStatus === "sent" || meeting.followUpStatus === "saved" ? (

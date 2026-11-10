@@ -59,7 +59,7 @@ export function WrapUpPlanning({
                 <p className="mt-1 text-sm text-ink-3">
                   {next
                     ? "Je wijzigt de bestaande vergadering. Er komt geen tweede bij, en de rest van de reeks blijft zoals ze is."
-                    : "Optioneel. Laat leeg als je later wilt plannen."}
+                    : "Laat leeg als je later wilt plannen."}
                 </p>
               </div>
               {next && (

@@ -91,7 +91,7 @@ export function MeetingOverviewDetail({ meeting }: { meeting: Meeting }) {
         <div data-meeting-detail className="flex min-w-0 flex-col gap-6">
           <Link
             href="/app"
-            className="inline-flex min-h-11 items-center gap-2 self-start text-sm font-bold text-ink-3 no-underline hover:text-brand"
+            className="inline-flex min-h-11 items-center gap-2 self-start text-sm font-bold text-brand no-underline hover:text-brand"
           >
             <ArrowLeft className="size-4" aria-hidden />
             Terug naar overzicht

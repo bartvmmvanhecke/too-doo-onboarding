@@ -1,5 +1,6 @@
 "use client";
 import { unlockChime } from "@/lib/audio/chime-state";
+import { ReminderMailModal } from "./reminder-mail-modal";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useStore } from "@/lib/store";
@@ -9,13 +10,18 @@ export function MeetingPrototypeBar({ meetingId }: { meetingId: string }) {
   const visible = useStore((s) => s.demo.wrapUpToolbar !== false);
   const [announcement, setAnnouncement] = useState("");
   const router = useRouter();
+  const meeting = useStore((state) => state.meetings.find((item) => item.id === meetingId));
+  const [mailOpen, setMailOpen] = useState(false);
   if (!isDemoEnvironment() || !visible) return null;
   const load = (kind: WrapUpScenario) => {
     void unlockChime();
+    if (kind === "unattended") {
+      setMailOpen(true);
+      return;
+    }
     const result = loadWrapUpScenario(kind, meetingId);
     if (!result) return;
     setAnnouncement(result.announcement);
-    if (kind === "unattended") router.push(`/app/overleg/${meetingId}`);
   };
   return (
     <>
@@ -51,6 +57,18 @@ export function MeetingPrototypeBar({ meetingId }: { meetingId: string }) {
           {announcement}
         </span>
       </div>
+      {meeting && (
+        <ReminderMailModal
+          meeting={meeting}
+          open={mailOpen}
+          onOpenChange={setMailOpen}
+          onFollowUp={() => {
+            setMailOpen(false);
+            loadWrapUpScenario("unattended", meetingId);
+            router.push(`/app/overleg/${meetingId}`);
+          }}
+        />
+      )}
     </>
   );
 }

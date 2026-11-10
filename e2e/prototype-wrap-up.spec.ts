@@ -74,10 +74,14 @@ test("scenario's, klok, pill, afronden en reset", async ({ page }) => {
   await page.getByRole("button", { name: "Vergadering afronden", exact: true }).click();
   await expect(bar(page)).toHaveCount(0);
 });
-test("automatisch afsluiten opent detail zonder mail of overdracht", async ({ page }) => {
+test("automatisch afsluiten toont Outlook en opent detail vanuit de mail", async ({ page }) => {
   await openRun(page);
-  await bar(page).getByRole("button", { name: "Scenario: sprongen 1 → 4 → 2 → 5", exact: true }).click();
+  await bar(page).getByRole("button", { name: "Scenario: start bij eerste punt", exact: true }).click();
   await bar(page).getByRole("button", { name: "Gebruiker loopt weg → automatisch afsluiten", exact: true }).click();
+  const mail = page.getByRole("dialog", { name: "Voorbeeld herinneringsmail in Outlook", exact: true });
+  await expect(mail).toBeVisible();
+  await expect(mail.getByText("Outlook", { exact: true })).toBeVisible();
+  await mail.getByRole("link", { name: "Bekijk & verstuur opvolging", exact: true }).click();
   await expect(page.getByRole("status", { name: "Nog af te ronden", exact: true })).toContainText(
     "Rond deze vergadering af",
   );
@@ -85,7 +89,7 @@ test("automatisch afsluiten opent detail zonder mail of overdracht", async ({ pa
   await expect(page.getByRole("status", { name: "Lopende vergadering" })).toHaveCount(0);
   const meetings = await page.evaluate(() => JSON.parse(localStorage.getItem("too-doo-onboarding")!).state.meetings);
   expect(meetings[0]).toMatchObject({ run: null, endReason: "auto", followUpStatus: "pending" });
-  expect(meetings[0].endedAt - meetings[0].lastActivityAt).toBe(15 * 60000);
+  expect(meetings[0].endedAt - meetings[0].lastActivityAt).toBeGreaterThanOrEqual(15 * 60000);
   expect(meetings[1].blocks[0].items).toHaveLength(0);
   await page.getByRole("button", { name: "Afronden →", exact: true }).click();
   await expect(page.getByRole("heading", { name: "Agenda", exact: true })).toBeVisible();

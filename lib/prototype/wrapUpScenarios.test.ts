@@ -18,14 +18,15 @@ beforeEach(() => {
 afterEach(() => vi.unstubAllEnvs());
 const current = () => useStore.getState().meetings.find((m) => m.id === id)!;
 describe("prototypebediening", () => {
-  it("start opnieuw bij het eerste punt zonder behandelde punten of opvolging", () => {
+  it("start opnieuw bij het eerste punt zonder behandelde punten, met voorbeeldopvolging", () => {
     loadWrapUpScenario("jumps", id, now);
     loadWrapUpScenario("start", id, now);
     const m = current();
     expect(m.run?.currentId).toBe("wrap-demo-1");
     expect(m.run?.doneIds).toEqual([]);
-    expect(m.blocks[0].items.every((i) => !isHandled(m, i.id) && i.entries.length === 0)).toBe(true);
-    expect(m.actions).toEqual([]);
+    expect(m.blocks[0].items.every((i) => !isHandled(m, i.id))).toBe(true);
+    expect(m.blocks[0].items.flatMap((i) => i.entries).filter((entry) => entry.kind === "decision")).toHaveLength(2);
+    expect(m.actions).toHaveLength(4);
     expect(meetingNow(m, now) - m.startedAt!).toBe(0);
     expect(timerEnd(m) - meetingNow(m, now)).toBe(60 * 60000);
   });

@@ -13,6 +13,7 @@ export function loadMeetingBannerScenario(scenario: MeetingBannerScenario) {
     meeting = {
       ...meeting,
       noActivity: true,
+      actions: [],
       endedAt: plannedEnd(meeting),
       lastActivityAt: meeting.startedAt,
       blocks: meeting.blocks.map((block) => ({

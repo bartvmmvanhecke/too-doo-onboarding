@@ -1,10 +1,11 @@
-import { newBlock, newItem, type Entry } from "../agenda";
+import { createDirectieAgenda, DIRECTIE_PEOPLE } from "./directieMeetingFixture";
+import { newBlock } from "../agenda";
 import { autoCloseDueAt, unattended } from "../meeting-wrap-up";
 import { chimeEnabled, setChimeEnabled } from "../audio/chime-state";
 import { timerEnd, meetingNow } from "../meeting-clock";
 import { isDemoEnvironment } from "../demo-environment";
-import { AVATAR_COLORS, USER_PERSON_ID, type Person } from "../mock-data";
-import { useStore, type Meeting, type Action } from "../store";
+import { USER_PERSON_ID } from "../mock-data";
+import { useStore, type Meeting } from "../store";
 
 export type WrapUpScenario = "start" | "jumps" | "last" | "last-middle" | "advance" | "last-five" | "unattended";
 /** All prototype mutations and fixture data live here. No API or backend calls. */
@@ -42,57 +43,10 @@ export function loadWrapUpScenario(kind: WrapUpScenario, meetingId: string, real
   day.setHours(9, 0, 0, 0);
   const start = day.getTime();
   const date = `${day.getFullYear()}-${String(day.getMonth() + 1).padStart(2, "0")}-${String(day.getDate()).padStart(2, "0")}`;
-  const fixturePeople: Person[] = ["Rashmi", "Kelvin", "Florianne"].map((name, i) => ({
-    id: `wrap-demo-${i}`,
-    name,
-    initials: name.slice(0, 2).toUpperCase(),
-    color: AVATAR_COLORS[i],
-  }));
-  const entry = (id: string, kind: Entry["kind"], text: string, ownerId: string | null, date: string): Entry => ({
-    id,
-    kind,
-    text,
-    ownerId,
-    date,
-    createdAt: start + elapsed * 60000,
-    ...(kind === "action" ? { actionId: `action-${id}` } : {}),
-  });
-  const entries: Record<number, Entry[]> =
-    kind === "start"
-      ? {}
-      : {
-          2: [entry("budget", "action", "Budgetvoorstel Q1 bijwerken", fixturePeople[0].id, "18 nov")],
-          4: [
-            entry("audit", "decision", "Veiligheidsaudit uitbesteden aan externe partner", null, "15 dec"),
-            entry("offertes", "action", "Offertes externe auditors opvragen", fixturePeople[1].id, "20 nov"),
-          ],
-          5: [
-            entry("opleiding", "decision", "Opleidingsbudget Q4 vrijgeven", null, "30 nov"),
-            entry(
-              "inschrijvingen",
-              "action",
-              "Inschrijvingen opleiding verzamelen per afdeling",
-              fixturePeople[2].id,
-              "20 nov",
-            ),
-            entry("communicatie", "action", "Communicatie naar teams over audit", null, "25 nov"),
-          ],
-          6: [entry("kerst", "note", "Kerstdrink valt in week 51", null, "")],
-        };
-  const titles = [
-    "Opening en vorige besluiten",
-    "Budgetvoorstel Q1",
-    "Strategische prioriteiten",
-    "Veiligheidsaudit",
-    "Opleidingsbudget Q4",
-    "Varia",
-  ];
+  const { blocks, actions } = createDirectieAgenda(start, elapsed);
+  const fixturePeople = DIRECTIE_PEOPLE;
   const handled =
     kind === "start" ? [] : kind === "jumps" ? [1, 4] : kind === "last-middle" ? [1, 2, 4, 5, 6] : [1, 2, 3, 4, 5];
-  const actions: Action[] = Object.values(entries)
-    .flat()
-    .filter((e) => e.kind === "action")
-    .map((e) => ({ id: e.actionId!, what: e.text, ownerId: e.ownerId, deadline: e.date, done: false }));
   const seriesId = `wrap-demo-series-${meetingId}`;
   const meeting: Meeting = {
     ...current,
@@ -122,29 +76,21 @@ export function loadWrapUpScenario(kind: WrapUpScenario, meetingId: string, real
     participants: [USER_PERSON_ID, ...fixturePeople.map((p) => p.id)],
     attendance: undefined,
     actions,
-    blocks: [
-      newBlock("topics", {
-        id: "wrap-demo-block",
-        title: "Lopende zaken",
-        items: titles.map((text, i) =>
-          newItem(text, {
-            id: `wrap-demo-${i + 1}`,
-            duration: 10,
-            ownerIds: [],
-            runStatus: handled.includes(i + 1) ? "done" : "open",
-            visitedAt:
-              handled.includes(i + 1) ||
-              (kind === "jumps" && [2, 5].includes(i + 1)) ||
-              (kind === "last-middle" && i === 2) ||
-              (kind === "last" && i === 5)
-                ? start + elapsed * 60000
-                : undefined,
-            handledAt: handled.includes(i + 1) ? start + elapsed * 60000 : undefined,
-            entries: entries[i + 1] ?? [],
-          }),
-        ),
-      }),
-    ],
+    blocks: blocks.map((block) => ({
+      ...block,
+      items: block.items.map((item, i) => ({
+        ...item,
+        runStatus: handled.includes(i + 1) ? "done" : "open",
+        visitedAt:
+          handled.includes(i + 1) ||
+          (kind === "jumps" && [2, 5].includes(i + 1)) ||
+          (kind === "last-middle" && i === 2) ||
+          (kind === "last" && i === 5)
+            ? start + elapsed * 60000
+            : undefined,
+        handledAt: handled.includes(i + 1) ? start + elapsed * 60000 : undefined,
+      })),
+    })),
     run: {
       startedAt: start,
       stepStartedAt: start + elapsed * 60000,

@@ -1,3 +1,4 @@
+import { createDirectieAgenda, DIRECTIE_PEOPLE } from "./directieMeetingFixture";
 import { autoCloseDueAt, unattended } from "@/lib/meeting-wrap-up";
 import { newBlock, newItem } from "@/lib/agenda";
 import { toISO } from "@/lib/date";
@@ -38,7 +39,11 @@ export function loadMeetingsOverviewScenario(scenario: MeetingsOverviewScenario,
     ...(completed ? { followUpStatus: "sent" as const } : {}),
   });
   const meetings = [
-    make("upcoming-1", "Productieoverleg", 3),
+    {
+      ...make("upcoming-1", "Directieoverleg", 3),
+      ...createDirectieAgenda(now.getTime()),
+      participants: [USER_PERSON_ID, ...DIRECTIE_PEOPLE.map((person) => person.id)],
+    },
     make("upcoming-2", "Sync Stijn", 6),
     make("completed-1", "Managementoverleg", -3, true),
     make("completed-2", "Teamoverleg", -7, true),
@@ -54,12 +59,19 @@ export function loadMeetingsOverviewScenario(scenario: MeetingsOverviewScenario,
       endReason: "manual",
       startedBy: USER_PERSON_ID,
       followUpStatus: "pending",
-      actions: [
-        { id: "overview-demo-action", what: "Budgetvoorstel bijwerken", ownerId: null, deadline: "", done: false },
-      ],
+      ...createDirectieAgenda(now.getTime()),
+      participants: [USER_PERSON_ID, ...DIRECTIE_PEOPLE.map((person) => person.id)],
     });
   }
-  useStore.setState({ meetings });
+  useStore.setState({
+    meetings,
+    extraPeople: [
+      ...useStore
+        .getState()
+        .extraPeople.filter((person) => !DIRECTIE_PEOPLE.some((fixture) => fixture.id === person.id)),
+      ...DIRECTIE_PEOPLE,
+    ],
+  });
 }
 
 /** Direct preview without replacing the user's other demo meetings. */
@@ -71,7 +83,7 @@ export function loadAutoClosedPreview(now = new Date()): string | null {
   const id = "prototype-auto-closed";
   const running: Meeting = {
     id,
-    name: "Directievergadering · automatisch afgesloten",
+    name: "Directieoverleg",
     type: "Management",
     recurrence: "weekly",
     date: toISO(start),
@@ -84,21 +96,26 @@ export function loadAutoClosedPreview(now = new Date()): string | null {
     showWelcome: false,
     invited: true,
     held: false,
-    actions: [],
-    blocks: [
-      newBlock("topics", {
-        title: "Lopende zaken",
-        items: [
-          newItem("Voortgang en besluiten", { runStatus: "done" }),
-          newItem("Planning volgende week", { runStatus: "open" }),
-          newItem("Vragen van het team", { runStatus: "open" }),
-        ],
-      }),
-    ],
+    ...createDirectieAgenda(startedAt),
     run: { startedAt, stepStartedAt: startedAt, currentId: null, doneIds: [], postponedIds: [], actuals: {} },
   };
+  running.participants = [USER_PERSON_ID, ...DIRECTIE_PEOPLE.map((person) => person.id)];
+  running.blocks = running.blocks.map((block) => ({
+    ...block,
+    items: block.items.map((item, index) => ({
+      ...item,
+      runStatus: index < 4 ? "done" : "open",
+      visitedAt: index < 4 ? startedAt + 50 * 60000 : undefined,
+    })),
+  }));
   const closed = unattended(running, autoCloseDueAt(running));
   const state = useStore.getState();
-  useStore.setState({ meetings: [...state.meetings.filter((m) => m.id !== id), closed] });
+  useStore.setState({
+    meetings: [...state.meetings.filter((m) => m.id !== id), closed],
+    extraPeople: [
+      ...state.extraPeople.filter((person) => !DIRECTIE_PEOPLE.some((fixture) => fixture.id === person.id)),
+      ...DIRECTIE_PEOPLE,
+    ],
+  });
   return id;
 }

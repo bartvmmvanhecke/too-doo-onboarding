@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { ArrowLeft, CalendarCheck, ChevronUp, Ellipsis, Clock, Coffee, Play, Plus } from "lucide-react";
-import { PendingFollowUp } from "./pending-follow-up";
+import { PendingFollowUp, PendingFollowUpAction } from "./pending-follow-up";
 import { isDemoEnvironment } from "@/lib/demo-environment";
 import { isPending, isHandled } from "@/lib/meeting-wrap-up";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -51,7 +51,12 @@ export function MeetingOverviewDetail({ meeting }: { meeting: Meeting }) {
   const attendees = people.filter((p) => meeting.participants.includes(p.id));
   const entries = items.flatMap((i) => i.entries);
   const planned = plannedMinutes(meeting.blocks) ?? 0;
-  const remaining = meeting.duration - planned;
+  const actual =
+    meeting.endedAt && meeting.startedAt
+      ? Math.max(0, Math.round((meeting.endedAt - meeting.startedAt) / 60000))
+      : null;
+  const displayedMinutes = pending && actual !== null ? actual : planned;
+  const remaining = meeting.duration - displayedMinutes;
   const preparation = items.length
     ? Math.round(
         (items.reduce(
@@ -96,7 +101,6 @@ export function MeetingOverviewDetail({ meeting }: { meeting: Meeting }) {
             <ArrowLeft className="size-4" aria-hidden />
             Terug naar overzicht
           </Link>
-          {pending && <PendingFollowUp meeting={meeting} />}
           <header className="flex flex-wrap items-center justify-between gap-5 py-2">
             <div className="flex min-w-0 flex-col items-start gap-2">
               {pending ? (
@@ -144,20 +148,21 @@ export function MeetingOverviewDetail({ meeting }: { meeting: Meeting }) {
                 )}
               </div>
             </div>
-            {compact ? (
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button variant="outline" size="icon" aria-label="Meer opties voor vergadering">
-                    <Ellipsis className="size-5" />
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="app-theme">
-                  <Button variant="ghost" onClick={() => ops.startRun(meeting.id)}>
-                    Vergadering hervatten
-                  </Button>
-                </PopoverContent>
-              </Popover>
-            ) : (
+            <div className="flex flex-wrap items-center gap-4">
+              {compact && (
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" size="icon" aria-label="Meer opties voor vergadering">
+                      <Ellipsis className="size-5" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="app-theme">
+                    <Button variant="ghost" onClick={() => ops.startRun(meeting.id)}>
+                      Vergadering hervatten
+                    </Button>
+                  </PopoverContent>
+                </Popover>
+              )}
               <div className="flex flex-wrap items-center gap-4">
                 <div
                   className={cn(
@@ -167,7 +172,7 @@ export function MeetingOverviewDetail({ meeting }: { meeting: Meeting }) {
                 >
                   <span className="flex items-center gap-2 text-lg">
                     <Clock className="size-5" aria-hidden />
-                    {planned}min / {meeting.duration}min gepland
+                    {displayedMinutes}min / {meeting.duration}min gepland
                   </span>
                   <span
                     className={cn(
@@ -175,9 +180,14 @@ export function MeetingOverviewDetail({ meeting }: { meeting: Meeting }) {
                       remaining < 0 ? "bg-warning-bg text-warning" : "bg-success-bg text-success-ink",
                     )}
                   >
-                    {Math.abs(remaining)} min {remaining < 0 ? "te veel" : "over"}
+                    {pending
+                      ? remaining < 0
+                        ? `${Math.abs(remaining)} min uitgelopen`
+                        : "Binnen tijd"
+                      : `${Math.abs(remaining)} min ${remaining < 0 ? "te veel" : "over"}`}
                   </span>
                 </div>
+                {pending && <PendingFollowUpAction meeting={meeting} />}
                 {!pending && (
                   <Button className="rounded-full" onClick={() => ops.startRun(meeting.id)}>
                     <Play className="size-5" aria-hidden />
@@ -185,8 +195,9 @@ export function MeetingOverviewDetail({ meeting }: { meeting: Meeting }) {
                   </Button>
                 )}
               </div>
-            )}
+            </div>
           </header>
+          {pending && <PendingFollowUp meeting={meeting} showAction={false} />}
 
           {infoOpen && !compact && (
             <section aria-label="Vergaderinformatie" className="rounded-2xl border border-line bg-line-soft/30 p-5">

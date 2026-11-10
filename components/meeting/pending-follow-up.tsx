@@ -7,9 +7,8 @@ import { useStore, type Meeting } from "@/lib/store";
 import { agendaItems, clockTime, isHandled, plannedEnd } from "@/lib/meeting-wrap-up";
 import { initialWrapUpDraft } from "@/lib/wrap-up-flow";
 
-export function PendingFollowUp({ meeting }: { meeting: Meeting }) {
+export function PendingFollowUp({ meeting, showAction = true }: { meeting: Meeting; showAction?: boolean }) {
   const ops = useStore();
-  const router = useRouter();
   const [editing, setEditing] = useState(false);
   const [time, setTime] = useState("");
   const [error, setError] = useState("");
@@ -179,25 +178,35 @@ export function PendingFollowUp({ meeting }: { meeting: Meeting }) {
           Niet doorgegaan
         </Button>
       )}
-      <Button
-        size="sm"
-        className="shrink-0 rounded-full"
-        onClick={() => {
-          ops.putMeeting({
-            ...meeting,
-            endTimeConfirmed: true,
-            wrapUpOpen: false,
-            wrapUpDraft: {
-              ...initialWrapUpDraft(meeting, ops.meetings),
-              entry: "later",
-              step: resume ? storedStep : 0,
-            },
-          });
-          router.push(`/vergaderingen/${meeting.id}/afronden`);
-        }}
-      >
-        {resume ? "Verder afronden →" : "Afronden →"}
-      </Button>
+      {showAction && <PendingFollowUpAction meeting={meeting} />}
     </section>
+  );
+}
+
+export function PendingFollowUpAction({ meeting }: { meeting: Meeting }) {
+  const ops = useStore();
+  const router = useRouter();
+  const storedStep = meeting.wrapUpDraft?.step ?? 0;
+  const resume = [1, 2, 3, 4].includes(storedStep);
+  return (
+    <Button
+      size="sm"
+      className="shrink-0 rounded-full"
+      onClick={() => {
+        ops.putMeeting({
+          ...meeting,
+          endTimeConfirmed: true,
+          wrapUpOpen: false,
+          wrapUpDraft: {
+            ...initialWrapUpDraft(meeting, ops.meetings),
+            entry: "later",
+            step: resume ? storedStep : 0,
+          },
+        });
+        router.push(`/vergaderingen/${meeting.id}/afronden`);
+      }}
+    >
+      {resume ? "Verder afronden →" : "Afronden →"}
+    </Button>
   );
 }

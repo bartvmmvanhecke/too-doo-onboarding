@@ -178,7 +178,8 @@ function OverviewPrototypeBarHost({ onLoad }: { onLoad: () => void }) {
   }, [meetings]);
   const meeting = meetings.find(
     (item) =>
-      pathname === `/app/overleg/${item.id}` && ["prototype-auto-closed", "overview-demo-upcoming-1", "overview-demo-pending"].includes(item.id),
+      pathname === `/app/overleg/${item.id}` &&
+      ["prototype-auto-closed", "overview-demo-upcoming-1", "overview-demo-pending"].includes(item.id),
   );
   if (meeting?.endedAt) return <MeetingBannerPrototypeBar meeting={meeting} />;
   return pathname === "/app" ? <MeetingsOverviewPrototypeBar onLoad={onLoad} /> : null;

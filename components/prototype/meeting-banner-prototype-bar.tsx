@@ -4,7 +4,11 @@ import type { Meeting } from "@/lib/store";
 import { loadMeetingBannerScenario } from "@/lib/prototype/meetingBannerScenarios";
 
 export function MeetingBannerPrototypeBar({ meeting }: { meeting: Meeting }) {
-  if (!isDemoEnvironment() || !["prototype-auto-closed", "overview-demo-upcoming-1", "overview-demo-pending"].includes(meeting.id)) return null;
+  if (
+    !isDemoEnvironment() ||
+    !["prototype-auto-closed", "overview-demo-upcoming-1", "overview-demo-pending"].includes(meeting.id)
+  )
+    return null;
   const selected =
     meeting.followUpStatus === "saved" || meeting.followUpStatus === "sent"
       ? "completed"

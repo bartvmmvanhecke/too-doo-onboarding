@@ -38,7 +38,7 @@ test("concept blijft bewaard, eindtijd bevestigen en opslaan zonder mail", async
   await expect(banner).toContainText("Rond deze vergadering af");
   await expect(page.getByRole("tab", { name: /Agenda/ })).toBeVisible();
   await expect(page.getByRole("region", { name: "Vergaderinformatie" })).toBeVisible();
-  await banner.getByRole("button", { name: /^(Afronden|Verder afronden) →$/ }).click();
+  await page.locator("header").getByRole("button", { name: /^(Afronden|Verder afronden) →$/ }).click();
   expect((await storedMeetings(page))[0].endTimeConfirmed).toBe(true);
   await page.getByRole("button", { name: "Laten vallen: Punt 6", exact: true }).click();
   await page.getByRole("button", { name: "4. Volgende vergadering", exact: true }).click();
@@ -51,7 +51,7 @@ test("concept blijft bewaard, eindtijd bevestigen en opslaan zonder mail", async
   await page.getByRole("button", { name: "Aanpassen", exact: true }).last().click();
   await page.getByRole("checkbox", { name: "Sofie De Smet", exact: true }).uncheck();
   await page.getByRole("button", { name: "Later afronden", exact: true }).click();
-  await banner.getByRole("button", { name: /^(Afronden|Verder afronden) →$/ }).click();
+  await page.locator("header").getByRole("button", { name: /^(Afronden|Verder afronden) →$/ }).click();
   await page.getByRole("button", { name: "5. Opvolging", exact: true }).click();
   await page.reload();
   await expect(page.getByLabel("Samenvatting", { exact: true })).toHaveValue("Onze eigen samenvatting.");
@@ -408,7 +408,7 @@ test("prototypebalk toont vier afrondbanners en hervat bewaarde keuzes", async (
   expect(preview).toMatchObject({ held: false, followUpStatus: "saved", run: null });
   await bar.getByRole("button", { name: "Halverwege gestopt met afronden", exact: true }).click();
   await expect(banner).toContainText("Stap 2 van 5 · Beslissingen · je keuzes zijn bewaard");
-  await banner.getByRole("button", { name: "Verder afronden →", exact: true }).click();
+  await page.locator("header").getByRole("button", { name: "Verder afronden →", exact: true }).click();
   await expect(page.getByRole("heading", { name: "Beslissingen", exact: true })).toBeFocused();
   await page.getByRole("button", { name: "Later afronden", exact: true }).click();
   await expect(banner).toContainText("Je was bezig met afronden");

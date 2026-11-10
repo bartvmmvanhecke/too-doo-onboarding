@@ -53,7 +53,7 @@ export function WrapUpPlanning({
     <div className="mt-3 space-y-4">
       <p className="text-sm text-ink-2">Optioneel. Hier komen de verplaatste punten terecht.</p>
       <section
-        className={`${styles.finalCard} rounded-2xl border p-5 ${scheduled && !editing && next ? "border-brand" : "border-line"} ${!scheduled && !editing && next ? "border-dashed" : ""}`}
+        className={`${styles.finalCard} rounded-2xl border p-5 ${!next || (scheduled && !editing) ? "border-brand" : "border-line"} ${!scheduled && !editing && next ? "border-dashed" : ""}`}
       >
         {editing || !next ? (
           <>

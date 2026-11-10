@@ -2,18 +2,16 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import styles from "./meeting-wrap-up.module.css";
-import { Check, ArrowRight, Trash2 } from "lucide-react";
+import { Check, ArrowRight, Trash2, Scale, SquareCheck, Timer } from "lucide-react";
 import { Logo } from "@/components/brand";
 import { Button } from "@/components/ui/button";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { useStore, usePeople, type Meeting, type WrapUpDraft } from "@/lib/store";
-import { agendaItems, clockTime, isHandled, nextInSeries } from "@/lib/meeting-wrap-up";
+import { agendaItems, clockTime, isHandled, nextInSeries, suggestDecision } from "@/lib/meeting-wrap-up";
 import { initialWrapUpDraft, assignMissingOwners, finishWrapUp, planningError } from "@/lib/wrap-up-flow";
 import { WrapUpPlanning, WrapUpFollowUp } from "./wrap-up-follow-up";
-import { AgendaItemRow } from "./agenda";
 import { EntryPanel } from "./entries";
 import { MeetingProvider } from "./meeting-context";
-import { agendaMoves } from "./meeting-detail";
 import { ownerOptions } from "@/lib/owners";
 import { deadlineDate, type AgendaItem, type EntryKind } from "@/lib/agenda";
 import { toISO } from "@/lib/date";
@@ -151,7 +149,9 @@ export function MeetingWrapUp({ meeting }: { meeting: Meeting }) {
               </h1>
               {step === 0 ? (
                 <>
-                  <p className="mb-7 text-ink-2">Kijk na wat er nog openstaat en kies wat ermee gebeurt.</p>
+                  <p className="mb-7 text-ink-2">
+                    Kies wat er gebeurt met de punten die nog openstaan. Per punt staat een voorstel klaar.
+                  </p>
                   <AgendaReview meeting={meeting} draft={draft} patch={patch} />
                 </>
               ) : step === 1 ? (
@@ -261,32 +261,49 @@ function AgendaReview({
   patch: (p: Partial<WrapUpDraft>) => void;
 }) {
   const people = usePeople();
-  const ops = useStore();
   const [editing, setEditing] = useState<{ id: string; kind: EntryKind } | null>(null);
   const items = agendaItems(meeting);
   const open = items.filter((i) => !isHandled(meeting, i.id));
   const done = items.filter((i) => isHandled(meeting, i.id));
-  const moves = agendaMoves(meeting, ops);
   const renderItem = (item: AgendaItem) => {
     const block = meeting.blocks.find((b) => b.items.some((i) => i.id === item.id))!;
+    const discussed = item.visitedAt !== undefined;
+    const recorded = item.entries.filter((entry) => entry.kind !== "document").length;
+    const suggestion = suggestDecision(item);
     return (
-      <div key={item.id} className="border-t border-line py-4 first:border-0">
-        <ul>
-          <AgendaItemRow
-            item={item}
-            block={block}
-            index={block.items.indexOf(item)}
-            moves={moves}
-            onOpenDetails={() => setEditing({ id: item.id, kind: "note" })}
-          />
-        </ul>
+      <article key={item.id} aria-label={item.text} className={styles.agendaCard}>
+        <div className={styles.agendaCardHeader}>
+          <span className={styles.agendaCategory}>{block.title}</span>
+          <div className={styles.agendaCounts}>
+            {(
+              [
+                { kind: "decision", label: "beslissingen", Icon: Scale },
+                { kind: "action", label: "acties", Icon: SquareCheck },
+              ] as const
+            ).map(({ kind, label, Icon }) => (
+              <button
+                type="button"
+                key={kind}
+                onClick={() =>
+                  setEditing(editing?.id === item.id && editing.kind === kind ? null : { id: item.id, kind })
+                }
+              >
+                <Icon aria-hidden className="size-4" /> {item.entries.filter((entry) => entry.kind === kind).length}{" "}
+                {label}
+              </button>
+            ))}
+          </div>
+        </div>
+        <h3 className="mt-2 text-lg font-bold">{item.text}</h3>
+        <p className="mt-2 mb-5 flex flex-wrap items-center gap-2 text-sm text-ink-3">
+          <Timer aria-hidden className="size-4" />
+          {item.duration != null && <span>{item.duration} min ·</span>}
+          {discussed
+            ? `besproken · ${recorded ? `${recorded} items vastgelegd` : "niets vastgelegd"}`
+            : "niet besproken"}
+        </p>
         {!isHandled(meeting, item.id) && (
           <>
-            <p className="my-2 text-sm text-ink-3">
-              {item.visitedAt !== undefined
-                ? `besproken · ${item.entries.filter((e) => e.kind !== "document").length} items vastgelegd`
-                : "niet aan bod gekomen"}
-            </p>
             <div className="flex flex-wrap gap-2">
               {(
                 [
@@ -301,7 +318,9 @@ function AgendaReview({
                   aria-label={`${label}: ${item.text}`}
                   aria-pressed={draft.decisions?.[item.id] === value}
                   onClick={() => patch({ decisions: { ...draft.decisions, [item.id]: value } })}
-                  className={`inline-flex min-h-11 items-center gap-2 rounded-lg border px-3 text-sm font-semibold ${value === "drop" ? "text-danger" : "text-ink"} ${draft.decisions?.[item.id] === value ? (value === "drop" ? "border-danger bg-danger/10" : "border-brand bg-brand-soft") : "border-line bg-white"}`}
+                  className={styles.agendaChoice}
+                  data-choice={value}
+                  data-selected={draft.decisions?.[item.id] === value}
                 >
                   <Icon aria-hidden className="size-4" />
                   {label}
@@ -310,22 +329,17 @@ function AgendaReview({
             </div>
           </>
         )}
-        <div className="mt-3 flex flex-wrap gap-2">
-          {(["decision", "action", "note"] as const).map((kind) => (
-            <Button
-              key={kind}
-              variant="ghost"
-              onClick={() =>
-                setEditing(editing?.id === item.id && editing.kind === kind ? null : { id: item.id, kind })
-              }
-            >
-              {kind === "decision" ? "Beslissingen" : kind === "action" ? "Acties" : "Notities"} (
-              {item.entries.filter((e) => e.kind === kind).length})
-            </Button>
-          ))}
-        </div>
+        {!isHandled(meeting, item.id) && (
+          <p className="mt-3 text-sm text-ink-3">
+            {suggestion === "done"
+              ? "Voorstel: voltooien, want het punt is besproken"
+              : discussed
+                ? "Voorstel: verplaatsen, want er is nog niets vastgelegd"
+                : "Voorstel: verplaatsen, want het punt kwam niet aan bod"}
+          </p>
+        )}
         {editing?.id === item.id && <EntryPanel item={item} kind={editing.kind} onClose={() => setEditing(null)} />}
-      </div>
+      </article>
     );
   };
   return (
@@ -334,16 +348,12 @@ function AgendaReview({
     >
       <TooltipProvider>
         <div className="[&_button]:min-h-11 [&_button]:min-w-11 [&_input]:min-h-11 [&_select]:min-h-11">
-          <section className="rounded-2xl border border-line bg-white p-4 sm:p-6">
+          <section>
             <h2 className="text-lg font-bold">Open punten ({open.length})</h2>
-            <p className="mt-2 mb-3 text-sm text-ink-2">
-              {open.length
-                ? "Deze punten zijn nog niet voltooid. Kies wat ermee gebeurt."
-                : "Alle punten zijn voltooid."}
-            </p>
-            {open.map(renderItem)}
+            {!open.length && <p className="mt-3 text-sm text-ink-2">Alle punten zijn voltooid.</p>}
+            <div className="mt-4 flex flex-col gap-4">{open.map(renderItem)}</div>
           </section>
-          <details className="mt-5 rounded-2xl border border-line bg-white p-4 sm:p-6">
+          <details className={`mt-5 rounded-2xl border border-line p-4 sm:p-6 ${styles.completedAgenda}`}>
             <summary className="min-h-11 cursor-pointer font-bold">Voltooide punten ({done.length})</summary>
             {done.map(renderItem)}
           </details>

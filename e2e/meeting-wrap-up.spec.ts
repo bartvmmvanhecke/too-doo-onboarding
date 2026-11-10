@@ -294,8 +294,15 @@ test("vijf stappen tonen beslissingen en acties, bewaren wijzigingen en houden d
   await page.reload();
   await page.getByRole("button", { name: "Afronden →", exact: true }).click();
   await expect(page.getByRole("navigation", { name: "Afrondingsstappen" }).getByRole("button")).toHaveCount(5);
-  const row = page.locator("li.group").first();
+  const row = page.getByRole("article", { name: "Punt 2", exact: true });
   await expect(row).toBeVisible();
+  await expect(row.getByText("Lopende zaken", { exact: true })).toBeVisible();
+  await expect(row.getByText("Voorstel: voltooien, want het punt is besproken", { exact: true })).toBeVisible();
+  await expect(
+    page
+      .getByRole("article", { name: "Punt 3", exact: true })
+      .getByText("Voorstel: verplaatsen, want het punt kwam niet aan bod", { exact: true }),
+  ).toBeVisible();
   expect(await row.evaluate((el) => el.scrollWidth <= el.clientWidth)).toBe(true);
   await page.screenshot({ path: "/tmp/wrap-up-five-steps-desktop.png" });
   await page.setViewportSize({ width: 1130, height: 824 });

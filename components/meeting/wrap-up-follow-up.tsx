@@ -383,7 +383,7 @@ export function WrapUpFollowUp({
       </section>
       <section className={`${styles.finalCard} overflow-hidden rounded-2xl border border-line`}>
         <div className="flex flex-wrap items-center gap-5 p-6">
-          <List aria-hidden className="size-5 shrink-0 text-ink-2" />
+          <List aria-hidden className="mt-1 size-5 shrink-0 self-start text-ink-2" />
           <div className="min-w-0 flex-1 basis-80">
             <h2 className="mb-2 text-lg font-bold">Wat er vastligt</h2>
             <p className="flex flex-wrap gap-x-3 gap-y-1 text-sm text-ink-2">
@@ -403,8 +403,8 @@ export function WrapUpFollowUp({
             </p>
           </div>
           <Button
-            variant="outline"
-            className="rounded-full text-brand"
+            variant="link"
+            className="rounded-none text-brand"
             aria-expanded={overviewOpen}
             aria-controls="wrap-final-overview"
             onClick={() => setOverviewOpen(!overviewOpen)}

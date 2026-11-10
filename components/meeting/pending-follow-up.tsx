@@ -29,9 +29,9 @@ export function PendingFollowUp({ meeting }: { meeting: Meeting }) {
     <section
       role="status"
       aria-label="Nog af te ronden"
-      className="flex flex-wrap items-center gap-5 rounded-[20px] border border-[#f6cf83] bg-[#fff8e9] px-6 py-6 text-ink sm:gap-6 sm:px-8"
+      className="flex flex-wrap items-center gap-5 rounded-[20px] border border-[#f6cf83] bg-[#fff8e9] px-6 py-4 text-ink sm:gap-6 sm:px-8"
     >
-      <span className="flex size-14 shrink-0 items-center justify-center rounded-full bg-[#ffedc6] text-[#985c00]">
+      <span className="flex size-14 shrink-0 self-start items-center justify-center rounded-full bg-[#ffedc6] text-[#985c00]">
         <Icon aria-hidden className="size-6" />
       </span>
       <div className="min-w-0 flex-1 basis-72">
@@ -44,12 +44,16 @@ export function PendingFollowUp({ meeting }: { meeting: Meeting }) {
         </h2>
         {resume ? (
           <div className="mt-3 flex flex-wrap items-center gap-3 text-sm text-ink-2">
-            <progress
+            <div
+              role="progressbar"
               aria-label="Voortgang afronden"
-              max={5}
-              value={resume.number}
-              className="h-2 w-48 accent-[#985c00]"
-            />
+              aria-valuemin={0}
+              aria-valuemax={5}
+              aria-valuenow={resume.number}
+              className="h-2 w-48 overflow-hidden rounded-full bg-[#bfbfbf]"
+            >
+              <div className="h-full rounded-full bg-[#985c00]" style={{ width: `${(resume.number / 5) * 100}%` }} />
+            </div>
             <span>
               Stap {resume.number} van 5 · {resume.label} · je keuzes zijn bewaard
             </span>
@@ -94,14 +98,15 @@ export function PendingFollowUp({ meeting }: { meeting: Meeting }) {
                     value={time}
                     aria-describedby={`end-time-help-${meeting.id}`}
                     onChange={(event) => setTime(event.target.value)}
-                    className="min-h-11 rounded-lg border border-line bg-white px-3 text-base font-normal"
+                    className="h-11 rounded-lg border border-line bg-white px-3 text-base font-normal"
                   />
                 </label>
-                <Button type="submit" variant="outline" className="rounded-full text-brand">
+                <Button type="submit" size="sm" variant="outline" className="rounded-full text-brand">
                   Opslaan
                 </Button>
                 <Button
-                  variant="ghost"
+                  variant="link"
+                  size="sm"
                   onClick={() => {
                     setEditing(false);
                     setError("");
@@ -153,6 +158,7 @@ export function PendingFollowUp({ meeting }: { meeting: Meeting }) {
       {meeting.noActivity && !resume && (
         <Button
           variant="outline"
+          size="sm"
           className="rounded-full text-brand"
           onClick={() =>
             ops.putMeeting({
@@ -174,6 +180,7 @@ export function PendingFollowUp({ meeting }: { meeting: Meeting }) {
         </Button>
       )}
       <Button
+        size="sm"
         className="shrink-0 rounded-full"
         onClick={() => {
           ops.putMeeting({

@@ -75,12 +75,15 @@ export function loadMeetingsOverviewScenario(scenario: MeetingsOverviewScenario,
 }
 
 /** Direct preview without replacing the user's other demo meetings. */
-export function loadAutoClosedPreview(now = new Date()): string | null {
+export function loadAutoClosedPreview(now = new Date(), meetingId?: string): string | null {
   if (!isDemoEnvironment()) return null;
   const start = new Date(now);
   start.setHours(9, 0, 0, 0);
   const startedAt = start.getTime();
-  const id = "prototype-auto-closed";
+  const existing = useStore
+    .getState()
+    .meetings.find((meeting) => meeting.id === (meetingId ?? "overview-demo-upcoming-1"));
+  const id = existing?.id ?? "prototype-auto-closed";
   const running: Meeting = {
     id,
     name: "Directieoverleg",
@@ -118,4 +121,28 @@ export function loadAutoClosedPreview(now = new Date()): string | null {
     ],
   });
   return id;
+}
+
+/** Upgrade the original overview demo in place, keeping its identity and any ongoing work. */
+export function ensureDirectieExample() {
+  if (!isDemoEnvironment()) return;
+  const state = useStore.getState();
+  const original = state.meetings.find((meeting) => meeting.id === "overview-demo-upcoming-1");
+  if (!original || original.name !== "Productieoverleg") return;
+  const meeting =
+    original.startedAt || original.endedAt
+      ? { ...original, name: "Directieoverleg" }
+      : {
+          ...original,
+          name: "Directieoverleg",
+          ...createDirectieAgenda(Date.now()),
+          participants: [USER_PERSON_ID, ...DIRECTIE_PEOPLE.map((person) => person.id)],
+        };
+  useStore.setState({
+    meetings: state.meetings.map((item) => (item.id === meeting.id ? meeting : item)),
+    extraPeople: [
+      ...state.extraPeople.filter((person) => !DIRECTIE_PEOPLE.some((fixture) => fixture.id === person.id)),
+      ...DIRECTIE_PEOPLE,
+    ],
+  });
 }

@@ -47,3 +47,38 @@ test("Directieoverleg houdt zes punten en voorbeeldopvolging van overzicht tot a
   await expect(page.getByRole("list", { name: "Nieuwe acties", exact: true }).getByRole("listitem")).toHaveCount(4);
   await expect(page.getByText("Budgetvoorstel Q1 bijwerken", { exact: true })).toBeVisible();
 });
+
+test("bestaande eerste Productieoverleg wordt ter plaatse vernieuwd en houdt dezelfde ID in de prototypescenario’s", async ({
+  page,
+}) => {
+  await seedWrapUp(page);
+  await page.evaluate(() => {
+    const raw = JSON.parse(localStorage.getItem("too-doo-onboarding")!);
+    const original = raw.state.meetings[0];
+    original.id = "overview-demo-upcoming-1";
+    original.name = "Productieoverleg";
+    original.date = "2026-11-13";
+    delete original.startedAt;
+    delete original.endedAt;
+    delete original.lastActivityAt;
+    delete original.followUpStatus;
+    original.run = null;
+    localStorage.setItem("too-doo-onboarding", JSON.stringify(raw));
+  });
+  await page.goto("/app");
+  const link = page.locator('a[href="/app/overleg/overview-demo-upcoming-1"]');
+  await expect(link).toContainText("Directieoverleg");
+  const meetings = await storedMeetings(page);
+  expect(meetings).toHaveLength(2);
+  expect(meetings[0].blocks[0].items).toHaveLength(6);
+  expect(meetings[0].actions).toHaveLength(4);
+  await page.getByRole("button", { name: "Automatisch afgesloten · eindtijd bevestigen", exact: true }).click();
+  await expect(page).toHaveURL(/\/app\/overleg\/overview-demo-upcoming-1$/);
+  const bar = page.getByRole("region", { name: "Prototype-bediening afrondbanners", exact: true });
+  await bar.getByRole("button", { name: "Halverwege gestopt met afronden", exact: true }).click();
+  await expect(page).toHaveURL(/\/app\/overleg\/overview-demo-upcoming-1$/);
+  expect(await storedMeetings(page)).toHaveLength(2);
+  expect((await storedMeetings(page)).some((meeting: { id: string }) => meeting.id === "prototype-auto-closed")).toBe(
+    false,
+  );
+});

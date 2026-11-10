@@ -4,8 +4,8 @@ import { initialWrapUpDraft, finishWrapUp } from "@/lib/wrap-up-flow";
 import { loadAutoClosedPreview } from "./meetingsOverviewScenarios";
 
 export type MeetingBannerScenario = "proposed" | "no-activity" | "unfinished" | "completed";
-export function loadMeetingBannerScenario(scenario: MeetingBannerScenario) {
-  const id = loadAutoClosedPreview();
+export function loadMeetingBannerScenario(scenario: MeetingBannerScenario, meetingId?: string) {
+  const id = loadAutoClosedPreview(new Date(), meetingId);
   if (!id) return;
   const state = useStore.getState();
   let meeting = state.meetings.find((item) => item.id === id)!;

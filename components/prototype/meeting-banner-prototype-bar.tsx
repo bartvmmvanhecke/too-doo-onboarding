@@ -4,7 +4,7 @@ import type { Meeting } from "@/lib/store";
 import { loadMeetingBannerScenario } from "@/lib/prototype/meetingBannerScenarios";
 
 export function MeetingBannerPrototypeBar({ meeting }: { meeting: Meeting }) {
-  if (!isDemoEnvironment() || meeting.id !== "prototype-auto-closed") return null;
+  if (!isDemoEnvironment() || !["prototype-auto-closed", "overview-demo-upcoming-1"].includes(meeting.id)) return null;
   const selected =
     meeting.followUpStatus === "saved" || meeting.followUpStatus === "sent"
       ? "completed"
@@ -32,7 +32,7 @@ export function MeetingBannerPrototypeBar({ meeting }: { meeting: Meeting }) {
           key={value}
           type="button"
           aria-pressed={selected === value}
-          onClick={() => loadMeetingBannerScenario(value)}
+          onClick={() => loadMeetingBannerScenario(value, meeting.id)}
           className="min-h-11 rounded-lg border border-[var(--prototype-bar-border)] bg-[var(--prototype-bar-button)] px-3 aria-pressed:ring-2 aria-pressed:ring-white/60 focus-visible:outline-2 focus-visible:outline-offset-2"
         >
           {label}

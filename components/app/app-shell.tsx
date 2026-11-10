@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { MeetingBannerPrototypeBar } from "@/components/prototype/meeting-banner-prototype-bar";
 import { MeetingsOverviewPrototypeBar } from "@/components/prototype/meetings-overview-prototype-bar";
 import Link from "next/link";
@@ -20,7 +20,7 @@ import { USER_PERSON_ID } from "@/lib/mock-data";
 import { useStore } from "@/lib/store";
 import { cn } from "@/lib/utils";
 import { isDemoEnvironment } from "@/lib/demo-environment";
-import { loadMeetingsOverviewScenario } from "@/lib/prototype/meetingsOverviewScenarios";
+import { ensureDirectieExample, loadMeetingsOverviewScenario } from "@/lib/prototype/meetingsOverviewScenarios";
 
 const active = "bg-white/15 font-semibold text-white";
 
@@ -172,8 +172,14 @@ function AddMeetingsDialogHost() {
 
 function OverviewPrototypeBarHost({ onLoad }: { onLoad: () => void }) {
   const pathname = usePathname();
-  const meeting = useStore((state) => state.meetings.find((item) => item.id === "prototype-auto-closed"));
-  if (pathname === "/app/overleg/prototype-auto-closed" && meeting)
-    return <MeetingBannerPrototypeBar meeting={meeting} />;
+  const meetings = useStore((state) => state.meetings);
+  useEffect(() => {
+    ensureDirectieExample();
+  }, [meetings]);
+  const meeting = meetings.find(
+    (item) =>
+      pathname === `/app/overleg/${item.id}` && ["prototype-auto-closed", "overview-demo-upcoming-1"].includes(item.id),
+  );
+  if (meeting?.endedAt) return <MeetingBannerPrototypeBar meeting={meeting} />;
   return pathname === "/app" ? <MeetingsOverviewPrototypeBar onLoad={onLoad} /> : null;
 }

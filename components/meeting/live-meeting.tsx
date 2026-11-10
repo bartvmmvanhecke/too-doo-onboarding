@@ -96,9 +96,11 @@ function LiveMeetingContent({ meeting, confirmFinish }: { meeting: Meeting; conf
       minimized: false,
       blocks: latest.blocks.map((b) => ({
         ...b,
-        items: b.items.map((i) => ({ ...i, runStatus: "open", handledAt: undefined })),
+        items: b.items.map((i) => ({ ...i, runStatus: "open", handledAt: undefined, visitedAt: undefined })),
       })),
     });
+    setFinishPrompt(false);
+    router.replace(`/app/overleg/${meeting.id}`);
   };
   const minimize = () =>
     ops.putMeeting({ ...useStore.getState().meetings.find((m) => m.id === meeting.id)!, minimized: true });
@@ -767,18 +769,13 @@ function LiveMeetingContent({ meeting, confirmFinish }: { meeting: Meeting; conf
             >
               Verder vergaderen
             </button>
-            {meeting.actions.length === 0 &&
-              items.every((i) => !i.entries.some((e) => ["action", "decision", "note"].includes(e.kind))) &&
-              !meeting.privateNotes?.length &&
-              !note.trim() && (
-                <button
-                  type="button"
-                  onClick={undoStart}
-                  className="mt-3 min-h-11 font-bold text-ink-2 underline underline-offset-4"
-                >
-                  Start ongedaan maken
-                </button>
-              )}
+            <button
+              type="button"
+              onClick={undoStart}
+              className="mt-1 min-h-11 font-bold text-brand hover:underline underline-offset-4"
+            >
+              Starten ongedaan maken
+            </button>
           </div>
         </DialogContent>
       </Dialog>

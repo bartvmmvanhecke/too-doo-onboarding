@@ -12,7 +12,7 @@ test("springen voltooit niets, bevestigen en vrij navigeren in vijf stappen", as
   await page.getByRole("button", { name: "Afronden", exact: true }).first().click();
   const dialog = page.getByRole("dialog", { name: "Vergadering afronden?", exact: true });
   await expect(dialog).toContainText("4 agendapunten zijn nog open.");
-  await expect(dialog.getByRole("button", { name: "Start ongedaan maken" })).toHaveCount(0);
+  await expect(dialog.getByRole("button", { name: "Starten ongedaan maken", exact: true })).toBeVisible();
   await dialog.getByRole("button", { name: "Verder vergaderen" }).click();
   await page.getByRole("button", { name: "Afronden", exact: true }).first().click();
   await page.getByRole("button", { name: "Vergadering afronden", exact: true }).click();
@@ -139,7 +139,7 @@ test("job sluit af na twee uur zonder mail of overdracht en eindtijd is aanpasba
   expect((await storedMeetings(page))[0].endTimeConfirmed).toBe(true);
 });
 
-test("laatste open punt 3 vraagt bevestiging en start ongedaan kan alleen zonder inhoud", async ({ page }) => {
+test("laatste open punt 3 vraagt bevestiging en start ongedaan bewaart inhoud", async ({ page }) => {
   await seedWrapUp(page);
   const bar = page.getByRole("region", { name: "Prototype-bediening", exact: true });
   await bar.getByRole("button", { name: "Scenario: punt 3 is het laatste open punt", exact: true }).click();
@@ -151,7 +151,16 @@ test("laatste open punt 3 vraagt bevestiging en start ongedaan kan alleen zonder
   await page.getByRole("button", { name: "Verder vergaderen", exact: true }).click();
   await bar.getByRole("button", { name: "Scenario: start bij eerste punt", exact: true }).click();
   await page.getByRole("button", { name: "Afronden", exact: true }).first().click();
-  await page.getByRole("button", { name: "Start ongedaan maken", exact: true }).click();
+  const beforeUndo = (await storedMeetings(page))[0];
+  const undoLink = page.getByRole("button", { name: "Starten ongedaan maken", exact: true });
+  await expect(undoLink).toHaveClass(/text-brand/);
+  await undoLink.click();
+  await expect(page).toHaveURL(/\/app\/overleg\/wrap-test$/);
+  const afterUndo = (await storedMeetings(page))[0];
+  expect(afterUndo.actions).toEqual(beforeUndo.actions);
+  expect(afterUndo.blocks[0].items.map((item: { entries: unknown[] }) => item.entries)).toEqual(
+    beforeUndo.blocks[0].items.map((item: { entries: unknown[] }) => item.entries),
+  );
   await expect(page.getByRole("button", { name: "Start vergadering", exact: true })).toBeVisible();
   expect((await storedMeetings(page))[0].startedAt).toBeUndefined();
 });

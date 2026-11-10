@@ -26,12 +26,19 @@ for (const scheduled of [true, false]) {
       await page.getByLabel("Naam", { exact: true }).fill("Verplaatst overleg");
       await page.getByLabel("Datum", { exact: true }).fill("2026-11-18");
     } else {
-      await expect(page.getByRole("heading", { name: "Volgende vergadering plannen", exact: true })).toBeVisible();
+      await expect(
+        page.getByRole("heading", { name: "Nog geen volgende vergadering ingepland", exact: true }),
+      ).toBeVisible();
       await expect(page.getByLabel("Naam", { exact: true })).toHaveValue("");
       await expect(page.getByLabel("Datum", { exact: true })).toHaveValue("2026-11-16");
       await page.getByLabel("Naam", { exact: true }).fill("Nieuw overleg");
       await expect(page.getByText("Schuift door naar ma 16 nov", { exact: true })).toBeVisible();
-      await page.getByLabel("Naam", { exact: true }).fill("");
+      await page.getByRole("button", { name: "Ik weet het nog niet", exact: true }).click();
+      await expect(page.getByLabel("Naam", { exact: true })).toHaveCount(0);
+      await expect(page.getByText("Gaat naar “Bewaard voor later”", { exact: true })).toBeVisible();
+      await page.getByRole("button", { name: "Plan volgende vergadering", exact: true }).click();
+      await expect(page.getByLabel("Naam", { exact: true })).toHaveValue("Nieuw overleg");
+      await page.getByRole("button", { name: "Ik weet het nog niet", exact: true }).click();
       await expect(page.getByText("Gaat naar “Bewaard voor later”", { exact: true })).toBeVisible();
     }
     await page.getByRole("button", { name: "Afronden →", exact: true }).click();

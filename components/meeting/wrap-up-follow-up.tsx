@@ -22,6 +22,7 @@ export function WrapUpPlanning({
   const meetings = useStore((s) => s.meetings);
   const next = nextInSeries(meeting, meetings);
   const [editing, setEditing] = useState(false);
+  const [planningCollapsed, setPlanningCollapsed] = useState(false);
   const [beforeEdit, setBeforeEdit] = useState<Partial<WrapUpDraft>>({});
   const carried = agendaItems(meeting).filter((item) => draft.decisions?.[item.id] === "next");
   const proposedDate = new Date(`${meeting.date || toISO(new Date())}T12:00:00`);
@@ -54,13 +55,30 @@ export function WrapUpPlanning({
           <>
             <div className="mb-4 flex items-start justify-between gap-4">
               <div>
-                <h2 className="font-bold">{next ? "Deze vergadering verplaatsen" : "Volgende vergadering plannen"}</h2>
+                <h2 className="font-bold">
+                  {next ? "Deze vergadering verplaatsen" : "Nog geen volgende vergadering ingepland"}
+                </h2>
                 <p className="mt-1 text-sm text-ink-3">
                   {next
                     ? "Je wijzigt de bestaande vergadering. Er komt geen tweede bij, en de rest van de reeks blijft zoals ze is."
-                    : "Optioneel. Laat de naam leeg als je nog niets wilt plannen."}
+                    : "Plan optioneel je volgende vergadering. Heb je nog geen vervolgmoment in gedachten, klik dan op ‘Ik weet het nog niet’."}
                 </p>
               </div>
+              {!next && (
+                <Button
+                  variant="link"
+                  className="shrink-0 text-brand"
+                  aria-expanded={!planningCollapsed}
+                  aria-controls="next-meeting-fields"
+                  onClick={() => {
+                    const collapsed = !planningCollapsed;
+                    setPlanningCollapsed(collapsed);
+                    patch({ noNext: collapsed || !planningName.trim() });
+                  }}
+                >
+                  {planningCollapsed ? "Plan volgende vergadering" : "Ik weet het nog niet"}
+                </Button>
+              )}
               {next && (
                 <Button
                   variant="link"
@@ -73,40 +91,46 @@ export function WrapUpPlanning({
                 </Button>
               )}
             </div>
-            <div className="grid gap-4 sm:grid-cols-3">
-              <label className="flex flex-col gap-2 text-sm font-bold">
-                Naam
-                <input
-                  className={field}
-                  value={planningName}
-                  placeholder={`Bijvoorbeeld: ${meeting.name}`}
-                  onChange={(event) =>
-                    patch({ nextName: event.target.value, nextDate: planningDate, noNext: !event.target.value.trim() })
-                  }
-                />
-              </label>
-              <label className="flex flex-col gap-2 text-sm font-bold">
-                Datum
-                <input
-                  className={field}
-                  type="date"
-                  min={meeting.date || undefined}
-                  value={planningDate}
-                  onChange={(event) =>
-                    patch({ nextDate: event.target.value, nextName: planningName, noNext: !planningName.trim() })
-                  }
-                />
-              </label>
-              <label className="flex flex-col gap-2 text-sm font-bold">
-                Tijd
-                <input
-                  className={field}
-                  type="time"
-                  value={draft.nextTime ?? "09:00"}
-                  onChange={(event) => patch({ nextTime: event.target.value })}
-                />
-              </label>
-            </div>
+            {(!planningCollapsed || next) && (
+              <div id="next-meeting-fields" className="grid gap-4 sm:grid-cols-3">
+                <label className="flex flex-col gap-2 text-sm font-bold">
+                  Naam
+                  <input
+                    className={field}
+                    value={planningName}
+                    placeholder={`Bijvoorbeeld: ${meeting.name}`}
+                    onChange={(event) =>
+                      patch({
+                        nextName: event.target.value,
+                        nextDate: planningDate,
+                        noNext: !event.target.value.trim(),
+                      })
+                    }
+                  />
+                </label>
+                <label className="flex flex-col gap-2 text-sm font-bold">
+                  Datum
+                  <input
+                    className={field}
+                    type="date"
+                    min={meeting.date || undefined}
+                    value={planningDate}
+                    onChange={(event) =>
+                      patch({ nextDate: event.target.value, nextName: planningName, noNext: !planningName.trim() })
+                    }
+                  />
+                </label>
+                <label className="flex flex-col gap-2 text-sm font-bold">
+                  Tijd
+                  <input
+                    className={field}
+                    type="time"
+                    value={draft.nextTime ?? "09:00"}
+                    onChange={(event) => patch({ nextTime: event.target.value })}
+                  />
+                </label>
+              </div>
+            )}
           </>
         ) : (
           <div className="flex flex-wrap items-center gap-4">
@@ -132,7 +156,7 @@ export function WrapUpPlanning({
                   : "Je kunt gewoon verder. Verplaatste punten gaan dan naar “Bewaard voor later”."}
               </p>
             </div>
-            <Button variant="outline" className="rounded-full text-brand" onClick={openEditor}>
+            <Button variant="link" className="text-brand" onClick={openEditor}>
               {scheduled ? "Datum of tijd wijzigen" : "+ Volgende vergadering plannen"}
             </Button>
           </div>

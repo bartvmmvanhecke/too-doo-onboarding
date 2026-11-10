@@ -2,7 +2,9 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import styles from "./meeting-wrap-up.module.css";
-import { Check, ArrowRight, Trash2, Scale, SquareCheck, Timer } from "lucide-react";
+import { Check, ArrowRight, Trash2, Scale, SquareCheck, Timer, CalendarDays, ListChecks } from "lucide-react";
+import { Avatar } from "@/components/avatar";
+import { formatShortDate } from "@/lib/date";
 import { Logo } from "@/components/brand";
 import { Button } from "@/components/ui/button";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -13,11 +15,8 @@ import { WrapUpPlanning, WrapUpFollowUp } from "./wrap-up-follow-up";
 import { EntryPanel } from "./entries";
 import { MeetingProvider } from "./meeting-context";
 import { ownerOptions } from "@/lib/owners";
-import { deadlineDate, type AgendaItem, type EntryKind } from "@/lib/agenda";
-import { toISO } from "@/lib/date";
+import { type AgendaItem, type EntryKind } from "@/lib/agenda";
 
-const dateValue = (value: string) =>
-  /^\d{4}-\d{2}-\d{2}$/.test(value) ? value : deadlineDate(value) ? toISO(deadlineDate(value)!) : "";
 // Keep stored step IDs stable for drafts created with the original three steps.
 const steps = [
   { id: 0, label: "Agenda" },
@@ -364,120 +363,69 @@ function AgendaReview({
 }
 
 function DecisionsReview({ meeting }: { meeting: Meeting }) {
-  const people = usePeople();
-  const items = agendaItems(meeting).filter((item) => item.entries.some((entry) => entry.kind === "decision"));
-  return (
-    <MeetingProvider
-      value={{ meeting, people, owners: ownerOptions(people, meeting.participants, meeting.name, []), now: 0 }}
-    >
-      <TooltipProvider>
-        <p className="mb-7 text-ink-2">
-          Controleer de beslissingen die tijdens de vergadering zijn vastgelegd. Je kunt de tekst, eigenaar en
-          uitvoerdatum aanpassen.
-        </p>
-        {items.length ? (
-          items.map((item) => (
-            <section key={item.id} className="mb-5 rounded-2xl border border-line p-4 sm:p-6">
-              <h2 className="mb-4 text-lg font-bold">{item.text}</h2>
-              <EntryPanel item={item} kind="decision" />
-            </section>
-          ))
-        ) : (
-          <section className="rounded-2xl border border-line p-4 sm:p-6">
-            <h2 className="text-lg font-bold">Geen beslissingen vastgelegd</h2>
-            <p className="mt-2 text-sm text-ink-2">
-              Een vastgelegde beslissing verschijnt hier met het bijbehorende agendapunt.
-            </p>
-            <div className="mt-5 rounded-xl bg-brand-soft p-4">
-              <p className="mb-2 text-xs font-bold text-brand">Voorbeeld · wordt niet opgeslagen</p>
-              <h3 className="font-semibold">Opleidingsbudget Q4</h3>
-              <p className="mt-2 text-sm">We keuren het opleidingsbudget voor het vierde kwartaal goed.</p>
-              <p className="mt-2 text-sm text-ink-2">Eigenaar: Lisa · Uitvoeren tegen: 30 november</p>
-            </div>
-          </section>
-        )}
-      </TooltipProvider>
-    </MeetingProvider>
+  const rows = agendaItems(meeting).flatMap((item) =>
+    item.entries
+      .filter((entry) => entry.kind === "decision")
+      .map((entry) => ({
+        id: `${item.id}:${entry.id}`,
+        text: entry.text,
+        topic: item.text,
+        ownerId: entry.ownerId,
+        date: entry.date,
+      })),
   );
+  return <ReviewList rows={rows} label="Genomen beslissingen" empty="Geen beslissingen vastgelegd." />;
 }
 function ActionsReview({ meeting }: { meeting: Meeting }) {
-  const ops = useStore();
-  const people = usePeople();
   const items = agendaItems(meeting);
-  return (
-    <>
-      <p className="mb-7 text-ink-2">
-        Controleer wie elke actie uitvoert en tegen wanneer. Acties zonder eigenaar komen bij jou terecht wanneer je
-        verdergaat.
-      </p>
-      <section className="my-5 rounded-2xl border border-line bg-white p-4 sm:p-6">
-        <h2 className="mb-4 text-lg font-bold">Acties ({meeting.actions.length})</h2>
-        {!meeting.actions.length && <p className="text-sm text-ink-3">Geen acties vastgelegd.</p>}
-        {meeting.actions.map((a) => (
-          <div key={a.id} className="flex flex-wrap items-center gap-3 border-t border-line py-3">
-            <span className="min-w-40 flex-1 text-sm">{a.what}</span>
-            <label className="text-sm">
-              Eigenaar{" "}
-              <select
-                aria-label={`Eigenaar voor ${a.what}`}
-                className={field}
-                value={a.ownerId ?? ""}
-                onChange={(e) => {
-                  ops.assignOwner(meeting.id, a.id, e.target.value);
-                  const item = items.find((i) => i.entries.some((entry) => entry.actionId === a.id));
-                  const entry = item?.entries.find((entry) => entry.actionId === a.id);
-                  if (item && entry)
-                    ops.updateEntry(meeting.id, item.id, entry.id, { ownerId: e.target.value || null });
-                }}
-              >
-                <option value="">Kiezen…</option>
-                {people
-                  .filter((p) => meeting.participants.includes(p.id) || p.id === meeting.startedBy)
-                  .map((p) => (
-                    <option key={p.id} value={p.id}>
-                      {p.name}
-                    </option>
-                  ))}
-              </select>
-            </label>
-            <label className="text-sm">
-              Datum{" "}
-              <input
-                aria-label={`Datum voor ${a.what}`}
-                className={field}
-                type="date"
-                value={dateValue(a.deadline)}
-                onChange={(e) => {
-                  const latest = useStore.getState().meetings.find((m) => m.id === meeting.id)!;
-                  ops.putMeeting({
-                    ...latest,
-                    actions: latest.actions.map((action) =>
-                      action.id === a.id ? { ...action, deadline: e.target.value } : action,
-                    ),
-                    blocks: latest.blocks.map((b) => ({
-                      ...b,
-                      items: b.items.map((i) => ({
-                        ...i,
-                        entries: i.entries.map((entry) =>
-                          entry.actionId === a.id ? { ...entry, date: e.target.value } : entry,
-                        ),
-                      })),
-                    })),
-                  });
-                }}
-              />
-            </label>
-          </div>
-        ))}
-      </section>
-
-      {!meeting.actions.length && (
-        <div className="rounded-xl bg-brand-soft p-4">
-          <p className="mb-2 text-xs font-bold text-brand">Voorbeeld · wordt niet opgeslagen</p>
-          <h2 className="font-semibold">Offertes voor de opleiding opvragen</h2>
-          <p className="mt-2 text-sm text-ink-2">Eigenaar: Lisa · Deadline: 20 november</p>
-        </div>
-      )}
-    </>
+  const rows = meeting.actions.map((action) => ({
+    id: action.id,
+    text: action.what,
+    topic: items.find((item) => item.entries.some((entry) => entry.actionId === action.id))?.text,
+    ownerId: action.ownerId,
+    date: action.deadline,
+  }));
+  return <ReviewList rows={rows} label="Nieuwe acties" empty="Geen acties vastgelegd." />;
+}
+function ReviewList({
+  rows,
+  label,
+  empty,
+}: {
+  rows: { id: string; text: string; topic?: string; ownerId: string | null; date?: string }[];
+  label: string;
+  empty: string;
+}) {
+  const people = usePeople();
+  return rows.length ? (
+    <ul aria-label={label} className="flex flex-col gap-4">
+      {rows.map((row) => {
+        const owner = people.find((person) => person.id === row.ownerId);
+        return (
+          <li key={row.id} className={styles.reviewRow}>
+            <div className="min-w-0 flex-1">
+              <h2 className="break-words text-base font-bold">{row.text}</h2>
+              <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-ink-3">
+                {row.topic && (
+                  <span className="inline-flex min-w-0 items-center gap-1.5">
+                    <ListChecks aria-hidden className="size-4 shrink-0" />
+                    <span className="break-words">{row.topic}</span>
+                  </span>
+                )}
+                {row.date && (
+                  <span className="inline-flex items-center gap-1.5">
+                    <CalendarDays aria-hidden className="size-4 shrink-0" />
+                    {/^\d{4}-\d{2}-\d{2}$/.test(row.date) ? formatShortDate(row.date) : row.date}
+                  </span>
+                )}
+              </div>
+            </div>
+            {owner ? <Avatar person={owner} size={36} /> : <span className="text-xs text-ink-3">Geen eigenaar</span>}
+          </li>
+        );
+      })}
+    </ul>
+  ) : (
+    <p className="text-sm text-ink-3">{empty}</p>
   );
 }

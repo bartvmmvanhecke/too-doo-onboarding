@@ -276,9 +276,7 @@ test("nieuwe planning heeft een titel, mag overgeslagen worden en ongeldige veld
   expect(await storedMeetings(page)).toHaveLength(1);
 });
 
-test("vijf stappen tonen beslissingen en acties, bewaren wijzigingen en houden de agenda binnen de kaart", async ({
-  page,
-}) => {
+test("vijf stappen tonen alleen-lezen beslissingen en acties en houden de agenda binnen de kaart", async ({ page }) => {
   await seedWrapUp(page, { automatic: true });
   await page.evaluate(() => {
     const raw = JSON.parse(localStorage.getItem("too-doo-onboarding")!);
@@ -313,17 +311,22 @@ test("vijf stappen tonen beslissingen en acties, bewaren wijzigingen en houden d
   await page.getByRole("button", { name: "Beslissingen →", exact: true }).click();
   await expect(page.getByRole("heading", { name: "Beslissingen", exact: true })).toBeFocused();
   await expect(page.getByText("Opleidingsbudget goedgekeurd", { exact: true })).toBeVisible();
-  await page.getByRole("button", { name: 'Beslissing "Opleidingsbudget goedgekeurd" bewerken', exact: true }).click();
-  await page.getByRole("textbox", { name: "Beslissing bewerken", exact: true }).fill("Opleidingsbudget Q4 goedgekeurd");
-  await page.getByRole("textbox", { name: "Beslissing bewerken", exact: true }).press("Enter");
+  const decisions = page.getByRole("list", { name: "Genomen beslissingen", exact: true });
+  await expect(decisions.getByRole("listitem")).toHaveCount(1);
+  await expect(decisions.getByText("Punt 1", { exact: true })).toBeVisible();
+  await expect(decisions.locator("button, input, select, textarea")).toHaveCount(0);
+  await page.screenshot({ path: "/tmp/wrap-up-readonly-decisions.png" });
   await page.getByRole("button", { name: "Acties →", exact: true }).click();
   await expect(page.getByRole("heading", { name: "Acties", exact: true })).toBeFocused();
-  await page.getByLabel("Eigenaar voor Offerte opvragen", { exact: true }).selectOption("sd");
-  await page.getByLabel("Datum voor Offerte opvragen", { exact: true }).fill("2026-11-20");
+  const actions = page.getByRole("list", { name: "Nieuwe acties", exact: true });
+  await expect(actions.getByRole("listitem")).toHaveCount(1);
+  await expect(actions.getByText("Offerte opvragen", { exact: true })).toBeVisible();
+  await expect(actions.getByText("Punt 2", { exact: true })).toBeVisible();
+  await expect(actions.locator("button, input, select, textarea")).toHaveCount(0);
+  await page.screenshot({ path: "/tmp/wrap-up-readonly-actions.png" });
   await page.reload();
-  await expect(page.getByLabel("Eigenaar voor Offerte opvragen", { exact: true })).toHaveValue("sd");
-  await expect(page.getByLabel("Datum voor Offerte opvragen", { exact: true })).toHaveValue("2026-11-20");
-  expect((await storedMeetings(page))[0].blocks[0].items[0].entries[0].text).toBe("Opleidingsbudget Q4 goedgekeurd");
+  await expect(actions.getByText("Offerte opvragen", { exact: true })).toBeVisible();
+  expect((await storedMeetings(page))[0].blocks[0].items[0].entries[0].text).toBe("Opleidingsbudget goedgekeurd");
   await page.getByRole("button", { name: "Volgende vergadering →", exact: true }).click();
   await expect(page.getByRole("heading", { name: "Bevestig de volgende vergadering", exact: true })).toBeFocused();
   await page.setViewportSize({ width: 390, height: 844 });

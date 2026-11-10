@@ -360,3 +360,18 @@
 .completedAgenda .agendaCard {
   margin-top: 16px;
 }
+
+.reviewRow {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: white;
+  padding: 20px 24px;
+}
+@media (max-width: 600px) {
+  .reviewRow {
+    padding: 16px;
+  }
+}

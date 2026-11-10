@@ -79,7 +79,7 @@ export function WrapUpPlanning({
                 <label className="flex flex-col gap-2 text-sm font-bold">
                   Naam
                   <input
-                    className={field}
+                    className={`${field} font-normal`}
                     value={planningName}
                     placeholder={`Bijvoorbeeld: ${meeting.name}`}
                     onChange={(event) =>
@@ -94,7 +94,7 @@ export function WrapUpPlanning({
                 <label className="flex flex-col gap-2 text-sm font-bold">
                   Datum
                   <input
-                    className={field}
+                    className={`${field} font-normal`}
                     type="date"
                     min={meeting.date || undefined}
                     value={planningDate}
@@ -106,7 +106,7 @@ export function WrapUpPlanning({
                 <label className="flex flex-col gap-2 text-sm font-bold">
                   Tijd
                   <input
-                    className={field}
+                    className={`${field} font-normal`}
                     type="time"
                     value={draft.nextTime ?? (next ? "09:00" : "")}
                     onChange={(event) => patch({ nextTime: event.target.value })}

@@ -132,7 +132,7 @@ export function finishWrapUp(m: Meeting, meetings: Meeting[], status: "sent" | "
   }
   // Without a next appointment, the original carry=next records form the persisted "Bewaard voor later" list.
   // TODO(api): use a standalone backlog collection; reconcile these records when a next appointment is created.
-  if (!draft.noNext && next) result = carryForward(updated, result);
+  if (!draft.noNext && next) result = carryForward(updated, result, next);
   return result.map((n) =>
     n.id === m.id
       ? {
@@ -183,7 +183,7 @@ export function reconcileBacklog(meetings: Meeting[]): Meeting[] {
       (i) =>
         i.carry === "next" &&
         !isHandled(m, i.id) &&
-        !agendaItems(next).some((n) => n.carriedSourceId === `${m.id}:${i.id}`),
+        !result.some((target) => agendaItems(target).some((n) => n.carriedSourceId === `${m.id}:${i.id}`)),
     );
     if (missing.length) result = carryForward(m, result);
   }

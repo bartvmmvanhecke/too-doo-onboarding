@@ -7,7 +7,7 @@ for (const scheduled of [true, false]) {
   }) => {
     await seedWrapUp(page, { automatic: true });
     await page.getByRole("button", { name: "Afronden →", exact: true }).click();
-    await page.getByRole("button", { name: "4. Volgende vergadering", exact: true }).click();
+    await page.getByRole("button", { name: "4. Afronden", exact: true }).click();
     const prototype = page.getByRole("region", { name: "Prototype volgende vergadering" });
     await prototype
       .getByRole("button", {
@@ -16,7 +16,7 @@ for (const scheduled of [true, false]) {
       })
       .click();
     if (scheduled) {
-      await expect(page.getByRole("heading", { name: "Al gepland · uit de reeks" })).toBeVisible();
+      await expect(page.getByText("Al gepland · uit de reeks", { exact: true })).toBeVisible();
       await page.getByRole("button", { name: "Datum of tijd wijzigen" }).click();
       await page.getByLabel("Naam", { exact: true }).fill("Verplaatst overleg");
       await page.locator("#next-date-trigger").click();
@@ -27,25 +27,20 @@ for (const scheduled of [true, false]) {
       await page.getByLabel("Naam", { exact: true }).fill("Verplaatst overleg");
       await page.locator("#next-date-trigger").click();
       await page.locator('[data-slot="calendar"]').getByRole("button").filter({ hasText: /^18$/ }).click();
+      await expect(page.getByText("Gewijzigd · uit de reeks", { exact: true })).toBeVisible();
     } else {
-      await expect(
-        page.getByRole("heading", { name: "Nog geen volgende vergadering gepland", exact: true }),
-      ).toBeVisible();
+      await expect(page.getByRole("heading", { name: "Plan je volgende vergadering in", exact: true })).toBeVisible();
       await expect(page.getByLabel("Naam", { exact: true })).toHaveValue("Directievergadering");
       await expect(page.locator("#next-date-trigger")).toContainText("dd/mm/yyyy");
-      await expect(page.getByLabel("Tijd", { exact: true })).toHaveValue("");
+      await expect(page.getByLabel("Starttijd", { exact: true })).toHaveValue("");
       await page.getByRole("button", { name: /over 2 weken/ }).click();
       await expect(page.locator("#next-date-trigger")).toContainText("23/11/2026");
-      await expect(page.getByLabel("Tijd", { exact: true })).toHaveValue("09:00");
-      await page.getByRole("button", { name: "Tijd wissen", exact: true }).click();
-      await expect(page.getByLabel("Tijd", { exact: true })).toHaveValue("");
-      await expect(page.getByRole("button", { name: "Tijd wissen", exact: true })).toHaveCount(0);
+      await expect(page.getByLabel("Starttijd", { exact: true })).toHaveValue("09:00");
       await page.getByRole("button", { name: "Datum wissen", exact: true }).click();
-      await expect(page.getByText("Gaat naar “Bewaard voor later”", { exact: true })).toBeVisible();
+      await expect(page.getByText('Gaat naar "Bewaard voor later"', { exact: true })).toBeVisible();
     }
-    await page.getByRole("button", { name: "Afronden →", exact: true }).click();
-    await expect(page.getByRole("heading", { name: "Vergaderscore (optioneel)", exact: true })).toBeVisible();
-    await page.getByRole("button", { name: "Vergadering afronden", exact: true }).click();
+    await expect(page.getByRole("heading", { name: "Hoe liep deze vergadering? · één klik" })).toBeVisible();
+    await page.getByRole("button", { name: "✓ Vergadering afronden", exact: true }).click();
     const meetings = await storedMeetings(page);
     const current = meetings.find((meeting: { id: string }) => meeting.id === "wrap-test");
     expect(current.followUpStatus).toBe("saved");

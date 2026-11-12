@@ -1,7 +1,7 @@
 import type { Page } from "@playwright/test";
 export async function seedWrapUp(
   page: Page,
-  options: { automatic?: boolean; next?: boolean; age?: number; noActivity?: boolean } = {},
+  options: { automatic?: boolean; next?: boolean; age?: number; noActivity?: boolean; separateFeedback?: boolean } = {},
 ) {
   await page.clock.install({ time: new Date("2026-11-09T10:20:00+01:00") });
   await page.goto("/app");
@@ -77,6 +77,7 @@ export async function seedWrapUp(
       wrapUpToolbar: true,
       wrapUpPrimary: false,
       wrapUpCompact: false,
+      wrapUpSeparateFeedback: options.separateFeedback ?? false,
     };
     raw.state.meetings = [
       meeting,

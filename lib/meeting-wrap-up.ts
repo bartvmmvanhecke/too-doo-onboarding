@@ -131,8 +131,7 @@ export function nextInSeries(m: Meeting, meetings: Meeting[]) {
   );
 }
 /** Idempotent transfer; originals remain available in the report. */
-export function carryForward(m: Meeting, meetings: Meeting[]): Meeting[] {
-  const next = nextInSeries(m, meetings);
+export function carryForward(m: Meeting, meetings: Meeting[], next = nextInSeries(m, meetings)): Meeting[] {
   if (!next) return meetings; // TODO(api): persist carry=next in the unassigned "Bewaard voor later" list.
   const dropped = new Set(
     agendaItems(m)

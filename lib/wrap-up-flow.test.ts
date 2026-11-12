@@ -106,6 +106,19 @@ it("bewaart naam en duur als concept en wijzigt de bestaande afspraak pas bij af
   expect(result).toHaveLength(2);
   expect(result[1]).toMatchObject({ id: "next", name: "Nieuwe naam", duration: 90 });
 });
+it("verplaatst punten naar de bewerkte afspraak als een andere afspraak eerder valt", () => {
+  const m = meeting();
+  const next = { ...meeting(), id: "next", date: "2026-11-16", blocks: [] };
+  const later = { ...next, id: "later", date: "2026-11-23" };
+  m.wrapUpDraft = { decisions: { i: "next" }, nextDate: "2026-11-30" };
+
+  const saved = finishWrapUp(m, [m, next, later], "saved");
+
+  expect(saved[1]).toMatchObject({ id: "next", date: "2026-11-30" });
+  expect(saved[1].blocks[0].items[0].carriedSourceId).toBe("m:i");
+  expect(saved[2]).toEqual(later);
+  expect(reconcileBacklog(saved)).toBe(saved);
+});
 it("gebruikt de bewerkte naam en duur bij een nieuwe afspraak", () => {
   const m = meeting();
   m.wrapUpDraft = { nextName: "Vervolg", nextDuration: 45, nextTime: "11:00", nextDate: "2026-11-16" };

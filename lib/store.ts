@@ -88,6 +88,7 @@ export interface WrapUpDraft {
   endTimeAdjusted?: boolean;
   decisions?: Record<string, "done" | "next" | "drop">;
   step?: number;
+  beforeNextEdit?: Pick<WrapUpDraft, "nextName" | "nextDate" | "nextTime" | "nextDuration" | "noNext">;
   nextName?: string;
   nextDuration?: number;
   nextDate?: string;
@@ -188,6 +189,7 @@ interface Data {
     /** Prototype: het oude eerste scherm "Zet je eerste vaste overleg klaar" op een lege Vergaderingen. */
     altEmpty?: boolean;
     wrapUpToolbar?: boolean;
+    wrapUpSeparateFeedback?: boolean;
     wrapUpPrimary?: boolean;
     wrapUpCompact?: boolean;
   };

@@ -2,18 +2,28 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import styles from "./meeting-wrap-up.module.css";
-import { Check, ArrowRight, Trash2, Scale, SquareCheck, Timer, CalendarDays, ListChecks } from "lucide-react";
+import {
+  Check,
+  ArrowLeft,
+  ArrowRight,
+  Trash2,
+  Scale,
+  SquareCheck,
+  Timer,
+  CalendarDays,
+  ListChecks,
+} from "lucide-react";
 import { Avatar } from "@/components/avatar";
 import { formatShortDate } from "@/lib/date";
+import { formatTime } from "@/lib/time";
 import { isDemoEnvironment } from "@/lib/demo-environment";
 import { loadPlanningScenario } from "@/lib/prototype/planningScenarios";
 import { ensureDirectieExample } from "@/lib/prototype/meetingsOverviewScenarios";
-import { Logo } from "@/components/brand";
 import { Button } from "@/components/ui/button";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { useStore, usePeople, type Meeting, type WrapUpDraft } from "@/lib/store";
 import { agendaItems, clockTime, isHandled, nextInSeries, suggestDecision } from "@/lib/meeting-wrap-up";
-import { initialWrapUpDraft, assignMissingOwners, finishWrapUp, planningError } from "@/lib/wrap-up-flow";
+import { initialWrapUpDraft, assignMissingOwners, finishWrapUp } from "@/lib/wrap-up-flow";
 import { WrapUpPlanning, WrapUpFollowUp } from "./wrap-up-follow-up";
 import { EntryPanel } from "./entries";
 import { MeetingProvider } from "./meeting-context";
@@ -21,25 +31,35 @@ import { ownerOptions } from "@/lib/owners";
 import { type AgendaItem, type EntryKind } from "@/lib/agenda";
 
 // Keep stored step IDs stable for drafts created with the original three steps.
-const steps = [
+const allSteps = [
   { id: 0, label: "Agenda" },
   { id: 3, label: "Beslissingen" },
   { id: 4, label: "Acties" },
   { id: 1, label: "Volgende vergadering" },
   { id: 2, label: "Afronden" },
 ];
-const field = "min-h-11 rounded-lg border border-line bg-white px-3 text-sm";
 export function MeetingWrapUp({ meeting }: { meeting: Meeting }) {
   const ops = useStore();
   const router = useRouter();
   const draft = initialWrapUpDraft(meeting, ops.meetings);
+  const separateFeedback = ops.demo.wrapUpSeparateFeedback ?? false;
+  const steps = separateFeedback ? allSteps : allSteps.filter(({ id }) => id !== 1);
+  const finalStep = steps.length - 1;
   const step = Math.max(
     0,
-    steps.findIndex((s) => s.id === (draft.step ?? 0)),
+    steps.findIndex((s) => s.id === (draft.step === 1 && !separateFeedback ? 2 : (draft.step ?? 0))),
   );
   const [notice, setNotice] = useState("");
+  const [validateName, setValidateName] = useState(false);
+  const nameError = validateName && !!draft.beforeNextEdit && !draft.nextName?.trim();
+  const canContinuePlanning = () => {
+    if (!draft.beforeNextEdit || draft.nextName?.trim()) return true;
+    setValidateName(true);
+    return false;
+  };
   const heading = useRef<HTMLHeadingElement>(null);
   const patch = (update: Partial<WrapUpDraft>) => {
+    if ("nextName" in update || "beforeNextEdit" in update) setValidateName(false);
     const latest = useStore.getState().meetings.find((m) => m.id === meeting.id)!;
     ops.putMeeting({
       ...latest,
@@ -63,28 +83,45 @@ export function MeetingWrapUp({ meeting }: { meeting: Meeting }) {
     }
   }, [meeting.id]);
   useEffect(() => {
+    if (separateFeedback) return;
+    const state = useStore.getState();
+    const latest = state.meetings.find((m) => m.id === meeting.id);
+    if (latest?.wrapUpDraft?.step === 1) {
+      state.putMeeting({ ...latest, wrapUpDraft: { ...latest.wrapUpDraft, step: 2 } });
+    }
+  }, [meeting.id, separateFeedback, draft.step]);
+  useEffect(() => {
     heading.current?.focus();
   }, [step]);
-  const finish = (status: "sent" | "saved") => {
+  const finish = () => {
     const state = useStore.getState();
     const latest = state.meetings.find((m) => m.id === meeting.id)!;
-    const error = planningError(initialWrapUpDraft(latest, state.meetings));
-    if (error) {
-      setNotice(error);
+    if (!canContinuePlanning()) {
       patch({ step: 3 });
       return;
     }
-    // TODO(api): explicit delivery of the preview payload; score questions travel in the same follow-up mail.
-    useStore.setState({ meetings: finishWrapUp(latest, state.meetings, status) });
+    const next = nextInSeries(latest, state.meetings);
+    const nextDate = draft.nextDate || next?.date || "";
+    const duration = draft.nextDuration ?? 0;
+    const completedDraft = {
+      ...draft,
+      beforeNextEdit: undefined,
+      nextDate,
+      noNext: !nextDate,
+      nextName: draft.nextName?.trim() || next?.name || latest.name,
+      nextTime: nextDate ? draft.nextTime || formatTime(next?.time ?? latest.time ?? 540) : "",
+      nextDuration:
+        Number.isInteger(duration) && duration >= 5 && duration <= 1440
+          ? duration
+          : (next?.duration ?? latest.duration),
+    };
+    useStore.setState({ meetings: finishWrapUp({ ...latest, wrapUpDraft: completedDraft }, state.meetings, "saved") });
     router.push(`/app/overleg/${meeting.id}`);
   };
   const go = (next: number) => {
-    if (step === 3 && next > step) {
-      const error = planningError(draft);
-      if (error) {
-        setNotice(error);
-        return;
-      }
+    if (separateFeedback && step === 3 && next > step) {
+      if (!canContinuePlanning()) return;
+      patch({ beforeNextEdit: undefined });
     }
     setNotice("");
     const latest = useStore.getState().meetings.find((m) => m.id === meeting.id)!;
@@ -113,20 +150,33 @@ export function MeetingWrapUp({ meeting }: { meeting: Meeting }) {
     else ops.putMeeting({ ...latest, wrapUpOpen: false, wrapUpDraft: { ...draft, entry: "later" } });
     router.push(`/app/overleg/${meeting.id}`);
   };
+  const startedAt = meeting.startedAt ?? meeting.run?.startedAt;
+  const startTime = startedAt != null ? clockTime(startedAt) : meeting.time != null ? formatTime(meeting.time) : "";
+  const endTime = meeting.endedAt != null ? clockTime(meeting.endedAt) : "";
+  const timeRange = [startTime, endTime].filter(Boolean).join("–");
+  const meetingDate = startedAt != null ? new Date(startedAt) : meeting.date;
+  const schedule = [meetingDate && formatShortDate(meetingDate), timeRange].filter(Boolean).join(" · ");
+
   return (
     <div className={`app-theme ${styles.shell}`}>
       <header className={styles.header}>
-        <Logo href="/app" tone="white" />
-        <div className="flex min-w-0 flex-wrap items-center justify-between gap-3 pr-14">
-          <span>{meeting.name}</span>
-          {step === 3 && isDemoEnvironment() && (
-            <div
-              role="region"
-              aria-label="Prototype volgende vergadering"
-              className="flex flex-wrap items-center gap-2 rounded-xl bg-[var(--prototype-bar-bg)] p-2 text-[13px] text-white"
-            >
-              <span className="px-1 text-[11px] font-bold text-[var(--prototype-bar-muted)]">PROTOTYPE</span>
-              {[
+        <button type="button" className={styles.headerBack} onClick={leave}>
+          <ArrowLeft aria-hidden className="size-4 shrink-0" />
+          Terug naar de vergadering
+        </button>
+        <div className={styles.headerMeeting}>
+          <span className={styles.headerTitle}>{meeting.name}</span>
+          {schedule && <span className={styles.headerSchedule}>{schedule}</span>}
+        </div>
+        {step >= 3 && isDemoEnvironment() && (
+          <div
+            role="region"
+            aria-label="Prototype volgende vergadering"
+            className="flex flex-wrap items-center gap-2 rounded-xl bg-[var(--prototype-bar-bg)] p-2 text-[13px] text-white"
+          >
+            <span className="px-1 text-[11px] font-bold text-[var(--prototype-bar-muted)]">PROTOTYPE</span>
+            {step === 3 &&
+              [
                 { scheduled: true, label: "Volgende reeds ingepland" },
                 { scheduled: false, label: "Volgende nog niet ingepland" },
               ].map(({ scheduled, label }) => (
@@ -140,14 +190,21 @@ export function MeetingWrapUp({ meeting }: { meeting: Meeting }) {
                   {label}
                 </button>
               ))}
-            </div>
-          )}
-        </div>
+            <button
+              type="button"
+              aria-pressed={separateFeedback}
+              onClick={() => ops.setDemo({ wrapUpSeparateFeedback: !separateFeedback })}
+              className="min-h-11 rounded-lg border border-[var(--prototype-bar-border)] bg-[var(--prototype-bar-button)] px-3 aria-pressed:ring-2 aria-pressed:ring-white/60"
+            >
+              Feedback als aparte stap
+            </button>
+          </div>
+        )}
       </header>
       <div className={styles.panel}>
         <main className={styles.scroll}>
           <div className={styles.content}>
-            <nav aria-label="Afrondingsstappen" className={styles.steps}>
+            <nav aria-label="Afrondingsstappen" className={styles.steps} data-compact={!separateFeedback}>
               {steps.map(({ label }, index) => (
                 <button
                   type="button"
@@ -167,7 +224,6 @@ export function MeetingWrapUp({ meeting }: { meeting: Meeting }) {
               ))}
             </nav>
             <div className={styles.body}>
-              {draft.entry !== "live" && step < 3 && <EndTimeInfo meeting={meeting} />}
               <h1 ref={heading} tabIndex={-1} className="mb-2 text-3xl font-bold outline-none">
                 {steps[step].label}
               </h1>
@@ -183,12 +239,20 @@ export function MeetingWrapUp({ meeting }: { meeting: Meeting }) {
               ) : step === 2 ? (
                 <ActionsReview meeting={meeting} />
               ) : step === 3 ? (
-                <WrapUpPlanning
-                  key={nextInSeries(meeting, ops.meetings)?.id ?? "unscheduled"}
-                  meeting={meeting}
-                  draft={draft}
-                  patch={patch}
-                />
+                <>
+                  {!separateFeedback && (
+                    <p className="mb-6 text-ink-2">Nog twee korte dingen voor je de vergadering afsluit.</p>
+                  )}
+                  <WrapUpPlanning
+                    key={nextInSeries(meeting, ops.meetings)?.id ?? "unscheduled"}
+                    meeting={meeting}
+                    draft={draft}
+                    patch={patch}
+                    nameError={nameError}
+                    compact={!separateFeedback}
+                  />
+                  {!separateFeedback && <WrapUpFollowUp meeting={meeting} draft={draft} patch={patch} compact />}
+                </>
               ) : (
                 <WrapUpFollowUp meeting={meeting} draft={draft} patch={patch} />
               )}
@@ -204,70 +268,28 @@ export function MeetingWrapUp({ meeting }: { meeting: Meeting }) {
         <footer className={styles.footer}>
           <div className={styles.footerInner}>
             {step > 0 && (
-              <Button variant="link" className={styles.previousStep} onClick={() => go(step - 1)}>
+              <Button variant="link" className={`${styles.previousStep} min-h-11`} onClick={() => go(step - 1)}>
                 ← {steps[step - 1].label}
               </Button>
             )}
             <div className={styles.footerActions}>
-              <Button variant="link" onClick={leave}>
+              <Button variant="link" className="min-h-11" onClick={leave}>
                 {draft.entry === "live" && meeting.run ? "Terug naar vergadering" : "Later afronden"}
               </Button>
-              {step === 4 && <Button onClick={() => finish("saved")}>Vergadering afronden</Button>}
-              {step < 4 && <Button onClick={() => go(step + 1)}>{steps[step + 1].label} →</Button>}
+              {step === finalStep && (
+                <Button className="min-h-11" onClick={finish}>
+                  ✓ Vergadering afronden
+                </Button>
+              )}
+              {step < finalStep && (
+                <Button className="min-h-11" onClick={() => go(step + 1)}>
+                  {steps[step + 1].label} →
+                </Button>
+              )}
             </div>
-            <p className="w-full text-xs text-ink-3">
-              {step === 4
-                ? "Je keuzes en eventuele planning worden bewaard. Je kunt de opvolging daarna versturen."
-                : draft.entry === "live" && meeting.run
-                  ? "Terug naar vergadering hervat de vergadermodus."
-                  : "Later afronden bewaart je keuzes. De opvolging wordt nog niet verstuurd."}
-            </p>
           </div>
         </footer>
       </div>
-    </div>
-  );
-}
-export function EndTimeInfo({ meeting }: { meeting: Meeting }) {
-  const ops = useStore();
-  const [editing, setEditing] = useState(false);
-  const [time, setTime] = useState(clockTime(meeting.endedAt!));
-  const [error, setError] = useState("");
-  return (
-    <div className="mb-6 flex flex-wrap items-center gap-3 text-sm text-ink-2">
-      <span>Afgesloten om {clockTime(meeting.endedAt!)}</span> ·{" "}
-      {!editing ? (
-        <Button variant="ghost" onClick={() => setEditing(true)}>
-          Aanpassen
-        </Button>
-      ) : (
-        <form
-          className="flex flex-wrap items-center gap-2"
-          onSubmit={(e) => {
-            e.preventDefault();
-            const date = new Date(meeting.endedAt!);
-            const [h, m] = time.split(":").map(Number);
-            date.setHours(h, m, 0, 0);
-            if (date.getTime() < (meeting.startedAt ?? 0)) {
-              setError("De eindtijd mag niet vóór de starttijd liggen.");
-              return;
-            }
-            ops.putMeeting({ ...meeting, endedAt: date.getTime(), endTimeConfirmed: true });
-            setEditing(false);
-            setError("");
-          }}
-        >
-          <label>
-            Eindtijd{" "}
-            <input className={field} type="time" required value={time} onChange={(e) => setTime(e.target.value)} />
-          </label>
-          <Button type="submit">Bewaren</Button>
-          <Button variant="ghost" onClick={() => setEditing(false)}>
-            Annuleren
-          </Button>
-        </form>
-      )}
-      {error && <p role="alert">{error}</p>}
     </div>
   );
 }
@@ -291,7 +313,7 @@ function AgendaReview({
     const recorded = item.entries.filter((entry) => entry.kind !== "document").length;
     const suggestion = suggestDecision(item);
     return (
-      <article key={item.id} aria-label={item.text} className={styles.agendaCard}>
+      <article key={item.id} aria-label={item.text} className={styles.cardRow}>
         <div className={styles.agendaCardHeader}>
           <span className={styles.agendaCategory}>{block.title}</span>
           <div className={styles.agendaCounts}>
@@ -314,7 +336,7 @@ function AgendaReview({
             ))}
           </div>
         </div>
-        <h3 className="mt-2 text-lg font-bold">{item.text}</h3>
+        <p className="mt-2 text-base font-bold">{item.text}</p>
         <p className="mt-2 mb-5 flex flex-wrap items-center gap-2 text-sm text-ink-3">
           <Timer aria-hidden className="size-4" />
           {item.duration != null && <span>{item.duration} min ·</span>}
@@ -368,13 +390,15 @@ function AgendaReview({
     >
       <TooltipProvider>
         <div className="[&_button]:min-h-11 [&_button]:min-w-11 [&_input]:min-h-11 [&_select]:min-h-11">
-          <section>
-            <h2 className="text-lg font-bold">Open punten ({open.length})</h2>
+          <section className={styles.agendaCard}>
+            <h2 className={styles.cardTitle}>Open punten ({open.length})</h2>
             {!open.length && <p className="mt-3 text-sm text-ink-2">Alle punten zijn voltooid.</p>}
-            <div className="mt-4 flex flex-col gap-4">{open.map(renderItem)}</div>
+            <div className="mt-4">{open.map(renderItem)}</div>
           </section>
           <details className={`mt-5 rounded-2xl border border-line p-4 sm:p-6 ${styles.completedAgenda}`}>
-            <summary className="min-h-11 cursor-pointer font-bold">Voltooide punten ({done.length})</summary>
+            <summary className={`min-h-11 cursor-pointer ${styles.cardTitle}`}>
+              Voltooide punten ({done.length})
+            </summary>
             {done.map(renderItem)}
           </details>
         </div>
@@ -418,35 +442,44 @@ function ReviewList({
   empty: string;
 }) {
   const people = usePeople();
-  return rows.length ? (
-    <ul aria-label={label} className="flex flex-col gap-4">
-      {rows.map((row) => {
-        const owner = people.find((person) => person.id === row.ownerId);
-        return (
-          <li key={row.id} className={styles.reviewRow}>
-            <div className="min-w-0 flex-1">
-              <h2 className="break-words text-base font-bold">{row.text}</h2>
-              <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-ink-3">
-                {row.topic && (
-                  <span className="inline-flex min-w-0 items-center gap-1.5">
-                    <ListChecks aria-hidden className="size-4 shrink-0" />
-                    <span className="break-words">{row.topic}</span>
-                  </span>
+  return (
+    <section className={`${styles.agendaCard} mt-7`}>
+      <h2 className={styles.cardTitle}>{label}</h2>
+      {rows.length ? (
+        <ul aria-label={label} className={`${styles.reviewList} mt-4`}>
+          {rows.map((row) => {
+            const owner = people.find((person) => person.id === row.ownerId);
+            return (
+              <li key={row.id} className={`${styles.reviewRow} ${styles.cardRow}`}>
+                <div className="min-w-0 flex-1">
+                  <p className="break-words text-base font-bold">{row.text}</p>
+                  <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-ink-3">
+                    {row.topic && (
+                      <span className="inline-flex min-w-0 items-center gap-1.5">
+                        <ListChecks aria-hidden className="size-4 shrink-0" />
+                        <span className="break-words">{row.topic}</span>
+                      </span>
+                    )}
+                    {row.date && (
+                      <span className="inline-flex items-center gap-1.5">
+                        <CalendarDays aria-hidden className="size-4 shrink-0" />
+                        {/^\d{4}-\d{2}-\d{2}$/.test(row.date) ? formatShortDate(row.date) : row.date}
+                      </span>
+                    )}
+                  </div>
+                </div>
+                {owner ? (
+                  <Avatar person={owner} size={36} />
+                ) : (
+                  <span className="text-xs text-ink-3">Geen eigenaar</span>
                 )}
-                {row.date && (
-                  <span className="inline-flex items-center gap-1.5">
-                    <CalendarDays aria-hidden className="size-4 shrink-0" />
-                    {/^\d{4}-\d{2}-\d{2}$/.test(row.date) ? formatShortDate(row.date) : row.date}
-                  </span>
-                )}
-              </div>
-            </div>
-            {owner ? <Avatar person={owner} size={36} /> : <span className="text-xs text-ink-3">Geen eigenaar</span>}
-          </li>
-        );
-      })}
-    </ul>
-  ) : (
-    <p className="text-sm text-ink-3">{empty}</p>
+              </li>
+            );
+          })}
+        </ul>
+      ) : (
+        <p className="mt-3 text-sm text-ink-3">{empty}</p>
+      )}
+    </section>
   );
 }

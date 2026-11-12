@@ -38,6 +38,7 @@ export function loadPlanningScenario(meetingId: string, scheduled: boolean) {
     seriesId,
     wrapUpDraft: {
       ...draft,
+      beforeNextEdit: undefined,
       nextDate: scheduled ? next.date! : "",
       nextTime: scheduled ? formatTime(next.time!) : "",
       nextName: current.name,

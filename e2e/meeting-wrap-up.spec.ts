@@ -463,3 +463,15 @@ test("prototypebalk toont vier afrondbanners en hervat bewaarde keuzes", async (
   await page.setViewportSize({ width: 390, height: 844 });
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
 });
+
+test("de directe afrondingsdemo toont een timer die blijft lopen", async ({ page }) => {
+  await seedWrapUp(page, { automatic: true });
+  await page.goto("/app");
+  await page.getByRole("button", { name: "Meteen naar afrondingsflow", exact: true }).click();
+
+  const timer = page.getByRole("timer", { name: "Lopende vergadertijd" });
+  await expect(timer).toContainText("5 min over gepland einde");
+  await page.getByRole("button", { name: "2. Beslissingen", exact: true }).click();
+  await page.clock.fastForward(60_000);
+  await expect(timer).toContainText("6 min over gepland einde");
+});

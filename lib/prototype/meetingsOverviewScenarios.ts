@@ -1,5 +1,5 @@
 import { createDirectieAgenda, DIRECTIE_PEOPLE } from "./directieMeetingFixture";
-import { autoCloseDueAt, unattended } from "@/lib/meeting-wrap-up";
+import { autoCloseDueAt, closeManually, unattended } from "@/lib/meeting-wrap-up";
 import { newBlock, newItem } from "@/lib/agenda";
 import { toISO } from "@/lib/date";
 import { isDemoEnvironment } from "@/lib/demo-environment";
@@ -77,6 +77,10 @@ export function loadMeetingsOverviewScenario(scenario: MeetingsOverviewScenario,
 
 /** Direct preview without replacing the user's other demo meetings. */
 export function loadAutoClosedPreview(now = new Date(), meetingId?: string): string | null {
+  return loadWrapUpPreview(now, meetingId, false);
+}
+
+function loadWrapUpPreview(now: Date, meetingId: string | undefined, direct: boolean): string | null {
   if (!isDemoEnvironment()) return null;
   const start = new Date(now);
   start.setHours(9, 0, 0, 0);
@@ -112,10 +116,23 @@ export function loadAutoClosedPreview(now = new Date(), meetingId?: string): str
       visitedAt: index < 4 ? startedAt + 50 * 60000 : undefined,
     })),
   }));
-  const closed = unattended(running, autoCloseDueAt(running));
   const state = useStore.getState();
+  let preview = unattended(running, autoCloseDueAt(running));
+  if (direct) {
+    const previewTime = startedAt + (running.duration + 5) * 60_000;
+    preview = closeManually({ ...running, demoTimeOffsetMs: previewTime - now.getTime() }, previewTime);
+    preview.blocks = preview.blocks.map((block) => ({
+      ...block,
+      items: block.items.map((item) => ({
+        ...item,
+        runStatus: item.id === "wrap-demo-3" ? "open" : "done",
+        handledAt: item.id === "wrap-demo-3" ? undefined : previewTime,
+      })),
+    }));
+    preview.wrapUpDraft = initialWrapUpDraft(preview, state.meetings);
+  }
   useStore.setState({
-    meetings: [...state.meetings.filter((m) => m.id !== id), closed],
+    meetings: [...state.meetings.filter((m) => m.id !== id), preview],
     extraPeople: [
       ...state.extraPeople.filter((person) => !DIRECTIE_PEOPLE.some((fixture) => fixture.id === person.id)),
       ...DIRECTIE_PEOPLE,
@@ -126,26 +143,7 @@ export function loadAutoClosedPreview(now = new Date(), meetingId?: string): str
 
 /** Open the wrap-up wizard with only Strategic priorities left to resolve. */
 export function loadDirectWrapUpPreview(now = new Date()): string | null {
-  const id = loadAutoClosedPreview(now);
-  if (!id) return null;
-  const state = useStore.getState();
-  const current = state.meetings.find((meeting) => meeting.id === id)!;
-  const meeting: Meeting = {
-    ...current,
-    run: null,
-    endTimeConfirmed: true,
-    blocks: current.blocks.map((block) => ({
-      ...block,
-      items: block.items.map((item) => ({
-        ...item,
-        runStatus: item.id === "wrap-demo-3" ? "open" : "done",
-        handledAt: item.id === "wrap-demo-3" ? undefined : current.endedAt,
-      })),
-    })),
-  };
-  meeting.wrapUpDraft = { ...initialWrapUpDraft(meeting, state.meetings), entry: "later", step: 0 };
-  useStore.setState({ meetings: state.meetings.map((item) => (item.id === id ? meeting : item)) });
-  return id;
+  return loadWrapUpPreview(now, undefined, true);
 }
 
 /** Upgrade the original overview demo in place, keeping its identity and any ongoing work. */

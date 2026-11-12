@@ -2,18 +2,27 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import styles from "./meeting-wrap-up.module.css";
-import { Check, ArrowRight, Trash2, Scale, SquareCheck, Timer, CalendarDays, ListChecks } from "lucide-react";
+import {
+  Check,
+  ArrowLeft,
+  ArrowRight,
+  Trash2,
+  Scale,
+  SquareCheck,
+  Timer,
+  CalendarDays,
+  ListChecks,
+} from "lucide-react";
 import { Avatar } from "@/components/avatar";
 import { formatShortDate } from "@/lib/date";
 import { formatTime } from "@/lib/time";
 import { isDemoEnvironment } from "@/lib/demo-environment";
 import { loadPlanningScenario } from "@/lib/prototype/planningScenarios";
 import { ensureDirectieExample } from "@/lib/prototype/meetingsOverviewScenarios";
-import { Logo } from "@/components/brand";
 import { Button } from "@/components/ui/button";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { useStore, usePeople, type Meeting, type WrapUpDraft } from "@/lib/store";
-import { agendaItems, isHandled, nextInSeries, suggestDecision } from "@/lib/meeting-wrap-up";
+import { agendaItems, clockTime, isHandled, nextInSeries, suggestDecision } from "@/lib/meeting-wrap-up";
 import { initialWrapUpDraft, assignMissingOwners, finishWrapUp } from "@/lib/wrap-up-flow";
 import { WrapUpPlanning, WrapUpFollowUp } from "./wrap-up-follow-up";
 import { EntryPanel } from "./entries";
@@ -141,45 +150,56 @@ export function MeetingWrapUp({ meeting }: { meeting: Meeting }) {
     else ops.putMeeting({ ...latest, wrapUpOpen: false, wrapUpDraft: { ...draft, entry: "later" } });
     router.push(`/app/overleg/${meeting.id}`);
   };
+  const startedAt = meeting.startedAt ?? meeting.run?.startedAt;
+  const startTime = startedAt != null ? clockTime(startedAt) : meeting.time != null ? formatTime(meeting.time) : "";
+  const endTime = meeting.endedAt != null ? clockTime(meeting.endedAt) : "";
+  const timeRange = [startTime, endTime].filter(Boolean).join("–");
+  const meetingDate = startedAt != null ? new Date(startedAt) : meeting.date;
+  const schedule = [meetingDate && formatShortDate(meetingDate), timeRange].filter(Boolean).join(" · ");
+
   return (
     <div className={`app-theme ${styles.shell}`}>
       <header className={styles.header}>
-        <Logo href="/app" tone="white" />
-        <div className="flex min-w-0 flex-wrap items-center justify-between gap-3 pr-14">
-          <span>{meeting.name}</span>
-          {step >= 3 && isDemoEnvironment() && (
-            <div
-              role="region"
-              aria-label="Prototype volgende vergadering"
-              className="flex flex-wrap items-center gap-2 rounded-xl bg-[var(--prototype-bar-bg)] p-2 text-[13px] text-white"
-            >
-              <span className="px-1 text-[11px] font-bold text-[var(--prototype-bar-muted)]">PROTOTYPE</span>
-              {step === 3 &&
-                [
-                  { scheduled: true, label: "Volgende reeds ingepland" },
-                  { scheduled: false, label: "Volgende nog niet ingepland" },
-                ].map(({ scheduled, label }) => (
-                  <button
-                    key={label}
-                    type="button"
-                    aria-pressed={!!nextInSeries(meeting, ops.meetings) === scheduled}
-                    onClick={() => loadPlanningScenario(meeting.id, scheduled)}
-                    className="min-h-11 rounded-lg border border-[var(--prototype-bar-border)] bg-[var(--prototype-bar-button)] px-3 aria-pressed:ring-2 aria-pressed:ring-white/60"
-                  >
-                    {label}
-                  </button>
-                ))}
-              <button
-                type="button"
-                aria-pressed={separateFeedback}
-                onClick={() => ops.setDemo({ wrapUpSeparateFeedback: !separateFeedback })}
-                className="min-h-11 rounded-lg border border-[var(--prototype-bar-border)] bg-[var(--prototype-bar-button)] px-3 aria-pressed:ring-2 aria-pressed:ring-white/60"
-              >
-                Feedback als aparte stap
-              </button>
-            </div>
-          )}
+        <button type="button" className={styles.headerBack} onClick={leave}>
+          <ArrowLeft aria-hidden className="size-4 shrink-0" />
+          Terug naar de vergadering
+        </button>
+        <div className={styles.headerMeeting}>
+          <span className={styles.headerTitle}>{meeting.name}</span>
+          {schedule && <span className={styles.headerSchedule}>{schedule}</span>}
         </div>
+        {step >= 3 && isDemoEnvironment() && (
+          <div
+            role="region"
+            aria-label="Prototype volgende vergadering"
+            className="flex flex-wrap items-center gap-2 rounded-xl bg-[var(--prototype-bar-bg)] p-2 text-[13px] text-white"
+          >
+            <span className="px-1 text-[11px] font-bold text-[var(--prototype-bar-muted)]">PROTOTYPE</span>
+            {step === 3 &&
+              [
+                { scheduled: true, label: "Volgende reeds ingepland" },
+                { scheduled: false, label: "Volgende nog niet ingepland" },
+              ].map(({ scheduled, label }) => (
+                <button
+                  key={label}
+                  type="button"
+                  aria-pressed={!!nextInSeries(meeting, ops.meetings) === scheduled}
+                  onClick={() => loadPlanningScenario(meeting.id, scheduled)}
+                  className="min-h-11 rounded-lg border border-[var(--prototype-bar-border)] bg-[var(--prototype-bar-button)] px-3 aria-pressed:ring-2 aria-pressed:ring-white/60"
+                >
+                  {label}
+                </button>
+              ))}
+            <button
+              type="button"
+              aria-pressed={separateFeedback}
+              onClick={() => ops.setDemo({ wrapUpSeparateFeedback: !separateFeedback })}
+              className="min-h-11 rounded-lg border border-[var(--prototype-bar-border)] bg-[var(--prototype-bar-button)] px-3 aria-pressed:ring-2 aria-pressed:ring-white/60"
+            >
+              Feedback als aparte stap
+            </button>
+          </div>
+        )}
       </header>
       <div className={styles.panel}>
         <main className={styles.scroll}>

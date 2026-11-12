@@ -26,7 +26,8 @@ import { agendaItems, clockTime, isHandled, nextInSeries, suggestDecision } from
 import { initialWrapUpDraft, assignMissingOwners, finishWrapUp } from "@/lib/wrap-up-flow";
 import { WrapUpPlanning, WrapUpFollowUp } from "./wrap-up-follow-up";
 import { EntryPanel } from "./entries";
-import { MeetingProvider } from "./meeting-context";
+import { elapsedClock, meetingNow, remainingLabel, timerEnd } from "@/lib/meeting-clock";
+import { MeetingProvider, useNow } from "./meeting-context";
 import { ownerOptions } from "@/lib/owners";
 import { type AgendaItem, type EntryKind } from "@/lib/agenda";
 
@@ -168,6 +169,7 @@ export function MeetingWrapUp({ meeting }: { meeting: Meeting }) {
           <span className={styles.headerTitle}>{meeting.name}</span>
           {schedule && <span className={styles.headerSchedule}>{schedule}</span>}
         </div>
+        {draft.entry === "live" && meeting.run && <WrapUpTimer meeting={meeting} startedAt={meeting.run.startedAt} />}
         {step >= 3 && isDemoEnvironment() && (
           <div
             role="region"
@@ -293,6 +295,34 @@ export function MeetingWrapUp({ meeting }: { meeting: Meeting }) {
     </div>
   );
 }
+function WrapUpTimer({ meeting, startedAt }: { meeting: Meeting; startedAt: number }) {
+  const end = timerEnd(meeting);
+  const now = meetingNow(meeting, useNow(true, end - meetingNow(meeting, 0)));
+  const overtime = now >= end;
+  const duration = Math.max(1, end - startedAt);
+  const elapsed = Math.max(0, now - startedAt);
+  return (
+    <div
+      role="timer"
+      aria-label="Lopende vergadertijd"
+      className={`order-last ml-auto flex min-h-11 items-center gap-3 rounded-full border border-white/50 px-3 py-2 text-sm ${
+        overtime ? "bg-[var(--wrap-amber-bg)] text-[var(--wrap-amber-ink)]" : "bg-white/25"
+      }`}
+    >
+      <span>
+        <span className="tabular-nums">{elapsedClock(elapsed)}</span> ·{" "}
+        {overtime ? `${Math.floor((now - end) / 60000)} min over gepland einde` : remainingLabel(end - now)}
+      </span>
+      <progress
+        aria-label="Verstreken vergadertijd"
+        value={Math.min(elapsed, duration)}
+        max={duration}
+        className="h-1 w-12 shrink-0 overflow-hidden border-0 bg-white sm:w-24 [&::-moz-progress-bar]:bg-green-600 [&::-webkit-progress-bar]:bg-white [&::-webkit-progress-value]:bg-green-600"
+      />
+    </div>
+  );
+}
+
 function AgendaReview({
   meeting,
   draft,

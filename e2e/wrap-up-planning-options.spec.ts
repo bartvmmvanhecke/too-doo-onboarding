@@ -29,7 +29,7 @@ for (const scheduled of [true, false]) {
       await page.locator('[data-slot="calendar"]').getByRole("button").filter({ hasText: /^18$/ }).click();
       await expect(page.getByText("Gewijzigd · uit de reeks", { exact: true })).toBeVisible();
     } else {
-      await expect(page.getByRole("heading", { name: "Plan je volgende vergadering in", exact: true })).toBeVisible();
+      await expect(page.getByRole("heading", { name: "Plan je volgende vergadering", exact: true })).toBeVisible();
       await expect(page.getByLabel("Naam", { exact: true })).toHaveValue("Directievergadering");
       await expect(page.locator("#next-date-trigger")).toContainText("dd/mm/yyyy");
       await expect(page.getByLabel("Starttijd", { exact: true })).toHaveValue("");

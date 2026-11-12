@@ -13,7 +13,7 @@ import { Logo } from "@/components/brand";
 import { Button } from "@/components/ui/button";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { useStore, usePeople, type Meeting, type WrapUpDraft } from "@/lib/store";
-import { agendaItems, clockTime, isHandled, nextInSeries, suggestDecision } from "@/lib/meeting-wrap-up";
+import { agendaItems, isHandled, nextInSeries, suggestDecision } from "@/lib/meeting-wrap-up";
 import { initialWrapUpDraft, assignMissingOwners, finishWrapUp } from "@/lib/wrap-up-flow";
 import { WrapUpPlanning, WrapUpFollowUp } from "./wrap-up-follow-up";
 import { EntryPanel } from "./entries";
@@ -29,7 +29,6 @@ const allSteps = [
   { id: 1, label: "Volgende vergadering" },
   { id: 2, label: "Afronden" },
 ];
-const field = "min-h-11 rounded-lg border border-line bg-white px-3 text-sm";
 export function MeetingWrapUp({ meeting }: { meeting: Meeting }) {
   const ops = useStore();
   const router = useRouter();
@@ -196,7 +195,6 @@ export function MeetingWrapUp({ meeting }: { meeting: Meeting }) {
               ))}
             </nav>
             <div className={styles.body}>
-              {draft.entry !== "live" && step < 3 && <EndTimeInfo meeting={meeting} />}
               <h1 ref={heading} tabIndex={-1} className="mb-2 text-3xl font-bold outline-none">
                 {steps[step].label}
               </h1>
@@ -266,49 +264,6 @@ export function MeetingWrapUp({ meeting }: { meeting: Meeting }) {
           </div>
         </footer>
       </div>
-    </div>
-  );
-}
-export function EndTimeInfo({ meeting }: { meeting: Meeting }) {
-  const ops = useStore();
-  const [editing, setEditing] = useState(false);
-  const [time, setTime] = useState(clockTime(meeting.endedAt!));
-  const [error, setError] = useState("");
-  return (
-    <div className="mb-6 flex flex-wrap items-center gap-3 text-sm text-ink-2">
-      <span>Afgesloten om {clockTime(meeting.endedAt!)}</span> ·{" "}
-      {!editing ? (
-        <Button variant="ghost" onClick={() => setEditing(true)}>
-          Aanpassen
-        </Button>
-      ) : (
-        <form
-          className="flex flex-wrap items-center gap-2"
-          onSubmit={(e) => {
-            e.preventDefault();
-            const date = new Date(meeting.endedAt!);
-            const [h, m] = time.split(":").map(Number);
-            date.setHours(h, m, 0, 0);
-            if (date.getTime() < (meeting.startedAt ?? 0)) {
-              setError("De eindtijd mag niet vóór de starttijd liggen.");
-              return;
-            }
-            ops.putMeeting({ ...meeting, endedAt: date.getTime(), endTimeConfirmed: true });
-            setEditing(false);
-            setError("");
-          }}
-        >
-          <label>
-            Eindtijd{" "}
-            <input className={field} type="time" required value={time} onChange={(e) => setTime(e.target.value)} />
-          </label>
-          <Button type="submit">Bewaren</Button>
-          <Button variant="ghost" onClick={() => setEditing(false)}>
-            Annuleren
-          </Button>
-        </form>
-      )}
-      {error && <p role="alert">{error}</p>}
     </div>
   );
 }

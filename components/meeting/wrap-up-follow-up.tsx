@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { nlBE } from "react-day-picker/locale";
-import { ChevronDown, CalendarDays, List, X } from "lucide-react";
+import { ChevronDown, CalendarDays, List } from "lucide-react";
 import { usePeople, useStore, type Meeting, type WrapUpDraft } from "@/lib/store";
 import { agendaItems, nextInSeries } from "@/lib/meeting-wrap-up";
 import { followUpContent } from "@/lib/wrap-up-flow";
@@ -18,64 +18,72 @@ export function WrapUpPlanning({
   draft,
   patch,
   compact = false,
+  nameError,
 }: {
   meeting: Meeting;
   draft: WrapUpDraft;
   patch: (p: Partial<WrapUpDraft>) => void;
   compact?: boolean;
+  nameError: boolean;
 }) {
   const meetings = useStore((s) => s.meetings);
   const next = nextInSeries(meeting, meetings);
-  const [editing, setEditing] = useState(false);
+  const editing = !!draft.beforeNextEdit;
   const [calendarOpen, setCalendarOpen] = useState(false);
-  const [beforeEdit, setBeforeEdit] = useState<Partial<WrapUpDraft>>({});
   const carried = agendaItems(meeting).filter((item) => draft.decisions?.[item.id] === "next");
   const proposedDate = new Date(`${meeting.date || toISO(new Date())}T12:00:00`);
   proposedDate.setDate(proposedDate.getDate() + 7);
   const planningName = draft.nextName ?? meeting.name;
-  const planningDate = draft.nextDate ?? "";
+  const planningDate = draft.nextDate || next?.date || "";
   const suggestionTime = formatTime(meeting.time ?? 540);
-  const scheduled = !draft.noNext && !!draft.nextDate && !!planningName.trim();
-  const when = scheduled ? formatShortDate(draft.nextDate!) : "";
-  const openEditor = () => {
-    setBeforeEdit({
-      nextName: draft.nextName,
-      nextDate: draft.nextDate,
-      nextTime: draft.nextTime,
-      noNext: draft.noNext,
+  const originalTime = next ? formatTime(next.time ?? meeting.time ?? 540) : "";
+  const planningTime = draft.nextTime ?? originalTime;
+  const planningDuration = draft.nextDuration ?? next?.duration ?? meeting.duration;
+  const changed =
+    next &&
+    (planningName !== next.name ||
+      planningDate !== next.date ||
+      (planningTime || originalTime) !== originalTime ||
+      planningDuration !== next.duration);
+  const when = planningDate ? formatShortDate(planningDate) : "";
+  const [hour, minute] = (planningTime || originalTime || suggestionTime).split(":").map(Number);
+  const endTime = formatTime(hour * 60 + minute + planningDuration);
+  const openEditor = () =>
+    patch({
+      beforeNextEdit: {
+        nextName: draft.nextName,
+        nextDate: draft.nextDate,
+        nextTime: draft.nextTime,
+        nextDuration: draft.nextDuration,
+        noNext: draft.noNext,
+      },
+      noNext: false,
     });
-    setEditing(true);
-    if (!scheduled) {
-      const date = new Date(`${meeting.date || new Date().toISOString().slice(0, 10)}T12:00:00`);
-      date.setDate(date.getDate() + 7);
-      patch({ nextDate: toISO(date), nextName: meeting.name, noNext: false });
-    }
-  };
   return (
     <div className="mt-3 space-y-4">
       {!compact && <p className="text-sm text-ink-2">Hier komen de verplaatste punten terecht.</p>}
       <section
-        className={`${styles.finalCard} rounded-2xl border p-5 ${!next || (scheduled && !editing) ? "border-brand" : "border-line"} ${!scheduled && !editing && next ? "border-dashed" : ""}`}
+        className={`${styles.finalCard} rounded-2xl border p-5 ${!editing && next ? "border-brand" : "border-line"}`}
       >
         {editing || !next ? (
           <>
             <div className="mb-4 flex items-start justify-between gap-4">
               <div>
-                <h2 className="font-bold">
-                  {next ? "Deze vergadering verplaatsen" : "Nog geen volgende vergadering gepland"}
-                </h2>
+                <h2 className="font-bold">{next ? "Deze vergadering verplaatsen" : "Volgende vergadering plannen"}</h2>
                 <p className="mt-1 text-sm text-ink-3">
                   {next
-                    ? "Je wijzigt de bestaande vergadering. Er komt geen tweede bij, en de rest van de reeks blijft zoals ze is."
-                    : "Plan je volgende vergadering, Laat leeg als je later wilt plannen."}
+                    ? `Je wijzigt de bestaande vergadering van ${formatShortDate(next.date!)}. Er komt geen tweede bij, en de rest van de reeks blijft zoals ze is.`
+                    : planningDate
+                      ? "Er komt een nieuwe vergadering bij in de agenda."
+                      : "Optioneel. Laat leeg als je later wilt plannen."}
                 </p>
               </div>
               {next && (
                 <Button
                   variant="link"
+                  className="min-h-11"
                   onClick={() => {
-                    patch(beforeEdit);
-                    setEditing(false);
+                    patch({ ...draft.beforeNextEdit, beforeNextEdit: undefined });
                   }}
                 >
                   Annuleren
@@ -85,7 +93,7 @@ export function WrapUpPlanning({
             <>
               <div
                 id="next-meeting-fields"
-                className="grid grid-cols-1 gap-4 min-[960px]:grid-cols-[3fr_minmax(240px,2fr)_1fr]"
+                className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-[2fr_1.5fr_1fr_1fr]"
               >
                 <label className="flex min-w-0 flex-col gap-2 text-sm font-bold">
                   Naam
@@ -93,14 +101,15 @@ export function WrapUpPlanning({
                     className={`${field} min-w-0 w-full font-normal`}
                     value={planningName}
                     placeholder={`Bijvoorbeeld: ${meeting.name}`}
-                    onChange={(event) =>
-                      patch({
-                        nextName: event.target.value,
-                        nextDate: planningDate,
-                        noNext: !event.target.value.trim(),
-                      })
-                    }
+                    aria-invalid={nameError || undefined}
+                    aria-describedby={nameError ? "next-name-error" : undefined}
+                    onChange={(event) => patch({ nextName: event.target.value })}
                   />
+                  {nameError && (
+                    <span id="next-name-error" role="alert" className="font-normal text-destructive">
+                      Geef de vergadering een naam, of annuleer.
+                    </span>
+                  )}
                 </label>
                 <div className="flex min-w-0 flex-col gap-2 text-sm font-bold">
                   <label id="next-date-label" htmlFor="next-date-trigger">
@@ -142,49 +151,48 @@ export function WrapUpPlanning({
                           disabled={meeting.date ? { before: new Date(`${meeting.date}T00:00:00`) } : undefined}
                           onSelect={(date) => {
                             if (!date) return;
-                            patch({ nextDate: toISO(date), nextName: planningName, noNext: !planningName.trim() });
+                            patch({ nextDate: toISO(date), noNext: false });
                             setCalendarOpen(false);
                           }}
                         />
                       </PopoverContent>
                     </Popover>
-                    {planningDate && (
-                      <button
-                        type="button"
-                        aria-label="Datum wissen"
-                        className="absolute inset-y-0 right-0 flex w-10 items-center justify-center rounded-r-lg text-ink-3 hover:text-brand focus-visible:outline-2 focus-visible:outline-brand"
-                        onClick={() => {
-                          patch({ nextDate: "", noNext: true });
-                          setCalendarOpen(false);
-                        }}
-                      >
-                        <X aria-hidden className="size-4" />
-                      </button>
-                    )}
                   </div>
+                  {!next && planningDate && (
+                    <Button
+                      variant="link"
+                      className="min-h-11 self-start px-0"
+                      onClick={() => patch({ nextDate: "", noNext: true })}
+                    >
+                      Datum wissen
+                    </Button>
+                  )}
                 </div>
-                <div className="flex min-w-0 flex-col gap-2 text-sm font-bold">
-                  <label htmlFor="next-time-input">Tijd</label>
-                  <div className="relative">
-                    <input
-                      id="next-time-input"
-                      className={`${field} min-w-0 w-full font-normal ${(draft.nextTime ?? (next ? "09:00" : "")) ? "pr-8 [&::-webkit-calendar-picker-indicator]:hidden" : ""}`}
-                      type="time"
-                      value={draft.nextTime ?? (next ? "09:00" : "")}
-                      onChange={(event) => patch({ nextTime: event.target.value })}
-                    />
-                    {(draft.nextTime ?? (next ? "09:00" : "")) && (
-                      <button
-                        type="button"
-                        aria-label="Tijd wissen"
-                        className="absolute inset-y-0 right-0 flex w-8 items-center justify-center rounded-r-lg text-ink-3 hover:text-brand focus-visible:outline-2 focus-visible:outline-brand"
-                        onClick={() => patch({ nextTime: "" })}
-                      >
-                        <X aria-hidden className="size-4" />
-                      </button>
-                    )}
-                  </div>
-                </div>
+                <label className="flex min-w-0 flex-col gap-2 text-sm font-bold">
+                  Starttijd
+                  <input
+                    className={`${field} min-w-0 w-full font-normal`}
+                    type="time"
+                    value={planningTime}
+                    onChange={(event) => patch({ nextTime: event.target.value })}
+                  />
+                </label>
+                <label className="flex min-w-0 flex-col gap-2 text-sm font-bold">
+                  Duur (minuten)
+                  <input
+                    className={`${field} min-w-0 w-full font-normal`}
+                    type="number"
+                    min={5}
+                    max={1440}
+                    value={planningDuration || ""}
+                    onChange={(event) => patch({ nextDuration: Number(event.target.value) })}
+                    onBlur={() => {
+                      if (!Number.isInteger(planningDuration) || planningDuration < 5 || planningDuration > 1440) {
+                        patch({ nextDuration: next?.duration ?? meeting.duration });
+                      }
+                    }}
+                  />
+                </label>
               </div>
               {!next && (
                 <div className="mt-4 flex flex-wrap items-center gap-2 text-sm text-ink-3">
@@ -198,13 +206,12 @@ export function WrapUpPlanning({
                         key={days}
                         variant="outline"
                         size="sm"
-                        className="h-auto flex-wrap rounded-full px-4 py-2 font-normal text-ink-3"
+                        className="h-auto min-h-11 flex-wrap rounded-full px-4 py-2 font-normal text-ink-3"
                         onClick={() =>
                           patch({
                             nextDate: value,
                             nextTime: suggestionTime,
-                            nextName: planningName,
-                            noNext: !planningName.trim(),
+                            noNext: false,
                           })
                         }
                       >
@@ -221,46 +228,38 @@ export function WrapUpPlanning({
           </>
         ) : (
           <div className="flex flex-wrap items-center gap-4">
-            {scheduled && (
-              <div className="rounded-xl bg-brand-soft px-3 py-2 text-center font-bold text-brand">
-                <span className="block text-xs uppercase">
-                  {new Date(`${draft.nextDate}T12:00:00`).toLocaleDateString("nl-BE", { month: "short" })}
-                </span>
-                <span>{Number(draft.nextDate!.slice(-2))}</span>
-              </div>
-            )}
+            <div className="rounded-xl bg-brand-soft px-3 py-2 text-center font-bold text-brand">
+              <span className="block text-xs uppercase">
+                {new Date(`${planningDate}T12:00:00`).toLocaleDateString("nl-BE", { month: "short" })}
+              </span>
+              <span>{Number(planningDate.slice(-2))}</span>
+            </div>
             <div className="min-w-0 flex-1 basis-60">
-              <h2 className="font-bold">
-                {scheduled
-                  ? next
-                    ? "Al gepland · uit de reeks"
-                    : "Volgende vergadering gepland"
-                  : "Nog geen volgende vergadering gepland"}
-              </h2>
+              <h2 className="font-bold">{changed ? "Gewijzigd · uit de reeks" : "Al gepland · uit de reeks"}</h2>
               <p className="mt-1 text-sm text-ink-2">
-                {scheduled
-                  ? `${draft.nextName || meeting.name} · ${when} · ${draft.nextTime || "09:00"}–${formatTime(Number((draft.nextTime || "09:00").split(":")[0]) * 60 + Number((draft.nextTime || "09:00").split(":")[1]) + (draft.nextDuration ?? meeting.duration))}`
-                  : "Je kunt gewoon verder. Verplaatste punten gaan dan naar “Bewaard voor later”."}
+                {planningName} · {when} · {planningTime || originalTime}–{endTime}
               </p>
             </div>
-            <Button variant="link" className="text-brand" onClick={openEditor}>
-              {scheduled ? "Datum of tijd wijzigen" : "+ Volgende vergadering plannen"}
+            <Button variant="link" className="min-h-11 text-brand" onClick={openEditor}>
+              Datum of tijd wijzigen
             </Button>
           </div>
         )}
       </section>
       <section className={`${styles.finalCard} rounded-2xl border border-line p-5`}>
-        <h2 className="text-sm font-bold">
-          {scheduled ? `Schuift door naar ${when}` : "Gaat naar “Bewaard voor later”"}
-        </h2>
         {carried.length ? (
-          <ul className="mt-3 space-y-2 text-sm text-ink-2">
-            {carried.map((item) => (
-              <li key={item.id}>→ {item.text}</li>
-            ))}
-          </ul>
+          <>
+            <h2 className="text-sm font-bold">
+              {planningDate ? `Schuift door naar ${when}` : 'Gaat naar "Bewaard voor later"'}
+            </h2>
+            <ul className="mt-3 space-y-2 text-sm text-ink-2">
+              {carried.map((item) => (
+                <li key={item.id}>→ {item.text}</li>
+              ))}
+            </ul>
+          </>
         ) : (
-          <p className="mt-3 text-sm text-ink-3">Geen verplaatste punten.</p>
+          <p className="text-sm text-ink-3">Geen verplaatste punten.</p>
         )}
       </section>
     </div>

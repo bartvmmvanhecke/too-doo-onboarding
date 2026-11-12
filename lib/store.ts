@@ -88,6 +88,7 @@ export interface WrapUpDraft {
   endTimeAdjusted?: boolean;
   decisions?: Record<string, "done" | "next" | "drop">;
   step?: number;
+  beforeNextEdit?: Pick<WrapUpDraft, "nextName" | "nextDate" | "nextTime" | "nextDuration" | "noNext">;
   nextName?: string;
   nextDuration?: number;
   nextDate?: string;

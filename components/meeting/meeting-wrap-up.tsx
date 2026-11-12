@@ -5,6 +5,7 @@ import styles from "./meeting-wrap-up.module.css";
 import { Check, ArrowRight, Trash2, Scale, SquareCheck, Timer, CalendarDays, ListChecks } from "lucide-react";
 import { Avatar } from "@/components/avatar";
 import { formatShortDate } from "@/lib/date";
+import { formatTime } from "@/lib/time";
 import { isDemoEnvironment } from "@/lib/demo-environment";
 import { loadPlanningScenario } from "@/lib/prototype/planningScenarios";
 import { ensureDirectieExample } from "@/lib/prototype/meetingsOverviewScenarios";
@@ -13,7 +14,7 @@ import { Button } from "@/components/ui/button";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { useStore, usePeople, type Meeting, type WrapUpDraft } from "@/lib/store";
 import { agendaItems, clockTime, isHandled, nextInSeries, suggestDecision } from "@/lib/meeting-wrap-up";
-import { initialWrapUpDraft, assignMissingOwners, finishWrapUp, planningError } from "@/lib/wrap-up-flow";
+import { initialWrapUpDraft, assignMissingOwners, finishWrapUp } from "@/lib/wrap-up-flow";
 import { WrapUpPlanning, WrapUpFollowUp } from "./wrap-up-follow-up";
 import { EntryPanel } from "./entries";
 import { MeetingProvider } from "./meeting-context";
@@ -41,6 +42,13 @@ export function MeetingWrapUp({ meeting }: { meeting: Meeting }) {
     steps.findIndex((s) => s.id === (draft.step === 1 && !separateFeedback ? 2 : (draft.step ?? 0))),
   );
   const [notice, setNotice] = useState("");
+  const [validateName, setValidateName] = useState(false);
+  const nameError = validateName && !!draft.beforeNextEdit && !draft.nextName?.trim();
+  const canContinuePlanning = () => {
+    if (!draft.beforeNextEdit || draft.nextName?.trim()) return true;
+    setValidateName(true);
+    return false;
+  };
   const heading = useRef<HTMLHeadingElement>(null);
   const patch = (update: Partial<WrapUpDraft>) => {
     const latest = useStore.getState().meetings.find((m) => m.id === meeting.id)!;
@@ -71,23 +79,32 @@ export function MeetingWrapUp({ meeting }: { meeting: Meeting }) {
   const finish = (status: "sent" | "saved") => {
     const state = useStore.getState();
     const latest = state.meetings.find((m) => m.id === meeting.id)!;
-    const error = planningError(initialWrapUpDraft(latest, state.meetings));
-    if (error) {
-      setNotice(error);
+    if (!canContinuePlanning()) {
       patch({ step: 3 });
       return;
     }
-    // TODO(api): explicit delivery of the preview payload; score questions travel in the same follow-up mail.
-    useStore.setState({ meetings: finishWrapUp(latest, state.meetings, status) });
+    const next = nextInSeries(latest, state.meetings);
+    const nextDate = draft.nextDate || next?.date || "";
+    const duration = draft.nextDuration ?? 0;
+    const completedDraft = {
+      ...draft,
+      beforeNextEdit: undefined,
+      nextDate,
+      noNext: !nextDate,
+      nextName: draft.nextName?.trim() || next?.name || latest.name,
+      nextTime: draft.nextTime || formatTime(next?.time ?? latest.time ?? 540),
+      nextDuration:
+        Number.isInteger(duration) && duration >= 5 && duration <= 1440
+          ? duration
+          : (next?.duration ?? latest.duration),
+    };
+    useStore.setState({ meetings: finishWrapUp({ ...latest, wrapUpDraft: completedDraft }, state.meetings, status) });
     router.push(`/app/overleg/${meeting.id}`);
   };
   const go = (next: number) => {
     if (separateFeedback && step === 3 && next > step) {
-      const error = planningError(draft);
-      if (error) {
-        setNotice(error);
-        return;
-      }
+      if (!canContinuePlanning()) return;
+      patch({ beforeNextEdit: undefined });
     }
     setNotice("");
     const latest = useStore.getState().meetings.find((m) => m.id === meeting.id)!;
@@ -194,6 +211,7 @@ export function MeetingWrapUp({ meeting }: { meeting: Meeting }) {
                     meeting={meeting}
                     draft={draft}
                     patch={patch}
+                    nameError={nameError}
                     compact
                   />
                   <WrapUpFollowUp meeting={meeting} draft={draft} patch={patch} compact />
@@ -204,6 +222,7 @@ export function MeetingWrapUp({ meeting }: { meeting: Meeting }) {
                   meeting={meeting}
                   draft={draft}
                   patch={patch}
+                  nameError={nameError}
                 />
               ) : (
                 <WrapUpFollowUp meeting={meeting} draft={draft} patch={patch} />

@@ -21,7 +21,7 @@ import { ownerOptions } from "@/lib/owners";
 import { type AgendaItem, type EntryKind } from "@/lib/agenda";
 
 // Keep stored step IDs stable for drafts created with the original three steps.
-const steps = [
+const allSteps = [
   { id: 0, label: "Agenda" },
   { id: 3, label: "Beslissingen" },
   { id: 4, label: "Acties" },
@@ -33,9 +33,12 @@ export function MeetingWrapUp({ meeting }: { meeting: Meeting }) {
   const ops = useStore();
   const router = useRouter();
   const draft = initialWrapUpDraft(meeting, ops.meetings);
+  const separateFeedback = ops.demo.wrapUpSeparateFeedback ?? false;
+  const steps = separateFeedback ? allSteps : allSteps.filter(({ id }) => id !== 1);
+  const finalStep = steps.length - 1;
   const step = Math.max(
     0,
-    steps.findIndex((s) => s.id === (draft.step ?? 0)),
+    steps.findIndex((s) => s.id === (draft.step === 1 && !separateFeedback ? 2 : (draft.step ?? 0))),
   );
   const [notice, setNotice] = useState("");
   const heading = useRef<HTMLHeadingElement>(null);
@@ -79,7 +82,7 @@ export function MeetingWrapUp({ meeting }: { meeting: Meeting }) {
     router.push(`/app/overleg/${meeting.id}`);
   };
   const go = (next: number) => {
-    if (step === 3 && next > step) {
+    if (separateFeedback && step === 3 && next > step) {
       const error = planningError(draft);
       if (error) {
         setNotice(error);
@@ -147,7 +150,7 @@ export function MeetingWrapUp({ meeting }: { meeting: Meeting }) {
       <div className={styles.panel}>
         <main className={styles.scroll}>
           <div className={styles.content}>
-            <nav aria-label="Afrondingsstappen" className={styles.steps}>
+            <nav aria-label="Afrondingsstappen" className={styles.steps} data-compact={!separateFeedback}>
               {steps.map(({ label }, index) => (
                 <button
                   type="button"
@@ -182,6 +185,19 @@ export function MeetingWrapUp({ meeting }: { meeting: Meeting }) {
                 <DecisionsReview meeting={meeting} />
               ) : step === 2 ? (
                 <ActionsReview meeting={meeting} />
+              ) : !separateFeedback ? (
+                <>
+                  <p className="mb-6 text-ink-2">Nog twee korte dingen voor je de vergadering afsluit.</p>
+                  <h2 className="text-xl font-bold">Volgende vergadering</h2>
+                  <WrapUpPlanning
+                    key={nextInSeries(meeting, ops.meetings)?.id ?? "unscheduled"}
+                    meeting={meeting}
+                    draft={draft}
+                    patch={patch}
+                    compact
+                  />
+                  <WrapUpFollowUp meeting={meeting} draft={draft} patch={patch} compact />
+                </>
               ) : step === 3 ? (
                 <WrapUpPlanning
                   key={nextInSeries(meeting, ops.meetings)?.id ?? "unscheduled"}
@@ -212,11 +228,11 @@ export function MeetingWrapUp({ meeting }: { meeting: Meeting }) {
               <Button variant="link" onClick={leave}>
                 {draft.entry === "live" && meeting.run ? "Terug naar vergadering" : "Later afronden"}
               </Button>
-              {step === 4 && <Button onClick={() => finish("saved")}>Vergadering afronden</Button>}
-              {step < 4 && <Button onClick={() => go(step + 1)}>{steps[step + 1].label} →</Button>}
+              {step === finalStep && <Button onClick={() => finish("saved")}>Vergadering afronden</Button>}
+              {step < finalStep && <Button onClick={() => go(step + 1)}>{steps[step + 1].label} →</Button>}
             </div>
             <p className="w-full text-xs text-ink-3">
-              {step === 4
+              {step === finalStep
                 ? "Je keuzes en eventuele planning worden bewaard. Je kunt de opvolging daarna versturen."
                 : draft.entry === "live" && meeting.run
                   ? "Terug naar vergadering hervat de vergadermodus."

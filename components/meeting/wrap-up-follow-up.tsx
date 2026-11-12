@@ -17,10 +17,12 @@ export function WrapUpPlanning({
   meeting,
   draft,
   patch,
+  compact = false,
 }: {
   meeting: Meeting;
   draft: WrapUpDraft;
   patch: (p: Partial<WrapUpDraft>) => void;
+  compact?: boolean;
 }) {
   const meetings = useStore((s) => s.meetings);
   const next = nextInSeries(meeting, meetings);
@@ -51,7 +53,7 @@ export function WrapUpPlanning({
   };
   return (
     <div className="mt-3 space-y-4">
-      <p className="text-sm text-ink-2">Optioneel. Hier komen de verplaatste punten terecht.</p>
+      {!compact && <p className="text-sm text-ink-2">Hier komen de verplaatste punten terecht.</p>}
       <section
         className={`${styles.finalCard} rounded-2xl border p-5 ${!next || (scheduled && !editing) ? "border-brand" : "border-line"} ${!scheduled && !editing && next ? "border-dashed" : ""}`}
       >
@@ -325,10 +327,12 @@ export function WrapUpFollowUp({
   meeting,
   draft,
   patch,
+  compact = false,
 }: {
   meeting: Meeting;
   draft: WrapUpDraft;
   patch: (p: Partial<WrapUpDraft>) => void;
+  compact?: boolean;
 }) {
   const [overviewOpen, setOverviewOpen] = useState(false);
   const meetings = useStore((state) => state.meetings);
@@ -341,22 +345,29 @@ export function WrapUpFollowUp({
   return (
     <div className="mt-6 space-y-6">
       <section className={`${styles.finalCard} rounded-2xl border border-line p-6 text-ink-2`}>
-        <h2 className="mb-2 text-xl font-bold text-ink">
-          Vergaderscore <span className="text-base font-normal text-ink-3">(optioneel)</span>
-        </h2>
-        <p className="mb-3 max-w-3xl text-sm leading-relaxed">
-          De vergaderscore helpt om de algemene tevredenheid over vergaderingen binnen het bedrijf op te volgen.
-        </p>
-        <label className="mb-3 flex min-h-11 cursor-pointer items-center gap-3 text-sm font-bold">
-          <input
-            className="size-5 shrink-0 accent-brand"
-            type="checkbox"
-            checked={draft.askScore ?? false}
-            onChange={(e) => patch({ askScore: e.target.checked })}
-          />
-          Scoreaanvraag individueel naar deelnemers versturen
-        </label>
-        <div role="group" aria-label="Vergaderingsscore" className={styles.scoreScale}>
+        <div className={compact ? "mb-3 flex flex-wrap items-center justify-between gap-x-4" : undefined}>
+          <h2 className="mb-2 text-xl font-bold text-ink">
+            {compact ? "Hoe liep deze vergadering?" : "Vergaderscore"}{" "}
+            <span className="text-base font-normal text-ink-3">{compact ? "· één klik" : "(optioneel)"}</span>
+          </h2>
+          {!compact && (
+            <p className="mb-3 max-w-3xl text-sm leading-relaxed">
+              De vergaderscore helpt om de algemene tevredenheid over vergaderingen binnen het bedrijf op te volgen.
+            </p>
+          )}
+          <label
+            className={`${compact ? "" : "mb-3"} flex min-h-11 cursor-pointer items-center gap-3 text-sm font-bold`}
+          >
+            <input
+              className="size-5 shrink-0 accent-brand"
+              type="checkbox"
+              checked={draft.askScore ?? false}
+              onChange={(e) => patch({ askScore: e.target.checked })}
+            />
+            {compact ? "Vraag ook de deelnemers om een score" : "Scoreaanvraag individueel naar deelnemers versturen"}
+          </label>
+        </div>
+        <div role="group" aria-label="Score van 1 tot 10" className={styles.scoreScale}>
           {Array.from({ length: 10 }, (_, index) => index + 1).map((score) => (
             <button
               type="button"
@@ -370,101 +381,105 @@ export function WrapUpFollowUp({
             </button>
           ))}
         </div>
-        <label className="mt-4 block text-sm font-bold">
-          Feedback
-          <textarea
-            placeholder="Aa"
-            className="mt-2 min-h-28 w-full rounded-xl border border-line bg-white p-4 font-normal"
-            value={draft.feedback ?? ""}
-            onChange={(e) => patch({ feedback: e.target.value })}
-          />
-        </label>
-        <p className="mt-3 text-xs text-ink-3">Optioneel.</p>
-      </section>
-      <section className={`${styles.finalCard} overflow-hidden rounded-2xl border border-line`}>
-        <div className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-x-5 gap-y-2 p-6">
-          <List aria-hidden className="size-5 text-ink-2" />
-          <h2 className="text-lg font-bold">Wat er vastligt</h2>
-
-          <Button
-            variant="link"
-            className="rounded-none text-brand"
-            aria-expanded={overviewOpen}
-            aria-controls="wrap-final-overview"
-            onClick={() => setOverviewOpen(!overviewOpen)}
-          >
-            {overviewOpen ? "Verberg overzicht" : "Bekijk overzicht"}
-            <ChevronDown aria-hidden className={`size-4 ${overviewOpen ? "rotate-180" : ""}`} />
-          </Button>
-          <p className="col-span-2 col-start-2 overflow-x-auto text-sm whitespace-nowrap text-ink-2">
-            <span>{content.decisions.length} beslissingen</span>
-            <span aria-hidden className="mx-2">
-              ·
-            </span>
-            <span>{content.actions.length} acties</span>
-            <span aria-hidden className="mx-2">
-              ·
-            </span>
-            <span className="font-bold text-brand">
-              {content.carried.length} {content.carried.length === 1 ? "punt verplaatst" : "punten verplaatst"}
-            </span>
-            <span aria-hidden className="mx-2">
-              ·
-            </span>
-            <span>
-              {content.nextDate
-                ? `volgende vergadering ${formatShortDate(content.nextDate)}`
-                : "geen volgende vergadering gepland"}
-            </span>
-          </p>
-        </div>
-        {overviewOpen && (
-          <div id="wrap-final-overview" className="space-y-5 border-t border-line-soft p-6">
-            <div>
-              <label htmlFor="wrap-summary" className="block font-bold">
-                Samenvatting
-              </label>
-              <p id="summary-help" className="mt-1 text-sm text-ink-3">
-                Gegenereerd met AI · 2–3 zinnen, geen opsomming · je kunt alles aanpassen
-              </p>
-              <textarea
-                id="wrap-summary"
-                aria-describedby="summary-help"
-                className="mt-2 min-h-28 w-full rounded-xl border border-line bg-white p-4 text-sm leading-relaxed"
-                value={draft.summary ?? ""}
-                onChange={(event) => patch({ summary: event.target.value })}
-              />
-            </div>
-            <div className="grid gap-6 sm:grid-cols-2">
-              <section>
-                <h3 className="mb-2 font-bold">Beslissingen</h3>
-                {content.decisions.length ? (
-                  <ul className="space-y-2 text-sm text-ink-2">
-                    {content.decisions.map((text, index) => (
-                      <li key={index}>{text}</li>
-                    ))}
-                  </ul>
-                ) : (
-                  <p className="text-sm text-ink-3">Geen beslissingen vastgelegd.</p>
-                )}
-              </section>
-              <section>
-                <h3 className="mb-2 font-bold">Acties</h3>
-                {content.actions.length ? (
-                  <ul className="space-y-2 text-sm text-ink-2">
-                    {content.actions.map((text, index) => (
-                      <li key={index}>{text}</li>
-                    ))}
-                  </ul>
-                ) : (
-                  <p className="text-sm text-ink-3">Geen acties vastgelegd.</p>
-                )}
-              </section>
-            </div>
-            <p className="text-sm text-ink-3">Wijzigen doe je in de stap waar het thuishoort.</p>
-          </div>
+        {(!compact || draft.score !== undefined) && (
+          <label className="mt-4 block text-sm font-bold">
+            {compact ? "Feedback (optioneel)" : "Feedback"}
+            <textarea
+              placeholder={compact ? "Wat ging goed, wat kan beter?" : "Aa"}
+              className="mt-2 min-h-28 w-full rounded-xl border border-line bg-white p-4 font-normal"
+              value={draft.feedback ?? ""}
+              onChange={(e) => patch({ feedback: e.target.value })}
+            />
+          </label>
         )}
+        {!compact && <p className="mt-3 text-xs text-ink-3">Optioneel.</p>}
       </section>
+      {!compact && (
+        <section className={`${styles.finalCard} overflow-hidden rounded-2xl border border-line`}>
+          <div className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-x-5 gap-y-2 p-6">
+            <List aria-hidden className="size-5 text-ink-2" />
+            <h2 className="text-lg font-bold">Wat er vastligt</h2>
+
+            <Button
+              variant="link"
+              className="rounded-none text-brand"
+              aria-expanded={overviewOpen}
+              aria-controls="wrap-final-overview"
+              onClick={() => setOverviewOpen(!overviewOpen)}
+            >
+              {overviewOpen ? "Verberg overzicht" : "Bekijk overzicht"}
+              <ChevronDown aria-hidden className={`size-4 ${overviewOpen ? "rotate-180" : ""}`} />
+            </Button>
+            <p className="col-span-2 col-start-2 overflow-x-auto text-sm whitespace-nowrap text-ink-2">
+              <span>{content.decisions.length} beslissingen</span>
+              <span aria-hidden className="mx-2">
+                ·
+              </span>
+              <span>{content.actions.length} acties</span>
+              <span aria-hidden className="mx-2">
+                ·
+              </span>
+              <span className="font-bold text-brand">
+                {content.carried.length} {content.carried.length === 1 ? "punt verplaatst" : "punten verplaatst"}
+              </span>
+              <span aria-hidden className="mx-2">
+                ·
+              </span>
+              <span>
+                {content.nextDate
+                  ? `volgende vergadering ${formatShortDate(content.nextDate)}`
+                  : "geen volgende vergadering gepland"}
+              </span>
+            </p>
+          </div>
+          {overviewOpen && (
+            <div id="wrap-final-overview" className="space-y-5 border-t border-line-soft p-6">
+              <div>
+                <label htmlFor="wrap-summary" className="block font-bold">
+                  Samenvatting
+                </label>
+                <p id="summary-help" className="mt-1 text-sm text-ink-3">
+                  Gegenereerd met AI · 2–3 zinnen, geen opsomming · je kunt alles aanpassen
+                </p>
+                <textarea
+                  id="wrap-summary"
+                  aria-describedby="summary-help"
+                  className="mt-2 min-h-28 w-full rounded-xl border border-line bg-white p-4 text-sm leading-relaxed"
+                  value={draft.summary ?? ""}
+                  onChange={(event) => patch({ summary: event.target.value })}
+                />
+              </div>
+              <div className="grid gap-6 sm:grid-cols-2">
+                <section>
+                  <h3 className="mb-2 font-bold">Beslissingen</h3>
+                  {content.decisions.length ? (
+                    <ul className="space-y-2 text-sm text-ink-2">
+                      {content.decisions.map((text, index) => (
+                        <li key={index}>{text}</li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <p className="text-sm text-ink-3">Geen beslissingen vastgelegd.</p>
+                  )}
+                </section>
+                <section>
+                  <h3 className="mb-2 font-bold">Acties</h3>
+                  {content.actions.length ? (
+                    <ul className="space-y-2 text-sm text-ink-2">
+                      {content.actions.map((text, index) => (
+                        <li key={index}>{text}</li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <p className="text-sm text-ink-3">Geen acties vastgelegd.</p>
+                  )}
+                </section>
+              </div>
+              <p className="text-sm text-ink-3">Wijzigen doe je in de stap waar het thuishoort.</p>
+            </div>
+          )}
+        </section>
+      )}
     </div>
   );
 }

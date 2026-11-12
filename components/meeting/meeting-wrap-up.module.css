@@ -48,8 +48,11 @@
 }
 .steps {
   display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-template-columns: repeat(var(--step-count, 5), minmax(0, 1fr));
   margin: 0 -12px 24px;
+}
+.steps[data-compact="true"] {
+  --step-count: 4;
 }
 .step {
   min-height: 76px;
@@ -245,7 +248,7 @@
   }
   .steps {
     overflow-x: auto;
-    grid-template-columns: repeat(5, minmax(104px, 1fr));
+    grid-template-columns: repeat(var(--step-count, 5), minmax(104px, 1fr));
     margin: 0 -4px 24px;
   }
   .footerInner {
@@ -391,8 +394,8 @@
 
 .scoreScale {
   display: grid;
-  grid-template-columns: repeat(10, minmax(0, 1fr));
-  overflow: hidden;
+  grid-template-columns: repeat(10, minmax(44px, 1fr));
+  overflow-x: auto;
   border: 1px solid var(--line);
   border-radius: 12px;
   background: white;

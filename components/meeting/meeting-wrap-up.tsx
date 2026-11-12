@@ -26,7 +26,8 @@ import { agendaItems, clockTime, isHandled, nextInSeries, suggestDecision } from
 import { initialWrapUpDraft, assignMissingOwners, finishWrapUp } from "@/lib/wrap-up-flow";
 import { WrapUpPlanning, WrapUpFollowUp } from "./wrap-up-follow-up";
 import { EntryPanel } from "./entries";
-import { MeetingProvider } from "./meeting-context";
+import { elapsedClock, meetingNow, remainingLabel, timerEnd } from "@/lib/meeting-clock";
+import { MeetingProvider, useNow } from "./meeting-context";
 import { ownerOptions } from "@/lib/owners";
 import { type AgendaItem, type EntryKind } from "@/lib/agenda";
 
@@ -150,6 +151,7 @@ export function MeetingWrapUp({ meeting }: { meeting: Meeting }) {
     else ops.putMeeting({ ...latest, wrapUpOpen: false, wrapUpDraft: { ...draft, entry: "later" } });
     router.push(`/app/overleg/${meeting.id}`);
   };
+  const liveTimerStart = draft.entry === "live" ? meeting.run?.startedAt : undefined;
   const startedAt = meeting.startedAt ?? meeting.run?.startedAt;
   const startTime = startedAt != null ? clockTime(startedAt) : meeting.time != null ? formatTime(meeting.time) : "";
   const endTime = meeting.endedAt != null ? clockTime(meeting.endedAt) : "";
@@ -159,6 +161,40 @@ export function MeetingWrapUp({ meeting }: { meeting: Meeting }) {
 
   return (
     <div className={`app-theme ${styles.shell}`}>
+      {isDemoEnvironment() && (
+        <div
+          role="region"
+          aria-label="Prototype volgende vergadering"
+          className="flex min-h-16 shrink-0 items-center gap-2 overflow-x-auto whitespace-nowrap bg-[var(--prototype-bar-bg)] px-6 py-2.5 pr-16 text-[13px] text-white [scrollbar-width:none]"
+        >
+          <span className="px-1 text-[11px] font-bold text-[var(--prototype-bar-muted)]">PROTOTYPE</span>
+          {step === 3 &&
+            [
+              { scheduled: true, label: "Volgende reeds ingepland" },
+              { scheduled: false, label: "Volgende nog niet ingepland" },
+            ].map(({ scheduled, label }) => (
+              <button
+                key={label}
+                type="button"
+                aria-pressed={!!nextInSeries(meeting, ops.meetings) === scheduled}
+                onClick={() => loadPlanningScenario(meeting.id, scheduled)}
+                className="min-h-11 shrink-0 rounded-lg border border-[var(--prototype-bar-border)] bg-[var(--prototype-bar-button)] px-3 aria-pressed:ring-2 aria-pressed:ring-white/60"
+              >
+                {label}
+              </button>
+            ))}
+          {step >= 3 && (
+            <button
+              type="button"
+              aria-pressed={separateFeedback}
+              onClick={() => ops.setDemo({ wrapUpSeparateFeedback: !separateFeedback })}
+              className="min-h-11 shrink-0 rounded-lg border border-[var(--prototype-bar-border)] bg-[var(--prototype-bar-button)] px-3 aria-pressed:ring-2 aria-pressed:ring-white/60"
+            >
+              Feedback als aparte stap
+            </button>
+          )}
+        </div>
+      )}
       <header className={styles.header}>
         <button type="button" className={styles.headerBack} onClick={leave}>
           <ArrowLeft aria-hidden className="size-4 shrink-0" />
@@ -168,37 +204,8 @@ export function MeetingWrapUp({ meeting }: { meeting: Meeting }) {
           <span className={styles.headerTitle}>{meeting.name}</span>
           {schedule && <span className={styles.headerSchedule}>{schedule}</span>}
         </div>
-        {step >= 3 && isDemoEnvironment() && (
-          <div
-            role="region"
-            aria-label="Prototype volgende vergadering"
-            className="flex flex-wrap items-center gap-2 rounded-xl bg-[var(--prototype-bar-bg)] p-2 text-[13px] text-white"
-          >
-            <span className="px-1 text-[11px] font-bold text-[var(--prototype-bar-muted)]">PROTOTYPE</span>
-            {step === 3 &&
-              [
-                { scheduled: true, label: "Volgende reeds ingepland" },
-                { scheduled: false, label: "Volgende nog niet ingepland" },
-              ].map(({ scheduled, label }) => (
-                <button
-                  key={label}
-                  type="button"
-                  aria-pressed={!!nextInSeries(meeting, ops.meetings) === scheduled}
-                  onClick={() => loadPlanningScenario(meeting.id, scheduled)}
-                  className="min-h-11 rounded-lg border border-[var(--prototype-bar-border)] bg-[var(--prototype-bar-button)] px-3 aria-pressed:ring-2 aria-pressed:ring-white/60"
-                >
-                  {label}
-                </button>
-              ))}
-            <button
-              type="button"
-              aria-pressed={separateFeedback}
-              onClick={() => ops.setDemo({ wrapUpSeparateFeedback: !separateFeedback })}
-              className="min-h-11 rounded-lg border border-[var(--prototype-bar-border)] bg-[var(--prototype-bar-button)] px-3 aria-pressed:ring-2 aria-pressed:ring-white/60"
-            >
-              Feedback als aparte stap
-            </button>
-          </div>
+        {(liveTimerStart != null || isDemoEnvironment()) && (
+          <WrapUpTimer meeting={meeting} startedAt={liveTimerStart} />
         )}
       </header>
       <div className={styles.panel}>
@@ -224,7 +231,12 @@ export function MeetingWrapUp({ meeting }: { meeting: Meeting }) {
               ))}
             </nav>
             <div className={styles.body}>
-              <h1 ref={heading} tabIndex={-1} className="mb-2 text-3xl font-bold outline-none">
+              <h1
+                id={separateFeedback && step === finalStep ? "wrap-up-final" : undefined}
+                ref={heading}
+                tabIndex={-1}
+                className="mb-2 text-3xl font-bold outline-none"
+              >
                 {steps[step].label}
               </h1>
               {step === 0 ? (
@@ -250,6 +262,7 @@ export function MeetingWrapUp({ meeting }: { meeting: Meeting }) {
                     patch={patch}
                     nameError={nameError}
                     compact={!separateFeedback}
+                    onGoToFinalStep={separateFeedback ? () => go(finalStep) : undefined}
                   />
                   {!separateFeedback && <WrapUpFollowUp meeting={meeting} draft={draft} patch={patch} compact />}
                 </>
@@ -278,7 +291,7 @@ export function MeetingWrapUp({ meeting }: { meeting: Meeting }) {
               </Button>
               {step === finalStep && (
                 <Button className="min-h-11" onClick={finish}>
-                  ✓ Vergadering afronden
+                  Sluit de vergadering af
                 </Button>
               )}
               {step < finalStep && (
@@ -293,6 +306,36 @@ export function MeetingWrapUp({ meeting }: { meeting: Meeting }) {
     </div>
   );
 }
+function WrapUpTimer({ meeting, startedAt }: { meeting: Meeting; startedAt?: number }) {
+  const end = timerEnd(meeting);
+  const now = meetingNow(meeting, useNow(startedAt != null, end - meetingNow(meeting, 0)));
+  const duration = Math.max(1, startedAt == null ? meeting.duration * 60_000 : end - startedAt);
+  const elapsed = startedAt == null ? duration + 5 * 60_000 : Math.max(0, now - startedAt);
+  const overtime = elapsed >= duration;
+  return (
+    <div
+      role="timer"
+      aria-label="Lopende vergadertijd"
+      className={`order-last ml-auto flex min-h-11 items-center gap-3 rounded-full border border-white/50 px-3 py-2 text-sm ${
+        overtime ? "bg-[var(--wrap-amber-bg)] text-[var(--wrap-amber-ink)]" : "bg-white/25"
+      }`}
+    >
+      <span>
+        <span className="tabular-nums">{elapsedClock(elapsed)}</span> ·{" "}
+        {overtime
+          ? `${Math.floor((elapsed - duration) / 60000)} min over gepland einde`
+          : remainingLabel(duration - elapsed)}
+      </span>
+      <progress
+        aria-label="Verstreken vergadertijd"
+        value={Math.min(elapsed, duration)}
+        max={duration}
+        className="h-1 w-12 shrink-0 overflow-hidden border-0 bg-white sm:w-24 [&::-moz-progress-bar]:bg-green-600 [&::-webkit-progress-bar]:bg-white [&::-webkit-progress-value]:bg-green-600"
+      />
+    </div>
+  );
+}
+
 function AgendaReview({
   meeting,
   draft,

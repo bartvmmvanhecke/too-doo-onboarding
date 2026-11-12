@@ -101,7 +101,7 @@ test("aanwezigheid naar vergadermodus, verslag opslaan en vergadering beëindige
   expect(reviewing.wrapUpOpen).toBe(true);
   expect(reviewing.followUpStatus).toBe("pending");
   expect(reviewing.run).not.toBeNull();
-  await page.getByRole("button", { name: "✓ Vergadering afronden", exact: true }).click();
+  await page.getByRole("button", { name: "Sluit de vergadering af", exact: true }).click();
   await expect(page.getByRole("region", { name: "Meeting summary", exact: true })).toBeVisible();
   await expect(page.getByRole("complementary", { name: "Vergaderagenda" })).toHaveCount(0);
   const meeting = await page.evaluate(() => JSON.parse(localStorage.getItem("too-doo-onboarding")!).state.meetings[0]);

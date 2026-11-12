@@ -19,12 +19,14 @@ export function WrapUpPlanning({
   patch,
   compact = false,
   nameError,
+  onGoToFinalStep,
 }: {
   meeting: Meeting;
   draft: WrapUpDraft;
   patch: (p: Partial<WrapUpDraft>) => void;
   compact?: boolean;
   nameError: boolean;
+  onGoToFinalStep?: () => void;
 }) {
   const meetings = useStore((s) => s.meetings);
   const next = nextInSeries(meeting, meetings);
@@ -71,14 +73,20 @@ export function WrapUpPlanning({
               <div>
                 {compact && changed && <p className="mb-1 text-sm font-bold text-brand">Gewijzigd · uit de reeks</p>}
                 <h2 className={styles.cardTitle}>
-                  {next ? "Deze vergadering verplaatsen" : "Plan je volgende vergadering in"}
+                  {next ? "Deze vergadering verplaatsen" : "Plan je volgende vergadering"}
                 </h2>
                 <p className="mt-1 text-sm text-ink-3">
                   {next
                     ? `Je wijzigt de bestaande vergadering van ${formatShortDate(next.date!)}. Er komt geen tweede bij, en de rest van de reeks blijft zoals ze is.`
                     : planningDate
                       ? "Er komt een nieuwe vergadering bij in de agenda."
-                      : "Optioneel. Laat leeg als je later wilt plannen."}
+                      : null}
+                  {!next && !planningDate && (
+                    <>
+                      <strong className="text-ink">Optioneel.</strong> Kies een datum om meteen een vervolgvergadering
+                      aan te maken. Verplaatste agendapunten staan daar dan al klaar. Geen datum? Ga gewoon verder.
+                    </>
+                  )}
                 </p>
               </div>
               {next && (
@@ -93,6 +101,24 @@ export function WrapUpPlanning({
                 </Button>
               )}
             </div>
+            {!next && !planningDate && (
+              <p role="status" className="mb-4 rounded-xl bg-brand-soft px-4 py-3 text-sm text-ink">
+                Nog geen datum? Niet erg, die kan je ook later aanmaken. Ga verder naar ‘
+                <a
+                  href="#wrap-up-final"
+                  className="font-semibold text-brand underline"
+                  onClick={(event) => {
+                    if (onGoToFinalStep) {
+                      event.preventDefault();
+                      onGoToFinalStep();
+                    }
+                  }}
+                >
+                  afronden
+                </a>
+                ’.
+              </p>
+            )}
             <>
               <div
                 id="next-meeting-fields"
@@ -250,22 +276,22 @@ export function WrapUpPlanning({
             </Button>
           </div>
         )}
-      </section>
-      <section className={`${styles.finalCard} rounded-2xl border border-line p-5`}>
-        {carried.length ? (
-          <>
-            <h2 className={styles.cardTitle}>
-              {planningDate ? `Schuift door naar ${when}` : 'Gaat naar "Bewaard voor later"'}
-            </h2>
-            <ul className="mt-3 space-y-2 text-sm text-ink-2">
-              {carried.map((item) => (
-                <li key={item.id}>→ {item.text}</li>
-              ))}
-            </ul>
-          </>
-        ) : (
-          <p className="text-sm text-ink-3">Geen verplaatste punten.</p>
-        )}
+        <div className="-mx-5 mt-5 border-t border-line px-5 pt-5">
+          {carried.length ? (
+            <>
+              <h3 className={styles.cardTitle}>
+                {planningDate ? `Schuift door naar ${when}` : 'Gaat naar "Bewaard voor later"'}
+              </h3>
+              <ul className="mt-3 space-y-2 text-sm text-ink-2">
+                {carried.map((item) => (
+                  <li key={item.id}>→ {item.text}</li>
+                ))}
+              </ul>
+            </>
+          ) : (
+            <p className="text-sm text-ink-3">Geen verplaatste punten.</p>
+          )}
+        </div>
       </section>
     </div>
   );
@@ -349,19 +375,26 @@ export function WrapUpFollowUp({
   return (
     <div className={compact ? "mt-4" : "mt-6 space-y-6"}>
       <section className={`${styles.finalCard} rounded-2xl border border-line p-6 text-ink-2`}>
-        <div className={compact ? "mb-3 flex flex-wrap items-center justify-between gap-x-4" : undefined}>
-          <h2 className={`${styles.cardTitle} mb-2 text-ink`}>
+        <div>
+          <h2
+            id={compact ? "wrap-up-final" : undefined}
+            tabIndex={compact ? -1 : undefined}
+            className={`${styles.cardTitle} mb-2 text-ink`}
+          >
             {compact ? "Hoe liep deze vergadering?" : "Vergaderscore"}{" "}
             <span className="text-base font-normal text-ink-3">{compact ? "· één klik" : "(optioneel)"}</span>
           </h2>
-          {!compact && (
+          {compact ? (
+            <p className="mb-2 max-w-3xl text-sm leading-relaxed">
+              <strong className="text-ink">Optioneel.</strong> De score helpt om de tevredenheid over vergaderingen
+              binnen het bedrijf op te volgen. Je kunt ook meteen afsluiten.
+            </p>
+          ) : (
             <p className="mb-3 max-w-3xl text-sm leading-relaxed">
               De vergaderscore helpt om de algemene tevredenheid over vergaderingen binnen het bedrijf op te volgen.
             </p>
           )}
-          <label
-            className={`${compact ? "" : "mb-3"} flex min-h-11 cursor-pointer items-center gap-3 text-sm font-bold`}
-          >
+          <label className="mb-3 flex min-h-11 cursor-pointer items-center gap-3 text-sm font-bold">
             <input
               className="size-5 shrink-0 accent-brand"
               type="checkbox"

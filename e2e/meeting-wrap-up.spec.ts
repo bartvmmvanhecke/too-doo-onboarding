@@ -62,7 +62,7 @@ test("concept blijft bewaard, eindtijd bevestigen en opslaan zonder mail", async
   await page.getByRole("button", { name: "Bekijk overzicht", exact: true }).click();
   await expect(page.getByLabel("Samenvatting", { exact: true })).toHaveValue("Onze eigen samenvatting.");
   await expect(page.getByRole("button", { name: "Score 4", exact: true })).toHaveAttribute("aria-pressed", "true");
-  await page.getByRole("button", { name: "✓ Vergadering afronden", exact: true }).click();
+  await page.getByRole("button", { name: "Sluit de vergadering af", exact: true }).click();
   await expect(page.getByRole("region", { name: "Meeting summary", exact: true })).toBeVisible();
   await page.getByRole("button", { name: "Verslag bekijken", exact: true }).click();
   const meetings = await storedMeetings(page);
@@ -87,7 +87,7 @@ test("zonder volgende vergadering bewaard voor later, mobiel en toegankelijke wi
   await page.screenshot({ path: "/tmp/wrap-up-v3-follow-up-mobile.png", fullPage: true });
   const followUpAxe = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa"]).analyze();
   expect(followUpAxe.violations).toEqual([]);
-  await page.getByRole("button", { name: "✓ Vergadering afronden", exact: true }).click();
+  await page.getByRole("button", { name: "Sluit de vergadering af", exact: true }).click();
   const meetings = await storedMeetings(page);
   expect(meetings).toHaveLength(1);
   expect(meetings[0].blocks[0].items.filter((i: { carry: string }) => i.carry === "next")).toHaveLength(3);
@@ -271,12 +271,12 @@ test("bestaande volgende vergadering blijft concept tot afronden en score staat 
   await page.getByLabel("Vraag ook de deelnemers om een score", { exact: true }).check();
   const order = await page.evaluate(() => {
     const score = document.querySelector('[aria-label="Score van 1 tot 10"]')!;
-    const send = [...document.querySelectorAll("button")].find((b) => b.textContent === "✓ Vergadering afronden")!;
+    const send = [...document.querySelectorAll("button")].find((b) => b.textContent === "Sluit de vergadering af")!;
     return !!(score.compareDocumentPosition(send) & Node.DOCUMENT_POSITION_FOLLOWING);
   });
   expect(order).toBe(true);
   await page.screenshot({ path: "/tmp/wrap-up-improved-follow-up.png" });
-  await page.getByRole("button", { name: "✓ Vergadering afronden", exact: true }).click();
+  await page.getByRole("button", { name: "Sluit de vergadering af", exact: true }).click();
   meetings = await storedMeetings(page);
   expect(meetings.find((m: { id: string }) => m.id === "next")).toMatchObject({
     name: "Vervolg over het budget",
@@ -295,7 +295,7 @@ test("nieuwe planning staat open en kan worden overgeslagen door de datum te wis
   await page.locator('[data-slot="calendar"]').getByRole("button").filter({ hasText: /^18$/ }).click();
   await page.getByRole("button", { name: "Datum wissen", exact: true }).click();
   await expect(page.getByRole("heading", { name: "Afronden", exact: true })).toBeVisible();
-  await page.getByRole("button", { name: "✓ Vergadering afronden", exact: true }).click();
+  await page.getByRole("button", { name: "Sluit de vergadering af", exact: true }).click();
   expect(await storedMeetings(page)).toHaveLength(1);
 });
 
@@ -411,7 +411,7 @@ test("footer groepeert contextlink rechts en toont de vorige stap links", async 
   await expect(page.getByRole("heading", { name: "Agenda", exact: true })).toBeFocused();
   await page.getByRole("button", { name: "4. Afronden", exact: true }).click();
   await expect(footer.getByRole("button", { name: "← Acties", exact: true })).toBeVisible();
-  await expect(footer.getByRole("button", { name: "✓ Vergadering afronden", exact: true })).toBeVisible();
+  await expect(footer.getByRole("button", { name: "Sluit de vergadering af", exact: true })).toBeVisible();
   await page.screenshot({ path: "/tmp/wrap-up-footer-desktop.png" });
   await page.setViewportSize({ width: 390, height: 844 });
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
@@ -462,4 +462,16 @@ test("prototypebalk toont vier afrondbanners en hervat bewaarde keuzes", async (
   expect((await storedMeetings(page)).length).toBe(3);
   await page.setViewportSize({ width: 390, height: 844 });
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+});
+
+test("de directe afrondingsdemo toont een timer die blijft lopen", async ({ page }) => {
+  await seedWrapUp(page, { automatic: true });
+  await page.goto("/app");
+  await page.getByRole("button", { name: "Meteen naar afrondingsflow", exact: true }).click();
+
+  const timer = page.getByRole("timer", { name: "Lopende vergadertijd" });
+  await expect(timer).toContainText("5 min over gepland einde");
+  await page.getByRole("button", { name: "2. Beslissingen", exact: true }).click();
+  await page.clock.fastForward(60_000);
+  await expect(timer).toContainText("6 min over gepland einde");
 });

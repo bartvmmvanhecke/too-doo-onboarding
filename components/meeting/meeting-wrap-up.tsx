@@ -160,6 +160,40 @@ export function MeetingWrapUp({ meeting }: { meeting: Meeting }) {
 
   return (
     <div className={`app-theme ${styles.shell}`}>
+      {isDemoEnvironment() && (
+        <div
+          role="region"
+          aria-label="Prototype volgende vergadering"
+          className="flex min-h-16 shrink-0 items-center gap-2 overflow-x-auto whitespace-nowrap bg-[var(--prototype-bar-bg)] px-6 py-2.5 pr-16 text-[13px] text-white [scrollbar-width:none]"
+        >
+          <span className="px-1 text-[11px] font-bold text-[var(--prototype-bar-muted)]">PROTOTYPE</span>
+          {step === 3 &&
+            [
+              { scheduled: true, label: "Volgende reeds ingepland" },
+              { scheduled: false, label: "Volgende nog niet ingepland" },
+            ].map(({ scheduled, label }) => (
+              <button
+                key={label}
+                type="button"
+                aria-pressed={!!nextInSeries(meeting, ops.meetings) === scheduled}
+                onClick={() => loadPlanningScenario(meeting.id, scheduled)}
+                className="min-h-11 shrink-0 rounded-lg border border-[var(--prototype-bar-border)] bg-[var(--prototype-bar-button)] px-3 aria-pressed:ring-2 aria-pressed:ring-white/60"
+              >
+                {label}
+              </button>
+            ))}
+          {step >= 3 && (
+            <button
+              type="button"
+              aria-pressed={separateFeedback}
+              onClick={() => ops.setDemo({ wrapUpSeparateFeedback: !separateFeedback })}
+              className="min-h-11 shrink-0 rounded-lg border border-[var(--prototype-bar-border)] bg-[var(--prototype-bar-button)] px-3 aria-pressed:ring-2 aria-pressed:ring-white/60"
+            >
+              Feedback als aparte stap
+            </button>
+          )}
+        </div>
+      )}
       <header className={styles.header}>
         <button type="button" className={styles.headerBack} onClick={leave}>
           <ArrowLeft aria-hidden className="size-4 shrink-0" />
@@ -170,38 +204,6 @@ export function MeetingWrapUp({ meeting }: { meeting: Meeting }) {
           {schedule && <span className={styles.headerSchedule}>{schedule}</span>}
         </div>
         {draft.entry === "live" && meeting.run && <WrapUpTimer meeting={meeting} startedAt={meeting.run.startedAt} />}
-        {step >= 3 && isDemoEnvironment() && (
-          <div
-            role="region"
-            aria-label="Prototype volgende vergadering"
-            className="flex flex-wrap items-center gap-2 rounded-xl bg-[var(--prototype-bar-bg)] p-2 text-[13px] text-white"
-          >
-            <span className="px-1 text-[11px] font-bold text-[var(--prototype-bar-muted)]">PROTOTYPE</span>
-            {step === 3 &&
-              [
-                { scheduled: true, label: "Volgende reeds ingepland" },
-                { scheduled: false, label: "Volgende nog niet ingepland" },
-              ].map(({ scheduled, label }) => (
-                <button
-                  key={label}
-                  type="button"
-                  aria-pressed={!!nextInSeries(meeting, ops.meetings) === scheduled}
-                  onClick={() => loadPlanningScenario(meeting.id, scheduled)}
-                  className="min-h-11 rounded-lg border border-[var(--prototype-bar-border)] bg-[var(--prototype-bar-button)] px-3 aria-pressed:ring-2 aria-pressed:ring-white/60"
-                >
-                  {label}
-                </button>
-              ))}
-            <button
-              type="button"
-              aria-pressed={separateFeedback}
-              onClick={() => ops.setDemo({ wrapUpSeparateFeedback: !separateFeedback })}
-              className="min-h-11 rounded-lg border border-[var(--prototype-bar-border)] bg-[var(--prototype-bar-button)] px-3 aria-pressed:ring-2 aria-pressed:ring-white/60"
-            >
-              Feedback als aparte stap
-            </button>
-          </div>
-        )}
       </header>
       <div className={styles.panel}>
         <main className={styles.scroll}>

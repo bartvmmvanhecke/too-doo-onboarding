@@ -151,6 +151,7 @@ export function MeetingWrapUp({ meeting }: { meeting: Meeting }) {
     else ops.putMeeting({ ...latest, wrapUpOpen: false, wrapUpDraft: { ...draft, entry: "later" } });
     router.push(`/app/overleg/${meeting.id}`);
   };
+  const liveTimerStart = draft.entry === "live" ? meeting.run?.startedAt : undefined;
   const startedAt = meeting.startedAt ?? meeting.run?.startedAt;
   const startTime = startedAt != null ? clockTime(startedAt) : meeting.time != null ? formatTime(meeting.time) : "";
   const endTime = meeting.endedAt != null ? clockTime(meeting.endedAt) : "";
@@ -203,7 +204,9 @@ export function MeetingWrapUp({ meeting }: { meeting: Meeting }) {
           <span className={styles.headerTitle}>{meeting.name}</span>
           {schedule && <span className={styles.headerSchedule}>{schedule}</span>}
         </div>
-        {draft.entry === "live" && meeting.run && <WrapUpTimer meeting={meeting} startedAt={meeting.run.startedAt} />}
+        {(liveTimerStart != null || isDemoEnvironment()) && (
+          <WrapUpTimer meeting={meeting} startedAt={liveTimerStart} />
+        )}
       </header>
       <div className={styles.panel}>
         <main className={styles.scroll}>
@@ -303,12 +306,12 @@ export function MeetingWrapUp({ meeting }: { meeting: Meeting }) {
     </div>
   );
 }
-function WrapUpTimer({ meeting, startedAt }: { meeting: Meeting; startedAt: number }) {
+function WrapUpTimer({ meeting, startedAt }: { meeting: Meeting; startedAt?: number }) {
   const end = timerEnd(meeting);
-  const now = meetingNow(meeting, useNow(true, end - meetingNow(meeting, 0)));
-  const overtime = now >= end;
-  const duration = Math.max(1, end - startedAt);
-  const elapsed = Math.max(0, now - startedAt);
+  const now = meetingNow(meeting, useNow(startedAt != null, end - meetingNow(meeting, 0)));
+  const duration = Math.max(1, startedAt == null ? meeting.duration * 60_000 : end - startedAt);
+  const elapsed = startedAt == null ? duration + 5 * 60_000 : Math.max(0, now - startedAt);
+  const overtime = elapsed >= duration;
   return (
     <div
       role="timer"
@@ -319,7 +322,9 @@ function WrapUpTimer({ meeting, startedAt }: { meeting: Meeting; startedAt: numb
     >
       <span>
         <span className="tabular-nums">{elapsedClock(elapsed)}</span> ·{" "}
-        {overtime ? `${Math.floor((now - end) / 60000)} min over gepland einde` : remainingLabel(end - now)}
+        {overtime
+          ? `${Math.floor((elapsed - duration) / 60000)} min over gepland einde`
+          : remainingLabel(duration - elapsed)}
       </span>
       <progress
         aria-label="Verstreken vergadertijd"

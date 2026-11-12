@@ -276,22 +276,22 @@ export function WrapUpPlanning({
             </Button>
           </div>
         )}
-      </section>
-      <section className={`${styles.finalCard} rounded-2xl border border-line p-5`}>
-        {carried.length ? (
-          <>
-            <h2 className={styles.cardTitle}>
-              {planningDate ? `Schuift door naar ${when}` : 'Gaat naar "Bewaard voor later"'}
-            </h2>
-            <ul className="mt-3 space-y-2 text-sm text-ink-2">
-              {carried.map((item) => (
-                <li key={item.id}>→ {item.text}</li>
-              ))}
-            </ul>
-          </>
-        ) : (
-          <p className="text-sm text-ink-3">Geen verplaatste punten.</p>
-        )}
+        <div className="-mx-5 mt-5 border-t border-line px-5 pt-5">
+          {carried.length ? (
+            <>
+              <h3 className={styles.cardTitle}>
+                {planningDate ? `Schuift door naar ${when}` : 'Gaat naar "Bewaard voor later"'}
+              </h3>
+              <ul className="mt-3 space-y-2 text-sm text-ink-2">
+                {carried.map((item) => (
+                  <li key={item.id}>→ {item.text}</li>
+                ))}
+              </ul>
+            </>
+          ) : (
+            <p className="text-sm text-ink-3">Geen verplaatste punten.</p>
+          )}
+        </div>
       </section>
     </div>
   );

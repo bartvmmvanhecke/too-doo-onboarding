@@ -69,6 +69,7 @@ export function WrapUpPlanning({
           <>
             <div className="mb-4 flex items-start justify-between gap-4">
               <div>
+                {compact && changed && <p className="mb-1 text-sm font-bold text-brand">Gewijzigd · uit de reeks</p>}
                 <h2 className="font-bold">{next ? "Deze vergadering verplaatsen" : "Volgende vergadering plannen"}</h2>
                 <p className="mt-1 text-sm text-ink-3">
                   {next
@@ -95,9 +96,10 @@ export function WrapUpPlanning({
                 id="next-meeting-fields"
                 className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-[2fr_1.5fr_1fr_1fr]"
               >
-                <label className="flex min-w-0 flex-col gap-2 text-sm font-bold">
-                  Naam
+                <div className="flex min-w-0 flex-col gap-2 text-sm font-bold">
+                  <label htmlFor="next-name-input">Naam</label>
                   <input
+                    id="next-name-input"
                     className={`${field} min-w-0 w-full font-normal`}
                     value={planningName}
                     placeholder={`Bijvoorbeeld: ${meeting.name}`}
@@ -110,7 +112,7 @@ export function WrapUpPlanning({
                       Geef de vergadering een naam, of annuleer.
                     </span>
                   )}
-                </label>
+                </div>
                 <div className="flex min-w-0 flex-col gap-2 text-sm font-bold">
                   <label id="next-date-label" htmlFor="next-date-trigger">
                     Datum
@@ -138,7 +140,7 @@ export function WrapUpPlanning({
                       </PopoverTrigger>
                       <PopoverContent
                         align="start"
-                        className="app-theme w-[var(--radix-popover-trigger-width)] min-w-60 max-w-[calc(100vw-2rem)] border-line bg-white p-2"
+                        className="app-theme w-[var(--radix-popover-trigger-width)] min-w-[326px] max-w-[calc(100vw-1rem)] border-line bg-white p-2 motion-reduce:animate-none"
                       >
                         <Calendar
                           className={styles.datePicker}
@@ -381,15 +383,18 @@ export function WrapUpFollowUp({
           ))}
         </div>
         {(!compact || draft.score !== undefined) && (
-          <label className="mt-4 block text-sm font-bold">
-            {compact ? "Feedback (optioneel)" : "Feedback"}
+          <div className="mt-4 text-sm">
+            <label htmlFor="wrap-feedback" className="block font-bold">
+              {compact ? "Feedback (optioneel)" : "Feedback"}
+            </label>
             <textarea
+              id="wrap-feedback"
               placeholder={compact ? "Wat ging goed, wat kan beter?" : "Aa"}
               className="mt-2 min-h-28 w-full rounded-xl border border-line bg-white p-4 font-normal"
               value={draft.feedback ?? ""}
               onChange={(e) => patch({ feedback: e.target.value })}
             />
-          </label>
+          </div>
         )}
         {!compact && <p className="mt-3 text-xs text-ink-3">Optioneel.</p>}
       </section>
@@ -401,7 +406,7 @@ export function WrapUpFollowUp({
 
             <Button
               variant="link"
-              className="rounded-none text-brand"
+              className="min-h-11 rounded-none text-brand"
               aria-expanded={overviewOpen}
               aria-controls="wrap-final-overview"
               onClick={() => setOverviewOpen(!overviewOpen)}

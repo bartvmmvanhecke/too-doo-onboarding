@@ -437,7 +437,7 @@
   width: 100%;
   padding: 0;
   color: var(--ink);
-  --cell-size: 32px;
+  --cell-size: 44px;
 }
 .datePicker :global(.rdp-months),
 .datePicker :global(.rdp-month) {
@@ -445,9 +445,9 @@
 }
 .datePicker :global(.rdp-day) button,
 .datePicker :global(.rdp-nav) button {
-  width: 32px;
-  height: 32px;
-  min-height: 32px;
+  width: 44px;
+  height: 44px;
+  min-height: 44px;
   border-radius: 8px;
   padding: 0;
   font-weight: 400;
@@ -466,4 +466,11 @@
 }
 .datePicker :global(.rdp-nav) button {
   color: var(--brand);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .shell button,
+  .datePicker button {
+    transition: none;
+  }
 }

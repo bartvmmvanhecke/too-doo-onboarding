@@ -96,9 +96,11 @@ export function PrototypeNav() {
   const pathname = usePathname();
   const params = useSearchParams();
   const wrapUpId = /^\/vergaderingen\/([^/]+)\/afronden$/.exec(pathname)?.[1];
-  const wrapUpOpen = useStore((s) => s.meetings.some((m) =>
-    m.id === wrapUpId && !!m.endedAt && !m.followUpStatus,
-  ));
+  const wrapUpOpen = useStore((s) =>
+    s.meetings.some(
+      (m) => m.id === wrapUpId && !!m.endedAt && m.followUpStatus !== "sent" && m.followUpStatus !== "saved",
+    ),
+  );
   const detail = /^\/app\/overleg\/[^/]+$/.test(pathname);
   const meeting = useStore((s) => s.meetings.find((m) => m.id === pathname.split("/").at(-1)));
   const trialVisible = useGuestStore((s) => s.transitionPlayed);

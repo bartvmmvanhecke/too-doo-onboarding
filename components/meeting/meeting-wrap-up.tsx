@@ -51,6 +51,7 @@ export function MeetingWrapUp({ meeting }: { meeting: Meeting }) {
   };
   const heading = useRef<HTMLHeadingElement>(null);
   const patch = (update: Partial<WrapUpDraft>) => {
+    if ("nextName" in update || "beforeNextEdit" in update) setValidateName(false);
     const latest = useStore.getState().meetings.find((m) => m.id === meeting.id)!;
     ops.putMeeting({
       ...latest,
@@ -74,9 +75,17 @@ export function MeetingWrapUp({ meeting }: { meeting: Meeting }) {
     }
   }, [meeting.id]);
   useEffect(() => {
+    if (separateFeedback) return;
+    const state = useStore.getState();
+    const latest = state.meetings.find((m) => m.id === meeting.id);
+    if (latest?.wrapUpDraft?.step === 1) {
+      state.putMeeting({ ...latest, wrapUpDraft: { ...latest.wrapUpDraft, step: 2 } });
+    }
+  }, [meeting.id, separateFeedback, draft.step]);
+  useEffect(() => {
     heading.current?.focus();
   }, [step]);
-  const finish = (status: "sent" | "saved") => {
+  const finish = () => {
     const state = useStore.getState();
     const latest = state.meetings.find((m) => m.id === meeting.id)!;
     if (!canContinuePlanning()) {
@@ -92,13 +101,13 @@ export function MeetingWrapUp({ meeting }: { meeting: Meeting }) {
       nextDate,
       noNext: !nextDate,
       nextName: draft.nextName?.trim() || next?.name || latest.name,
-      nextTime: draft.nextTime || formatTime(next?.time ?? latest.time ?? 540),
+      nextTime: nextDate ? draft.nextTime || formatTime(next?.time ?? latest.time ?? 540) : "",
       nextDuration:
         Number.isInteger(duration) && duration >= 5 && duration <= 1440
           ? duration
           : (next?.duration ?? latest.duration),
     };
-    useStore.setState({ meetings: finishWrapUp({ ...latest, wrapUpDraft: completedDraft }, state.meetings, status) });
+    useStore.setState({ meetings: finishWrapUp({ ...latest, wrapUpDraft: completedDraft }, state.meetings, "saved") });
     router.push(`/app/overleg/${meeting.id}`);
   };
   const go = (next: number) => {
@@ -202,28 +211,24 @@ export function MeetingWrapUp({ meeting }: { meeting: Meeting }) {
                 <DecisionsReview meeting={meeting} />
               ) : step === 2 ? (
                 <ActionsReview meeting={meeting} />
-              ) : !separateFeedback ? (
+              ) : step === 3 ? (
                 <>
-                  <p className="mb-6 text-ink-2">Nog twee korte dingen voor je de vergadering afsluit.</p>
-                  <h2 className="text-xl font-bold">Volgende vergadering</h2>
+                  {!separateFeedback && (
+                    <>
+                      <p className="mb-6 text-ink-2">Nog twee korte dingen voor je de vergadering afsluit.</p>
+                      <h2 className="text-xl font-bold">Volgende vergadering</h2>
+                    </>
+                  )}
                   <WrapUpPlanning
                     key={nextInSeries(meeting, ops.meetings)?.id ?? "unscheduled"}
                     meeting={meeting}
                     draft={draft}
                     patch={patch}
                     nameError={nameError}
-                    compact
+                    compact={!separateFeedback}
                   />
-                  <WrapUpFollowUp meeting={meeting} draft={draft} patch={patch} compact />
+                  {!separateFeedback && <WrapUpFollowUp meeting={meeting} draft={draft} patch={patch} compact />}
                 </>
-              ) : step === 3 ? (
-                <WrapUpPlanning
-                  key={nextInSeries(meeting, ops.meetings)?.id ?? "unscheduled"}
-                  meeting={meeting}
-                  draft={draft}
-                  patch={patch}
-                  nameError={nameError}
-                />
               ) : (
                 <WrapUpFollowUp meeting={meeting} draft={draft} patch={patch} />
               )}
@@ -239,24 +244,25 @@ export function MeetingWrapUp({ meeting }: { meeting: Meeting }) {
         <footer className={styles.footer}>
           <div className={styles.footerInner}>
             {step > 0 && (
-              <Button variant="link" className={styles.previousStep} onClick={() => go(step - 1)}>
+              <Button variant="link" className={`${styles.previousStep} min-h-11`} onClick={() => go(step - 1)}>
                 ← {steps[step - 1].label}
               </Button>
             )}
             <div className={styles.footerActions}>
-              <Button variant="link" onClick={leave}>
+              <Button variant="link" className="min-h-11" onClick={leave}>
                 {draft.entry === "live" && meeting.run ? "Terug naar vergadering" : "Later afronden"}
               </Button>
-              {step === finalStep && <Button onClick={() => finish("saved")}>Vergadering afronden</Button>}
-              {step < finalStep && <Button onClick={() => go(step + 1)}>{steps[step + 1].label} →</Button>}
+              {step === finalStep && (
+                <Button className="min-h-11" onClick={finish}>
+                  ✓ Vergadering afronden
+                </Button>
+              )}
+              {step < finalStep && (
+                <Button className="min-h-11" onClick={() => go(step + 1)}>
+                  {steps[step + 1].label} →
+                </Button>
+              )}
             </div>
-            <p className="w-full text-xs text-ink-3">
-              {step === finalStep
-                ? "Je keuzes en eventuele planning worden bewaard. Je kunt de opvolging daarna versturen."
-                : draft.entry === "live" && meeting.run
-                  ? "Terug naar vergadering hervat de vergadermodus."
-                  : "Later afronden bewaart je keuzes. De opvolging wordt nog niet verstuurd."}
-            </p>
           </div>
         </footer>
       </div>

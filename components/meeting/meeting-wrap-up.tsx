@@ -147,27 +147,36 @@ export function MeetingWrapUp({ meeting }: { meeting: Meeting }) {
         <Logo href="/app" tone="white" />
         <div className="flex min-w-0 flex-wrap items-center justify-between gap-3 pr-14">
           <span>{meeting.name}</span>
-          {step === 3 && isDemoEnvironment() && (
+          {step >= 3 && isDemoEnvironment() && (
             <div
               role="region"
               aria-label="Prototype volgende vergadering"
               className="flex flex-wrap items-center gap-2 rounded-xl bg-[var(--prototype-bar-bg)] p-2 text-[13px] text-white"
             >
               <span className="px-1 text-[11px] font-bold text-[var(--prototype-bar-muted)]">PROTOTYPE</span>
-              {[
-                { scheduled: true, label: "Volgende reeds ingepland" },
-                { scheduled: false, label: "Volgende nog niet ingepland" },
-              ].map(({ scheduled, label }) => (
-                <button
-                  key={label}
-                  type="button"
-                  aria-pressed={!!nextInSeries(meeting, ops.meetings) === scheduled}
-                  onClick={() => loadPlanningScenario(meeting.id, scheduled)}
-                  className="min-h-11 rounded-lg border border-[var(--prototype-bar-border)] bg-[var(--prototype-bar-button)] px-3 aria-pressed:ring-2 aria-pressed:ring-white/60"
-                >
-                  {label}
-                </button>
-              ))}
+              {step === 3 &&
+                [
+                  { scheduled: true, label: "Volgende reeds ingepland" },
+                  { scheduled: false, label: "Volgende nog niet ingepland" },
+                ].map(({ scheduled, label }) => (
+                  <button
+                    key={label}
+                    type="button"
+                    aria-pressed={!!nextInSeries(meeting, ops.meetings) === scheduled}
+                    onClick={() => loadPlanningScenario(meeting.id, scheduled)}
+                    className="min-h-11 rounded-lg border border-[var(--prototype-bar-border)] bg-[var(--prototype-bar-button)] px-3 aria-pressed:ring-2 aria-pressed:ring-white/60"
+                  >
+                    {label}
+                  </button>
+                ))}
+              <button
+                type="button"
+                aria-pressed={separateFeedback}
+                onClick={() => ops.setDemo({ wrapUpSeparateFeedback: !separateFeedback })}
+                className="min-h-11 rounded-lg border border-[var(--prototype-bar-border)] bg-[var(--prototype-bar-button)] px-3 aria-pressed:ring-2 aria-pressed:ring-white/60"
+              >
+                Feedback als aparte stap
+              </button>
             </div>
           )}
         </div>
@@ -414,10 +423,10 @@ function ReviewList({
 }) {
   const people = usePeople();
   return (
-    <section className={styles.agendaCard}>
+    <section className={`${styles.agendaCard} mt-7`}>
       <h2 className={styles.cardTitle}>{label}</h2>
       {rows.length ? (
-        <ul aria-label={label} className="mt-4">
+        <ul aria-label={label} className={`${styles.reviewList} mt-4`}>
           {rows.map((row) => {
             const owner = people.find((person) => person.id === row.ownerId);
             return (

@@ -347,7 +347,7 @@ export function WrapUpFollowUp({
     Object.fromEntries(people.map((person) => [person.id, person.name])),
   );
   return (
-    <div className="mt-6 space-y-6">
+    <div className={compact ? "mt-4" : "mt-6 space-y-6"}>
       <section className={`${styles.finalCard} rounded-2xl border border-line p-6 text-ink-2`}>
         <div className={compact ? "mb-3 flex flex-wrap items-center justify-between gap-x-4" : undefined}>
           <h2 className={`${styles.cardTitle} mb-2 text-ink`}>

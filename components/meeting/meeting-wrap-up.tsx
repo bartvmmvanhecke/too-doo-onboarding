@@ -291,7 +291,7 @@ export function MeetingWrapUp({ meeting }: { meeting: Meeting }) {
               </Button>
               {step === finalStep && (
                 <Button className="min-h-11" onClick={finish}>
-                  ✓ Vergadering afronden
+                  Sluit de vergadering af
                 </Button>
               )}
               {step < finalStep && (

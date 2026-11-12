@@ -42,7 +42,7 @@ for (const scheduled of [true, false]) {
       await expect(page.getByRole("heading", { name: "Hoe liep deze vergadering? · één klik" })).toBeFocused();
     }
     await expect(page.getByRole("heading", { name: "Hoe liep deze vergadering? · één klik" })).toBeVisible();
-    await page.getByRole("button", { name: "✓ Vergadering afronden", exact: true }).click();
+    await page.getByRole("button", { name: "Sluit de vergadering af", exact: true }).click();
     const meetings = await storedMeetings(page);
     const current = meetings.find((meeting: { id: string }) => meeting.id === "wrap-test");
     expect(current.followUpStatus).toBe("saved");

@@ -188,6 +188,7 @@ interface Data {
     /** Prototype: het oude eerste scherm "Zet je eerste vaste overleg klaar" op een lege Vergaderingen. */
     altEmpty?: boolean;
     wrapUpToolbar?: boolean;
+    wrapUpSeparateFeedback?: boolean;
     wrapUpPrimary?: boolean;
     wrapUpCompact?: boolean;
   };

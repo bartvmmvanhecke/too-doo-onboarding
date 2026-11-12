@@ -115,6 +115,7 @@ export function DemoBar() {
           [
             { key: "wrapUpPrimary", label: "Afronden: knoppen in primaire kleur" },
             { key: "wrapUpCompact", label: "Afronden: compacte detailpagina" },
+            { key: "wrapUpSeparateFeedback", label: "Feedback als aparte stap" },
           ] as const
         ).map(({ key, label }) => (
           <label key={key} className="mb-3 flex min-h-11 cursor-pointer items-center gap-3 text-[13px] font-bold">

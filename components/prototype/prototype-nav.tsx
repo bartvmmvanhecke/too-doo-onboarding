@@ -44,6 +44,7 @@ interface MenuItem {
   icon: LucideIcon;
   onSelect: () => void;
   /** Een optie die aan of uit staat: vinkje en `menuitemcheckbox`. */
+  onlyInWrapUp?: boolean;
   checked?: (demo: ReturnType<typeof useStore.getState>["demo"]) => boolean;
 }
 
@@ -51,6 +52,17 @@ interface MenuItem {
 const MENU_ITEMS: MenuItem[] = [
   { id: "herstart", label: "Herstart demo", icon: RotateCcw, onSelect: restartDemo },
   { id: "demo", label: "Demo-instellingen", icon: FlaskConical, onSelect: openDemoSettings },
+  {
+    id: "wrap-up-feedback",
+    label: "Feedback als aparte stap",
+    icon: List,
+    onlyInWrapUp: true,
+    onSelect: () => {
+      const { demo, setDemo } = useStore.getState();
+      setDemo({ wrapUpSeparateFeedback: !demo.wrapUpSeparateFeedback });
+    },
+    checked: (demo) => !!demo.wrapUpSeparateFeedback,
+  },
   {
     id: "alt-leeg",
     label: "Alternatief eerste scherm lege vergadering",
@@ -83,6 +95,10 @@ const MENU_ITEMS: MenuItem[] = [
 export function PrototypeNav() {
   const pathname = usePathname();
   const params = useSearchParams();
+  const wrapUpId = /^\/vergaderingen\/([^/]+)\/afronden$/.exec(pathname)?.[1];
+  const wrapUpOpen = useStore((s) => s.meetings.some((m) =>
+    m.id === wrapUpId && !!m.endedAt && !m.followUpStatus,
+  ));
   const detail = /^\/app\/overleg\/[^/]+$/.test(pathname);
   const meeting = useStore((s) => s.meetings.find((m) => m.id === pathname.split("/").at(-1)));
   const trialVisible = useGuestStore((s) => s.transitionPlayed);
@@ -187,7 +203,7 @@ export function PrototypeNav() {
                   </div>
                 </div>
               )}
-              {MENU_ITEMS.map((item, i) => {
+              {MENU_ITEMS.filter((item) => !item.onlyInWrapUp || wrapUpOpen).map((item, i) => {
                 const Icon = item.icon;
                 const checked = item.checked ? hydrated && item.checked(demo) : undefined;
                 return (

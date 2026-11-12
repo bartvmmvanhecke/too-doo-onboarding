@@ -373,23 +373,22 @@
 .body details.completedAgenda {
   background: white;
 }
-.completedAgenda .agendaCard {
+.cardTitle {
+  font-size: 17px;
+  line-height: 1.5;
+  font-weight: 700;
+}
+
+.cardRow + .cardRow {
   margin-top: 16px;
+  border-top: 1px solid var(--line);
+  padding-top: 16px;
 }
 
 .reviewRow {
   display: flex;
   align-items: center;
   gap: 16px;
-  border: 1px solid var(--line);
-  border-radius: 18px;
-  background: white;
-  padding: 20px 24px;
-}
-@media (max-width: 600px) {
-  .reviewRow {
-    padding: 16px;
-  }
 }
 
 .scoreScale {

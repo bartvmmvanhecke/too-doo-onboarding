@@ -70,7 +70,9 @@ export function WrapUpPlanning({
             <div className="mb-4 flex items-start justify-between gap-4">
               <div>
                 {compact && changed && <p className="mb-1 text-sm font-bold text-brand">Gewijzigd · uit de reeks</p>}
-                <h2 className="font-bold">{next ? "Deze vergadering verplaatsen" : "Volgende vergadering plannen"}</h2>
+                <h2 className={styles.cardTitle}>
+                  {next ? "Deze vergadering verplaatsen" : "Plan je volgende vergadering in"}
+                </h2>
                 <p className="mt-1 text-sm text-ink-3">
                   {next
                     ? `Je wijzigt de bestaande vergadering van ${formatShortDate(next.date!)}. Er komt geen tweede bij, en de rest van de reeks blijft zoals ze is.`
@@ -237,7 +239,8 @@ export function WrapUpPlanning({
               <span>{Number(planningDate.slice(-2))}</span>
             </div>
             <div className="min-w-0 flex-1 basis-60">
-              <h2 className="font-bold">{changed ? "Gewijzigd · uit de reeks" : "Al gepland · uit de reeks"}</h2>
+              <h2 className={styles.cardTitle}>{compact ? "Volgende vergadering" : "Geplande vergadering"}</h2>
+              <p className="text-sm text-ink-3">{changed ? "Gewijzigd · uit de reeks" : "Al gepland · uit de reeks"}</p>
               <p className="mt-1 text-sm text-ink-2">
                 {planningName} · {when} · {planningTime || originalTime}–{endTime}
               </p>
@@ -251,7 +254,7 @@ export function WrapUpPlanning({
       <section className={`${styles.finalCard} rounded-2xl border border-line p-5`}>
         {carried.length ? (
           <>
-            <h2 className="text-sm font-bold">
+            <h2 className={styles.cardTitle}>
               {planningDate ? `Schuift door naar ${when}` : 'Gaat naar "Bewaard voor later"'}
             </h2>
             <ul className="mt-3 space-y-2 text-sm text-ink-2">
@@ -347,7 +350,7 @@ export function WrapUpFollowUp({
     <div className="mt-6 space-y-6">
       <section className={`${styles.finalCard} rounded-2xl border border-line p-6 text-ink-2`}>
         <div className={compact ? "mb-3 flex flex-wrap items-center justify-between gap-x-4" : undefined}>
-          <h2 className="mb-2 text-xl font-bold text-ink">
+          <h2 className={`${styles.cardTitle} mb-2 text-ink`}>
             {compact ? "Hoe liep deze vergadering?" : "Vergaderscore"}{" "}
             <span className="text-base font-normal text-ink-3">{compact ? "· één klik" : "(optioneel)"}</span>
           </h2>
@@ -402,7 +405,7 @@ export function WrapUpFollowUp({
         <section className={`${styles.finalCard} overflow-hidden rounded-2xl border border-line`}>
           <div className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-x-5 gap-y-2 p-6">
             <List aria-hidden className="size-5 text-ink-2" />
-            <h2 className="text-lg font-bold">Wat er vastligt</h2>
+            <h2 className={styles.cardTitle}>Wat er vastligt</h2>
 
             <Button
               variant="link"

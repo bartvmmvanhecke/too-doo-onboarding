@@ -212,10 +212,7 @@ export function MeetingWrapUp({ meeting }: { meeting: Meeting }) {
               ) : step === 3 ? (
                 <>
                   {!separateFeedback && (
-                    <>
-                      <p className="mb-6 text-ink-2">Nog twee korte dingen voor je de vergadering afsluit.</p>
-                      <h2 className="text-xl font-bold">Volgende vergadering</h2>
-                    </>
+                    <p className="mb-6 text-ink-2">Nog twee korte dingen voor je de vergadering afsluit.</p>
                   )}
                   <WrapUpPlanning
                     key={nextInSeries(meeting, ops.meetings)?.id ?? "unscheduled"}
@@ -287,7 +284,7 @@ function AgendaReview({
     const recorded = item.entries.filter((entry) => entry.kind !== "document").length;
     const suggestion = suggestDecision(item);
     return (
-      <article key={item.id} aria-label={item.text} className={styles.agendaCard}>
+      <article key={item.id} aria-label={item.text} className={styles.cardRow}>
         <div className={styles.agendaCardHeader}>
           <span className={styles.agendaCategory}>{block.title}</span>
           <div className={styles.agendaCounts}>
@@ -310,7 +307,7 @@ function AgendaReview({
             ))}
           </div>
         </div>
-        <h3 className="mt-2 text-lg font-bold">{item.text}</h3>
+        <p className="mt-2 text-base font-bold">{item.text}</p>
         <p className="mt-2 mb-5 flex flex-wrap items-center gap-2 text-sm text-ink-3">
           <Timer aria-hidden className="size-4" />
           {item.duration != null && <span>{item.duration} min ·</span>}
@@ -364,13 +361,15 @@ function AgendaReview({
     >
       <TooltipProvider>
         <div className="[&_button]:min-h-11 [&_button]:min-w-11 [&_input]:min-h-11 [&_select]:min-h-11">
-          <section>
-            <h2 className="text-lg font-bold">Open punten ({open.length})</h2>
+          <section className={styles.agendaCard}>
+            <h2 className={styles.cardTitle}>Open punten ({open.length})</h2>
             {!open.length && <p className="mt-3 text-sm text-ink-2">Alle punten zijn voltooid.</p>}
-            <div className="mt-4 flex flex-col gap-4">{open.map(renderItem)}</div>
+            <div className="mt-4">{open.map(renderItem)}</div>
           </section>
           <details className={`mt-5 rounded-2xl border border-line p-4 sm:p-6 ${styles.completedAgenda}`}>
-            <summary className="min-h-11 cursor-pointer font-bold">Voltooide punten ({done.length})</summary>
+            <summary className={`min-h-11 cursor-pointer ${styles.cardTitle}`}>
+              Voltooide punten ({done.length})
+            </summary>
             {done.map(renderItem)}
           </details>
         </div>
@@ -414,35 +413,44 @@ function ReviewList({
   empty: string;
 }) {
   const people = usePeople();
-  return rows.length ? (
-    <ul aria-label={label} className="flex flex-col gap-4">
-      {rows.map((row) => {
-        const owner = people.find((person) => person.id === row.ownerId);
-        return (
-          <li key={row.id} className={styles.reviewRow}>
-            <div className="min-w-0 flex-1">
-              <h2 className="break-words text-base font-bold">{row.text}</h2>
-              <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-ink-3">
-                {row.topic && (
-                  <span className="inline-flex min-w-0 items-center gap-1.5">
-                    <ListChecks aria-hidden className="size-4 shrink-0" />
-                    <span className="break-words">{row.topic}</span>
-                  </span>
+  return (
+    <section className={styles.agendaCard}>
+      <h2 className={styles.cardTitle}>{label}</h2>
+      {rows.length ? (
+        <ul aria-label={label} className="mt-4">
+          {rows.map((row) => {
+            const owner = people.find((person) => person.id === row.ownerId);
+            return (
+              <li key={row.id} className={`${styles.reviewRow} ${styles.cardRow}`}>
+                <div className="min-w-0 flex-1">
+                  <p className="break-words text-base font-bold">{row.text}</p>
+                  <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-ink-3">
+                    {row.topic && (
+                      <span className="inline-flex min-w-0 items-center gap-1.5">
+                        <ListChecks aria-hidden className="size-4 shrink-0" />
+                        <span className="break-words">{row.topic}</span>
+                      </span>
+                    )}
+                    {row.date && (
+                      <span className="inline-flex items-center gap-1.5">
+                        <CalendarDays aria-hidden className="size-4 shrink-0" />
+                        {/^\d{4}-\d{2}-\d{2}$/.test(row.date) ? formatShortDate(row.date) : row.date}
+                      </span>
+                    )}
+                  </div>
+                </div>
+                {owner ? (
+                  <Avatar person={owner} size={36} />
+                ) : (
+                  <span className="text-xs text-ink-3">Geen eigenaar</span>
                 )}
-                {row.date && (
-                  <span className="inline-flex items-center gap-1.5">
-                    <CalendarDays aria-hidden className="size-4 shrink-0" />
-                    {/^\d{4}-\d{2}-\d{2}$/.test(row.date) ? formatShortDate(row.date) : row.date}
-                  </span>
-                )}
-              </div>
-            </div>
-            {owner ? <Avatar person={owner} size={36} /> : <span className="text-xs text-ink-3">Geen eigenaar</span>}
-          </li>
-        );
-      })}
-    </ul>
-  ) : (
-    <p className="text-sm text-ink-3">{empty}</p>
+              </li>
+            );
+          })}
+        </ul>
+      ) : (
+        <p className="mt-3 text-sm text-ink-3">{empty}</p>
+      )}
+    </section>
   );
 }

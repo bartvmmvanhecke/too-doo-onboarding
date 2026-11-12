@@ -16,7 +16,7 @@ for (const scheduled of [true, false]) {
       })
       .click();
     if (scheduled) {
-      await expect(page.getByRole("heading", { name: "Al gepland · uit de reeks" })).toBeVisible();
+      await expect(page.getByText("Al gepland · uit de reeks", { exact: true })).toBeVisible();
       await page.getByRole("button", { name: "Datum of tijd wijzigen" }).click();
       await page.getByLabel("Naam", { exact: true }).fill("Verplaatst overleg");
       await page.locator("#next-date-trigger").click();
@@ -29,7 +29,7 @@ for (const scheduled of [true, false]) {
       await page.locator('[data-slot="calendar"]').getByRole("button").filter({ hasText: /^18$/ }).click();
       await expect(page.getByText("Gewijzigd · uit de reeks", { exact: true })).toBeVisible();
     } else {
-      await expect(page.getByRole("heading", { name: "Volgende vergadering plannen", exact: true })).toBeVisible();
+      await expect(page.getByRole("heading", { name: "Plan je volgende vergadering in", exact: true })).toBeVisible();
       await expect(page.getByLabel("Naam", { exact: true })).toHaveValue("Directievergadering");
       await expect(page.locator("#next-date-trigger")).toContainText("dd/mm/yyyy");
       await expect(page.getByLabel("Starttijd", { exact: true })).toHaveValue("");

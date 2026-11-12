@@ -38,6 +38,8 @@ for (const scheduled of [true, false]) {
       await expect(page.getByLabel("Starttijd", { exact: true })).toHaveValue("09:00");
       await page.getByRole("button", { name: "Datum wissen", exact: true }).click();
       await expect(page.getByText('Gaat naar "Bewaard voor later"', { exact: true })).toBeVisible();
+      await page.getByRole("link", { name: "afronden", exact: true }).click();
+      await expect(page.getByRole("heading", { name: "Hoe liep deze vergadering? · één klik" })).toBeFocused();
     }
     await expect(page.getByRole("heading", { name: "Hoe liep deze vergadering? · één klik" })).toBeVisible();
     await page.getByRole("button", { name: "✓ Vergadering afronden", exact: true }).click();

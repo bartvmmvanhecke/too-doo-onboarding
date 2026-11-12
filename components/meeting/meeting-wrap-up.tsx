@@ -228,7 +228,12 @@ export function MeetingWrapUp({ meeting }: { meeting: Meeting }) {
               ))}
             </nav>
             <div className={styles.body}>
-              <h1 ref={heading} tabIndex={-1} className="mb-2 text-3xl font-bold outline-none">
+              <h1
+                id={separateFeedback && step === finalStep ? "wrap-up-final" : undefined}
+                ref={heading}
+                tabIndex={-1}
+                className="mb-2 text-3xl font-bold outline-none"
+              >
                 {steps[step].label}
               </h1>
               {step === 0 ? (
@@ -254,6 +259,7 @@ export function MeetingWrapUp({ meeting }: { meeting: Meeting }) {
                     patch={patch}
                     nameError={nameError}
                     compact={!separateFeedback}
+                    onGoToFinalStep={separateFeedback ? () => go(finalStep) : undefined}
                   />
                   {!separateFeedback && <WrapUpFollowUp meeting={meeting} draft={draft} patch={patch} compact />}
                 </>

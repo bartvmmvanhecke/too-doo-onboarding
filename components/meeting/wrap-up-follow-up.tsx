@@ -19,12 +19,14 @@ export function WrapUpPlanning({
   patch,
   compact = false,
   nameError,
+  onGoToFinalStep,
 }: {
   meeting: Meeting;
   draft: WrapUpDraft;
   patch: (p: Partial<WrapUpDraft>) => void;
   compact?: boolean;
   nameError: boolean;
+  onGoToFinalStep?: () => void;
 }) {
   const meetings = useStore((s) => s.meetings);
   const next = nextInSeries(meeting, meetings);
@@ -100,8 +102,21 @@ export function WrapUpPlanning({
               )}
             </div>
             {!next && !planningDate && (
-              <p role="status" className="mb-4 rounded-xl bg-brand-soft px-4 py-3 text-sm text-brand">
-                Nog geen datum? Niet erg, die kan je ook later aanmaken. Ga verder naar ‘afronden’.
+              <p role="status" className="mb-4 rounded-xl bg-brand-soft px-4 py-3 text-sm text-ink">
+                Nog geen datum? Niet erg, die kan je ook later aanmaken. Ga verder naar ‘
+                <a
+                  href="#wrap-up-final"
+                  className="font-semibold text-brand underline"
+                  onClick={(event) => {
+                    if (onGoToFinalStep) {
+                      event.preventDefault();
+                      onGoToFinalStep();
+                    }
+                  }}
+                >
+                  afronden
+                </a>
+                ’.
               </p>
             )}
             <>
@@ -361,7 +376,11 @@ export function WrapUpFollowUp({
     <div className={compact ? "mt-4" : "mt-6 space-y-6"}>
       <section className={`${styles.finalCard} rounded-2xl border border-line p-6 text-ink-2`}>
         <div>
-          <h2 className={`${styles.cardTitle} mb-2 text-ink`}>
+          <h2
+            id={compact ? "wrap-up-final" : undefined}
+            tabIndex={compact ? -1 : undefined}
+            className={`${styles.cardTitle} mb-2 text-ink`}
+          >
             {compact ? "Hoe liep deze vergadering?" : "Vergaderscore"}{" "}
             <span className="text-base font-normal text-ink-3">{compact ? "· één klik" : "(optioneel)"}</span>
           </h2>
